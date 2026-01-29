@@ -6,12 +6,59 @@ O projeto é guiado por uma abordagem **content-first**: correção, estrutura e
 
 ---
 
+## Tecnologias Utilizadas
+
+* **Linguagem**: Java 17+
+* **Framework**: Spring Boot 3.x
+* **Banco de Dados**: SQLite
+* **Build Tool**: Maven
+* **Arquitetura**: REST API com padrão MVC
+
+---
+
+## Setup do Projeto
+
+### Pré-requisitos
+
+* Java 17 ou superior
+* Maven 3.6 ou superior
+
+### Execução Local
+
+1. Clone o repositório:
+   ```bash
+   git clone <url-do-repositorio>
+   cd studora-back
+   ```
+
+2. Compile e execute o projeto:
+   ```bash
+   mvn spring-boot:run
+   ```
+
+3. A aplicação estará disponível em: `http://localhost:4534`
+
+### Build do Projeto
+
+Para construir o JAR executável:
+```bash
+mvn clean package
+```
+
+Para executar o JAR gerado:
+```bash
+java -jar target/studora-<versao>.jar
+```
+
+---
+
 ## Status do Projeto
 
 **Fase 1 — API e Modelo de Dados (atual)**
 
 * Definição e estabilização do schema do banco de dados
 * Construção da API para questões, alternativas, taxonomia e respostas
+* Camadas de controller, service e repository implementadas
 
 **Fase 2 — Interface (planejada)**
 
@@ -54,7 +101,8 @@ Ideias-chave:
 ## Banco de Dados
 
 * Banco atual: **SQLite** (simples, portátil e suficiente para as fases iniciais)
-* Schema definido em `schema.sql`
+* Schema definido em `src/main/resources/db/schema.sql`
+* Arquivo de banco de dados localizado em `db/studora.db`
 * Chaves estrangeiras habilitadas explicitamente
 
 O schema é propositalmente conservador e evita restrições prematuras.
@@ -63,12 +111,22 @@ O schema é propositalmente conservador e evita restrições prematuras.
 
 ## O que Este Projeto *Ainda Não É*
 
-* Não possui interface gráfica
+* Não possui interface gráfica completa
 * Não possui ranking ou gamificação
 * Não implementa regras oficiais de pontuação
-* Não possui gerenciamento de usuários
+* Não possui gerenciamento completo de usuários
 
 Esses pontos poderão ser avaliados no futuro, se fizerem sentido.
+
+---
+
+## Funcionalidades Atuais
+
+* API REST funcional para gerenciamento de questões, alternativas e taxonomia
+* Estrutura de banco de dados estável com relacionamentos bem definidos
+* Camadas de controller, service e repository implementadas
+* Configuração de banco de dados SQLite funcional
+* Endpoint de health check disponível
 
 ---
 
