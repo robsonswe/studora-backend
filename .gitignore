@@ -1,6 +1,11 @@
 /target/
 !.mvn/wrapper/maven-wrapper.jar
 
+*.db
+*.db-wal
+*.db-shm
+*.sqlite3
+
 *.md
 !README.md
 
