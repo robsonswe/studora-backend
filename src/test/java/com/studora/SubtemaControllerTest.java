@@ -1,5 +1,8 @@
 package com.studora;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
 import com.studora.dto.SubtemaDto;
 import com.studora.entity.Disciplina;
 import com.studora.entity.Subtema;
@@ -16,13 +19,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@Transactional
 class SubtemaControllerTest {
 
     @Autowired
@@ -41,13 +43,11 @@ class SubtemaControllerTest {
 
     @BeforeEach
     void setUp() {
-        subtemaRepository.deleteAll();
-        temaRepository.deleteAll();
-        disciplinaRepository.deleteAll();
-
-        Disciplina disciplina = disciplinaRepository.save(new Disciplina("Direito Constitucional"));
+        Disciplina disciplina = disciplinaRepository.save(
+            new Disciplina("Direito Subtema Test")
+        );
         Tema newTema = new Tema();
-        newTema.setNome("Controle de Constitucionalidade");
+        newTema.setNome("Tema Subtema Test");
         newTema.setDisciplina(disciplina);
         tema = temaRepository.save(newTema);
     }
@@ -58,11 +58,14 @@ class SubtemaControllerTest {
         subtemaDto.setNome("Espécies de Controle");
         subtemaDto.setTemaId(tema.getId());
 
-        mockMvc.perform(post("/api/subtemas")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(TestUtil.asJsonString(subtemaDto)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.nome").value("Espécies de Controle"));
+        mockMvc
+            .perform(
+                post("/api/subtemas")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(subtemaDto))
+            )
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.nome").value("Espécies de Controle"));
     }
 
     @Test
@@ -72,15 +75,17 @@ class SubtemaControllerTest {
         subtema.setTema(tema);
         subtema = subtemaRepository.save(subtema);
 
-        mockMvc.perform(get("/api/subtemas/{id}", subtema.getId()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.nome").value("Espécies de Controle"));
+        mockMvc
+            .perform(get("/api/subtemas/{id}", subtema.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.nome").value("Espécies de Controle"));
     }
 
     @Test
     void testGetSubtemaById_NotFound() throws Exception {
-        mockMvc.perform(get("/api/subtemas/{id}", 999L))
-                .andExpect(status().isNotFound());
+        mockMvc
+            .perform(get("/api/subtemas/{id}", 99999L))
+            .andExpect(status().isNotFound());
     }
 
     @Test
@@ -95,9 +100,14 @@ class SubtemaControllerTest {
         subtema2.setTema(tema);
         subtemaRepository.save(subtema2);
 
-        mockMvc.perform(get("/api/subtemas"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.size()").value(2));
+        mockMvc
+            .perform(get("/api/subtemas"))
+            .andExpect(status().isOk())
+            .andExpect(
+                jsonPath("$.length()").value(
+                    org.hamcrest.Matchers.greaterThanOrEqualTo(2)
+                )
+            );
     }
 
     @Test
@@ -111,11 +121,14 @@ class SubtemaControllerTest {
         updatedDto.setNome("New Name");
         updatedDto.setTemaId(tema.getId());
 
-        mockMvc.perform(put("/api/subtemas/{id}", subtema.getId())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(TestUtil.asJsonString(updatedDto)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.nome").value("New Name"));
+        mockMvc
+            .perform(
+                put("/api/subtemas/{id}", subtema.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(updatedDto))
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.nome").value("New Name"));
     }
 
     @Test
@@ -125,10 +138,12 @@ class SubtemaControllerTest {
         subtema.setTema(tema);
         subtema = subtemaRepository.save(subtema);
 
-        mockMvc.perform(delete("/api/subtemas/{id}", subtema.getId()))
-                .andExpect(status().isNoContent());
+        mockMvc
+            .perform(delete("/api/subtemas/{id}", subtema.getId()))
+            .andExpect(status().isNoContent());
 
-        mockMvc.perform(get("/api/subtemas/{id}", subtema.getId()))
-                .andExpect(status().isNotFound());
+        mockMvc
+            .perform(get("/api/subtemas/{id}", subtema.getId()))
+            .andExpect(status().isNotFound());
     }
 }

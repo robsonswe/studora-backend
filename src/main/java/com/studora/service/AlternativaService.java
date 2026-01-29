@@ -92,6 +92,11 @@ public class AlternativaService {
     }
     
     private Alternativa convertToEntity(AlternativaDto dto) {
-        return new Alternativa(null, dto.getOrdem(), dto.getTexto(), dto.getCorreta());
+        Alternativa alternativa = new Alternativa();
+        alternativa.setOrdem(dto.getOrdem());
+        alternativa.setTexto(dto.getTexto());
+        alternativa.setCorreta(dto.getCorreta());
+        alternativa.setJustificativa(dto.getJustificativa());
+        return alternativa;
     }
 }

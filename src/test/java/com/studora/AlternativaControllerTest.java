@@ -1,11 +1,18 @@
 package com.studora;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
 import com.studora.dto.AlternativaDto;
 import com.studora.entity.Alternativa;
+import com.studora.entity.Banca;
 import com.studora.entity.Concurso;
+import com.studora.entity.Instituicao;
 import com.studora.entity.Questao;
 import com.studora.repository.AlternativaRepository;
+import com.studora.repository.BancaRepository;
 import com.studora.repository.ConcursoRepository;
+import com.studora.repository.InstituicaoRepository;
 import com.studora.repository.QuestaoRepository;
 import com.studora.util.TestUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,13 +23,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@Transactional
 class AlternativaControllerTest {
 
     @Autowired
@@ -37,17 +43,31 @@ class AlternativaControllerTest {
     @Autowired
     private ConcursoRepository concursoRepository;
 
+    @Autowired
+    private InstituicaoRepository instituicaoRepository;
+
+    @Autowired
+    private BancaRepository bancaRepository;
+
     private Questao questao;
 
     @BeforeEach
     void setUp() {
-        alternativaRepository.deleteAll();
-        questaoRepository.deleteAll();
-        concursoRepository.deleteAll();
+        // Create and save Instituicao and Banca first
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Instituição Alt Test");
+        instituicao = instituicaoRepository.save(instituicao);
 
-        Concurso concurso = concursoRepository.save(new Concurso("Concurso", "Banca", 2023, "Cargo", "Nivel", "Area"));
+        Banca banca = new Banca();
+        banca.setNome("Banca Alt Test");
+        banca = bancaRepository.save(banca);
+
+        Concurso concurso = concursoRepository.save(
+            new Concurso(instituicao, banca, 2023)
+        );
+
         Questao newQuestao = new Questao();
-        newQuestao.setEnunciado("Enunciado da Questão");
+        newQuestao.setEnunciado("Enunciado da Questão Alt Test");
         newQuestao.setConcurso(concurso);
         questao = questaoRepository.save(newQuestao);
     }
@@ -60,11 +80,14 @@ class AlternativaControllerTest {
         alternativaDto.setCorreta(true);
         alternativaDto.setQuestaoId(questao.getId());
 
-        mockMvc.perform(post("/api/alternativas")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(TestUtil.asJsonString(alternativaDto)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.texto").value("Texto da Alternativa"));
+        mockMvc
+            .perform(
+                post("/api/alternativas")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(alternativaDto))
+            )
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.texto").value("Texto da Alternativa"));
     }
 
     @Test
@@ -76,15 +99,62 @@ class AlternativaControllerTest {
         alternativa.setQuestao(questao);
         alternativa = alternativaRepository.save(alternativa);
 
-        mockMvc.perform(get("/api/alternativas/{id}", alternativa.getId()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.texto").value("Texto da Alternativa"));
+        mockMvc
+            .perform(get("/api/alternativas/{id}", alternativa.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.texto").value("Texto da Alternativa"));
     }
 
     @Test
     void testGetAlternativaById_NotFound() throws Exception {
-        mockMvc.perform(get("/api/alternativas/{id}", 999L))
-                .andExpect(status().isNotFound());
+        mockMvc
+            .perform(get("/api/alternativas/{id}", 99999L))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testGetAlternativasByQuestaoId() throws Exception {
+        Alternativa alt = new Alternativa();
+        alt.setOrdem(1);
+        alt.setTexto("Alt Questao");
+        alt.setCorreta(false);
+        alt.setQuestao(questao);
+        alternativaRepository.save(alt);
+
+        mockMvc
+            .perform(
+                get("/api/alternativas/questao/{questaoId}", questao.getId())
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].texto").value("Alt Questao"));
+    }
+
+    @Test
+    void testGetAlternativasCorretasByQuestaoId() throws Exception {
+        Alternativa altCorrect = new Alternativa();
+        altCorrect.setOrdem(1);
+        altCorrect.setTexto("Correct");
+        altCorrect.setCorreta(true);
+        altCorrect.setQuestao(questao);
+        alternativaRepository.save(altCorrect);
+
+        Alternativa altWrong = new Alternativa();
+        altWrong.setOrdem(2);
+        altWrong.setTexto("Wrong");
+        altWrong.setCorreta(false);
+        altWrong.setQuestao(questao);
+        alternativaRepository.save(altWrong);
+
+        mockMvc
+            .perform(
+                get(
+                    "/api/alternativas/questao/{questaoId}/corretas",
+                    questao.getId()
+                )
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].texto").value("Correct"));
     }
 
     @Test
@@ -103,9 +173,14 @@ class AlternativaControllerTest {
         alternativa2.setQuestao(questao);
         alternativaRepository.save(alternativa2);
 
-        mockMvc.perform(get("/api/alternativas"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.size()").value(2));
+        mockMvc
+            .perform(get("/api/alternativas"))
+            .andExpect(status().isOk())
+            .andExpect(
+                jsonPath("$.length()").value(
+                    org.hamcrest.Matchers.greaterThanOrEqualTo(2)
+                )
+            );
     }
 
     @Test
@@ -123,11 +198,14 @@ class AlternativaControllerTest {
         updatedDto.setTexto("New Texto");
         updatedDto.setQuestaoId(questao.getId());
 
-        mockMvc.perform(put("/api/alternativas/{id}", alternativa.getId())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(TestUtil.asJsonString(updatedDto)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.texto").value("New Texto"));
+        mockMvc
+            .perform(
+                put("/api/alternativas/{id}", alternativa.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(updatedDto))
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.texto").value("New Texto"));
     }
 
     @Test
@@ -139,10 +217,12 @@ class AlternativaControllerTest {
         alternativa.setQuestao(questao);
         alternativa = alternativaRepository.save(alternativa);
 
-        mockMvc.perform(delete("/api/alternativas/{id}", alternativa.getId()))
-                .andExpect(status().isNoContent());
+        mockMvc
+            .perform(delete("/api/alternativas/{id}", alternativa.getId()))
+            .andExpect(status().isNoContent());
 
-        mockMvc.perform(get("/api/alternativas/{id}", alternativa.getId()))
-                .andExpect(status().isNotFound());
+        mockMvc
+            .perform(get("/api/alternativas/{id}", alternativa.getId()))
+            .andExpect(status().isNotFound());
     }
 }

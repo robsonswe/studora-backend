@@ -1,5 +1,8 @@
 package com.studora;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
 import com.studora.dto.TemaDto;
 import com.studora.entity.Disciplina;
 import com.studora.entity.Tema;
@@ -14,13 +17,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@Transactional
 class TemaControllerTest {
 
     @Autowired
@@ -36,9 +38,9 @@ class TemaControllerTest {
 
     @BeforeEach
     void setUp() {
-        temaRepository.deleteAll();
-        disciplinaRepository.deleteAll();
-        disciplina = disciplinaRepository.save(new Disciplina("Direito Constitucional"));
+        disciplina = disciplinaRepository.save(
+            new Disciplina("Direito Tema Test")
+        );
     }
 
     @Test
@@ -47,11 +49,16 @@ class TemaControllerTest {
         temaDto.setNome("Controle de Constitucionalidade");
         temaDto.setDisciplinaId(disciplina.getId());
 
-        mockMvc.perform(post("/api/temas")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(TestUtil.asJsonString(temaDto)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.nome").value("Controle de Constitucionalidade"));
+        mockMvc
+            .perform(
+                post("/api/temas")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(temaDto))
+            )
+            .andExpect(status().isCreated())
+            .andExpect(
+                jsonPath("$.nome").value("Controle de Constitucionalidade")
+            );
     }
 
     @Test
@@ -61,15 +68,19 @@ class TemaControllerTest {
         tema.setDisciplina(disciplina);
         tema = temaRepository.save(tema);
 
-        mockMvc.perform(get("/api/temas/{id}", tema.getId()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.nome").value("Controle de Constitucionalidade"));
+        mockMvc
+            .perform(get("/api/temas/{id}", tema.getId()))
+            .andExpect(status().isOk())
+            .andExpect(
+                jsonPath("$.nome").value("Controle de Constitucionalidade")
+            );
     }
 
     @Test
     void testGetTemaById_NotFound() throws Exception {
-        mockMvc.perform(get("/api/temas/{id}", 999L))
-                .andExpect(status().isNotFound());
+        mockMvc
+            .perform(get("/api/temas/{id}", 99999L))
+            .andExpect(status().isNotFound());
     }
 
     @Test
@@ -84,9 +95,14 @@ class TemaControllerTest {
         tema2.setDisciplina(disciplina);
         temaRepository.save(tema2);
 
-        mockMvc.perform(get("/api/temas"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.size()").value(2));
+        mockMvc
+            .perform(get("/api/temas"))
+            .andExpect(status().isOk())
+            .andExpect(
+                jsonPath("$.length()").value(
+                    org.hamcrest.Matchers.greaterThanOrEqualTo(2)
+                )
+            );
     }
 
     @Test
@@ -100,11 +116,14 @@ class TemaControllerTest {
         updatedDto.setNome("New Name");
         updatedDto.setDisciplinaId(disciplina.getId());
 
-        mockMvc.perform(put("/api/temas/{id}", tema.getId())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(TestUtil.asJsonString(updatedDto)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.nome").value("New Name"));
+        mockMvc
+            .perform(
+                put("/api/temas/{id}", tema.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(updatedDto))
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.nome").value("New Name"));
     }
 
     @Test
@@ -114,10 +133,12 @@ class TemaControllerTest {
         tema.setDisciplina(disciplina);
         tema = temaRepository.save(tema);
 
-        mockMvc.perform(delete("/api/temas/{id}", tema.getId()))
-                .andExpect(status().isNoContent());
+        mockMvc
+            .perform(delete("/api/temas/{id}", tema.getId()))
+            .andExpect(status().isNoContent());
 
-        mockMvc.perform(get("/api/temas/{id}", tema.getId()))
-                .andExpect(status().isNotFound());
+        mockMvc
+            .perform(get("/api/temas/{id}", tema.getId()))
+            .andExpect(status().isNotFound());
     }
 }
