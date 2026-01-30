@@ -109,6 +109,12 @@ public class ConcursoController {
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/concursos\",\"errors\":{\"ano\":\"deve ser maior que 1900\"}}"
                     ))),
+            @ApiResponse(responseCode = "422", description = "Entidade não processável - Regras de negócio violadas",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Entidade não processável\",\"status\":422,\"detail\":\"Ano do concurso deve ser um valor razoável\",\"instance\":\"/api/concursos\"}"
+                    ))),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
@@ -154,6 +160,12 @@ public class ConcursoController {
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Concurso com ID: '1'\",\"instance\":\"/api/concursos/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "422", description = "Entidade não processável - Regras de negócio violadas",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Entidade não processável\",\"status\":422,\"detail\":\"Ano do concurso deve ser um valor razoável\",\"instance\":\"/api/concursos/1\"}"
                     ))),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",
@@ -289,6 +301,12 @@ public class ConcursoController {
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar a associação para remover.\",\"instance\":\"/api/concursos/1/cargos/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "422", description = "Entidade não processável - Regras de negócio violadas",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Entidade não processável\",\"status\":422,\"detail\":\"Um concurso deve estar associado a pelo menos um cargo\",\"instance\":\"/api/concursos/1/cargos/1\"}"
                     ))),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",

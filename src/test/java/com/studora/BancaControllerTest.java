@@ -96,4 +96,28 @@ class BancaControllerTest {
             .perform(delete("/api/bancas/{id}", banca.getId()))
             .andExpect(status().isNoContent());
     }
+
+    @Test
+    void testCreateBanca_Conflict_DuplicateName() throws Exception {
+        // Create first banca
+        Banca banca1 = new Banca();
+        banca1.setNome("CESPE");
+        bancaRepository.save(banca1);
+
+        // Try to create another banca with the same name
+        BancaDto dto = new BancaDto();
+        dto.setNome("CESPE");
+
+        mockMvc
+            .perform(
+                post("/api/bancas")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(dto))
+            )
+            .andExpect(status().isConflict())
+            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.title").value("Conflito"))
+            .andExpect(jsonPath("$.status").value(409))
+            .andExpect(jsonPath("$.detail").value("Já existe uma banca com o nome 'CESPE'"));
+    }
 }

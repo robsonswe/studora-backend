@@ -110,6 +110,12 @@ public class DisciplinaController {
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/disciplinas\",\"errors\":{\"nome\":\"não deve estar em branco\"}}"
                     ))),
+            @ApiResponse(responseCode = "409", description = "Conflito - Já existe uma disciplina com este nome",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Já existe uma disciplina com o nome 'Direito Administrativo'\",\"instance\":\"/api/disciplinas\"}"
+                    ))),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
@@ -155,6 +161,12 @@ public class DisciplinaController {
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Disciplina com ID: '1'\",\"instance\":\"/api/disciplinas/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "409", description = "Conflito - Já existe uma disciplina com este nome",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Já existe uma disciplina com o nome 'Direito Constitucional Aplicado'\",\"instance\":\"/api/disciplinas/1\"}"
                     ))),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",

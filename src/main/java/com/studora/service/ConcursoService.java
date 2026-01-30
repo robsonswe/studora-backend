@@ -8,6 +8,7 @@ import com.studora.entity.Concurso;
 import com.studora.entity.ConcursoCargo;
 import com.studora.entity.Instituicao;
 import com.studora.exception.ResourceNotFoundException;
+import com.studora.exception.ValidationException;
 import com.studora.repository.BancaRepository;
 import com.studora.repository.CargoRepository;
 import com.studora.repository.ConcursoCargoRepository;
@@ -110,7 +111,7 @@ public class ConcursoService {
                 .findByConcursoIdAndCargoId(concursoCargoDto.getConcursoId(), concursoCargoDto.getCargoId());
 
         if (!existingAssociations.isEmpty()) {
-            throw new RuntimeException("Cargo já associado ao concurso");
+            throw new ValidationException("Cargo já associado ao concurso");
         }
 
         Concurso concurso = concursoRepository.findById(concursoCargoDto.getConcursoId())
@@ -139,7 +140,7 @@ public class ConcursoService {
         // Check if removing this association would leave the concurso with no cargo associations
         List<ConcursoCargo> currentAssociations = concursoCargoRepository.findByConcursoId(concursoId);
         if (currentAssociations.size() <= 1) {
-            throw new RuntimeException("Um concurso deve estar associado a pelo menos um cargo");
+            throw new ValidationException("Um concurso deve estar associado a pelo menos um cargo");
         }
 
         // Delete the association

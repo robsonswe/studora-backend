@@ -142,6 +142,12 @@ public class SubtemaController {
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/subtemas\",\"errors\":{\"nome\":\"não deve estar em branco\"}}"
                     ))),
+            @ApiResponse(responseCode = "409", description = "Conflito - Já existe um subtema com este nome no mesmo tema",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Já existe um subtema com o nome 'Direito à Vida' no tema com ID: 1\",\"instance\":\"/api/subtemas\"}"
+                    ))),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
@@ -187,6 +193,12 @@ public class SubtemaController {
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Subtema com ID: '1'\",\"instance\":\"/api/subtemas/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "409", description = "Conflito - Já existe um subtema com este nome no mesmo tema",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Já existe um subtema com o nome 'Habeas Corpus e Habeas Data' no tema com ID: 1\",\"instance\":\"/api/subtemas/1\"}"
                     ))),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",

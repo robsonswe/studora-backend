@@ -114,4 +114,27 @@ class DisciplinaControllerTest {
             .perform(get("/api/disciplinas/{id}", disciplina.getId()))
             .andExpect(status().isNotFound());
     }
+
+    @Test
+    void testCreateDisciplina_Conflict_DuplicateName() throws Exception {
+        // Create first disciplina
+        Disciplina disciplina1 = new Disciplina("Direito Administrativo");
+        disciplinaRepository.save(disciplina1);
+
+        // Try to create another disciplina with the same name
+        DisciplinaDto disciplinaDto = new DisciplinaDto();
+        disciplinaDto.setNome("Direito Administrativo");
+
+        mockMvc
+            .perform(
+                post("/api/disciplinas")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(disciplinaDto))
+            )
+            .andExpect(status().isConflict())
+            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.title").value("Conflito"))
+            .andExpect(jsonPath("$.status").value(409))
+            .andExpect(jsonPath("$.detail").value("Já existe uma disciplina com o nome 'Direito Administrativo'"));
+    }
 }

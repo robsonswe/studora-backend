@@ -27,13 +27,31 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problemDetail;
     }
 
+    @ExceptionHandler(ConflictException.class)
+    public ProblemDetail handleConflict(ConflictException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problemDetail.setTitle("Conflito");
+        problemDetail.setType(URI.create("about:blank"));
+        problemDetail.setProperty("timestamp", Instant.now());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(ValidationException.class)
+    public ProblemDetail handleValidationException(ValidationException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+        problemDetail.setTitle("Entidade não processável");
+        problemDetail.setType(URI.create("about:blank"));
+        problemDetail.setProperty("timestamp", Instant.now());
+        return problemDetail;
+    }
+
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
-            MethodArgumentNotValidException ex, 
-            org.springframework.http.HttpHeaders headers, 
-            org.springframework.http.HttpStatusCode status, 
+            MethodArgumentNotValidException ex,
+            org.springframework.http.HttpHeaders headers,
+            org.springframework.http.HttpStatusCode status,
             WebRequest request) {
-        
+
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, "Um ou mais campos apresentam erros de validação.");
         problemDetail.setTitle("Erro de validação");
         problemDetail.setType(URI.create("about:blank"));
@@ -52,7 +70,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleGenericException(Exception ex) {
-        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, 
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR,
             "Ocorreu um erro inesperado no servidor. Por favor, tente novamente mais tarde.");
         problemDetail.setTitle("Erro interno no servidor");
         problemDetail.setType(URI.create("about:blank"));

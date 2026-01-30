@@ -2,12 +2,14 @@ package com.studora.service;
 
 import com.studora.dto.BancaDto;
 import com.studora.entity.Banca;
+import com.studora.exception.ConflictException;
 import com.studora.exception.ResourceNotFoundException;
 import com.studora.repository.BancaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,6 +31,12 @@ public class BancaService {
     }
 
     public BancaDto save(BancaDto bancaDto) {
+        // Check for duplicate banca name (excluding current banca if updating)
+        Optional<Banca> existingBanca = bancaRepository.findByNome(bancaDto.getNome());
+        if (existingBanca.isPresent() && !existingBanca.get().getId().equals(bancaDto.getId())) {
+            throw new ConflictException("Já existe uma banca com o nome '" + bancaDto.getNome() + "'");
+        }
+
         Banca banca;
         if (bancaDto.getId() != null) {
             banca = bancaRepository.findById(bancaDto.getId())

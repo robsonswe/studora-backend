@@ -225,4 +225,34 @@ class AlternativaControllerTest {
             .perform(get("/api/alternativas/{id}", alternativa.getId()))
             .andExpect(status().isNotFound());
     }
+
+    @Test
+    void testCreateAlternativa_Conflict_DuplicateOrder() throws Exception {
+        // Create first alternative
+        Alternativa alt1 = new Alternativa();
+        alt1.setOrdem(1);
+        alt1.setTexto("Texto da Alternativa 1");
+        alt1.setCorreta(true);
+        alt1.setQuestao(questao);
+        alternativaRepository.save(alt1);
+
+        // Try to create another alternative with the same order for the same question
+        AlternativaDto alternativaDto = new AlternativaDto();
+        alternativaDto.setOrdem(1); // Same order as first alternative
+        alternativaDto.setTexto("Texto da Alternativa 2");
+        alternativaDto.setCorreta(false);
+        alternativaDto.setQuestaoId(questao.getId());
+
+        mockMvc
+            .perform(
+                post("/api/alternativas")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(alternativaDto))
+            )
+            .andExpect(status().isConflict())
+            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.title").value("Conflito"))
+            .andExpect(jsonPath("$.status").value(409))
+            .andExpect(jsonPath("$.detail").value("Já existe uma alternativa com a ordem 1 para a questão com ID: " + questao.getId()));
+    }
 }

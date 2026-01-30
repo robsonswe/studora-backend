@@ -108,6 +108,12 @@ public class CargoController {
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/cargos\",\"errors\":{\"nome\":\"não deve estar em branco\"}}"
                     ))),
+            @ApiResponse(responseCode = "409", description = "Conflito - Já existe um cargo com este nome, nível e área",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Já existe um cargo com o nome 'Delegado de Polícia', nível 'Superior' e área 'Policial'\",\"instance\":\"/api/cargos\"}"
+                    ))),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
@@ -153,6 +159,12 @@ public class CargoController {
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Cargo com ID: '1'\",\"instance\":\"/api/cargos/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "409", description = "Conflito - Já existe um cargo com este nome, nível e área",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Já existe um cargo com o nome 'Analista Judiciário', nível 'Superior' e área 'Direito'\",\"instance\":\"/api/cargos/1\"}"
                     ))),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",

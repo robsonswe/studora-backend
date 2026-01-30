@@ -74,4 +74,32 @@ class CargoControllerTest {
             .perform(delete("/api/cargos/{id}", cargo.getId()))
             .andExpect(status().isNoContent());
     }
+
+    @Test
+    void testCreateCargo_Conflict_DuplicateName() throws Exception {
+        // Create first cargo
+        Cargo cargo1 = new Cargo();
+        cargo1.setNome("Analista");
+        cargo1.setNivel("Superior");
+        cargo1.setArea("TI");
+        cargoRepository.save(cargo1);
+
+        // Try to create another cargo with the same name, nivel, and area
+        CargoDto dto = new CargoDto();
+        dto.setNome("Analista");
+        dto.setNivel("Superior");
+        dto.setArea("TI");
+
+        mockMvc
+            .perform(
+                post("/api/cargos")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(dto))
+            )
+            .andExpect(status().isConflict())
+            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.title").value("Conflito"))
+            .andExpect(jsonPath("$.status").value(409))
+            .andExpect(jsonPath("$.detail").value("Já existe um cargo com o nome 'Analista', nível 'Superior' e área 'TI'"));
+    }
 }

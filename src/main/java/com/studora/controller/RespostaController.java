@@ -174,6 +174,12 @@ public class RespostaController {
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/respostas\",\"errors\":{\"alternativaId\":\"não deve ser nulo\"}}"
                     ))),
+            @ApiResponse(responseCode = "422", description = "Entidade não processável - Regras de negócio violadas",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Entidade não processável\",\"status\":422,\"detail\":\"Não é possível responder a uma questão anulada\",\"instance\":\"/api/respostas\"}"
+                    ))),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
@@ -219,6 +225,12 @@ public class RespostaController {
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Resposta com ID: '1'\",\"instance\":\"/api/respostas/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "422", description = "Entidade não processável - Regras de negócio violadas",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Entidade não processável\",\"status\":422,\"detail\":\"Não é possível responder a uma questão anulada\",\"instance\":\"/api/respostas/1\"}"
                     ))),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",

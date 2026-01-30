@@ -174,6 +174,18 @@ public class AlternativaController {
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/alternativas\",\"errors\":{\"texto\":\"não deve estar em branco\"}}"
                     ))),
+            @ApiResponse(responseCode = "409", description = "Conflito - Já existe uma alternativa com a mesma ordem para a mesma questão",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Já existe uma alternativa com a ordem 2 para a questão com ID: 1\",\"instance\":\"/api/alternativas\"}"
+                    ))),
+            @ApiResponse(responseCode = "422", description = "Entidade não processável - Regras de negócio violadas",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Entidade não processável\",\"status\":422,\"detail\":\"Já existe uma alternativa marcada como correta para a questão com ID: 1\",\"instance\":\"/api/alternativas\"}"
+                    ))),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
@@ -219,6 +231,18 @@ public class AlternativaController {
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Alternativa com ID: '1'\",\"instance\":\"/api/alternativas/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "409", description = "Conflito - Já existe uma alternativa com a mesma ordem para a mesma questão",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Já existe uma alternativa com a ordem 1 para a questão com ID: 1\",\"instance\":\"/api/alternativas/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "422", description = "Entidade não processável - Regras de negócio violadas",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Entidade não processável\",\"status\":422,\"detail\":\"Já existe uma alternativa marcada como correta para a questão com ID: 1\",\"instance\":\"/api/alternativas/1\"}"
                     ))),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",

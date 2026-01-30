@@ -142,6 +142,12 @@ public class TemaController {
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/temas\",\"errors\":{\"nome\":\"não deve estar em branco\"}}"
                     ))),
+            @ApiResponse(responseCode = "409", description = "Conflito - Já existe um tema com este nome na mesma disciplina",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Já existe um tema com o nome 'Direitos Fundamentais' na disciplina com ID: 1\",\"instance\":\"/api/temas\"}"
+                    ))),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
@@ -187,6 +193,12 @@ public class TemaController {
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Tema com ID: '1'\",\"instance\":\"/api/temas/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "409", description = "Conflito - Já existe um tema com este nome na mesma disciplina",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Já existe um tema com o nome 'Direitos Fundamentais' na disciplina com ID: 1\",\"instance\":\"/api/temas/1\"}"
                     ))),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",

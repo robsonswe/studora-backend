@@ -147,4 +147,39 @@ class RespostaControllerTest {
             .perform(get("/api/respostas/{id}", resposta.getId()))
             .andExpect(status().isNotFound());
     }
+
+    @Test
+    void testCreateResposta_UnprocessableEntity_AnswerToAnnulledQuestion() throws Exception {
+        // Create an annulled question
+        Questao annulledQuestao = new Questao();
+        annulledQuestao.setEnunciado("Questão Anulada");
+        annulledQuestao.setAnulada(true); // Set as annulled
+        annulledQuestao.setConcurso(questao.getConcurso()); // Use the same concurso as the existing question
+        annulledQuestao = questaoRepository.save(annulledQuestao);
+
+        // Create an alternative for the annulled question
+        Alternativa alternativaAnulada = new Alternativa();
+        alternativaAnulada.setOrdem(1);
+        alternativaAnulada.setCorreta(true);
+        alternativaAnulada.setTexto("Alternativa da Questão Anulada");
+        alternativaAnulada.setQuestao(annulledQuestao);
+        alternativaAnulada = alternativaRepository.save(alternativaAnulada);
+
+        // Try to create a resposta for the annulled question
+        RespostaDto respostaDto = new RespostaDto();
+        respostaDto.setQuestaoId(annulledQuestao.getId());
+        respostaDto.setAlternativaId(alternativaAnulada.getId());
+
+        mockMvc
+            .perform(
+                post("/api/respostas")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(respostaDto))
+            )
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.title").value("Entidade não processável"))
+            .andExpect(jsonPath("$.status").value(422))
+            .andExpect(jsonPath("$.detail").value("Não é possível responder a uma questão anulada"));
+    }
 }

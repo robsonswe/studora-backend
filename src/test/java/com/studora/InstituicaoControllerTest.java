@@ -70,4 +70,28 @@ class InstituicaoControllerTest {
                 )
             );
     }
+
+    @Test
+    void testCreateInstituicao_Conflict_DuplicateName() throws Exception {
+        // Create first instituicao
+        Instituicao inst1 = new Instituicao();
+        inst1.setNome("Universidade Federal do Rio de Janeiro");
+        instituicaoRepository.save(inst1);
+
+        // Try to create another instituicao with the same name
+        InstituicaoDto dto = new InstituicaoDto();
+        dto.setNome("Universidade Federal do Rio de Janeiro");
+
+        mockMvc
+            .perform(
+                post("/api/instituicoes")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(dto))
+            )
+            .andExpect(status().isConflict())
+            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.title").value("Conflito"))
+            .andExpect(jsonPath("$.status").value(409))
+            .andExpect(jsonPath("$.detail").value("Já existe uma instituição com o nome 'Universidade Federal do Rio de Janeiro'"));
+    }
 }

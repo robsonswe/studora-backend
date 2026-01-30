@@ -4,6 +4,7 @@ import com.studora.dto.QuestaoCargoDto;
 import com.studora.dto.QuestaoDto;
 import com.studora.entity.*;
 import com.studora.exception.ResourceNotFoundException;
+import com.studora.exception.ValidationException;
 import com.studora.repository.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -85,7 +86,7 @@ public class QuestaoService {
 
         // Validate that the question has at least one cargo association
         if (questaoDto.getConcursoCargoIds() == null || questaoDto.getConcursoCargoIds().isEmpty()) {
-            throw new RuntimeException("Uma questão deve estar associada a pelo menos um cargo");
+            throw new ValidationException("Uma questão deve estar associada a pelo menos um cargo");
         }
 
         Questao questao = convertToEntity(questaoDto);
@@ -136,7 +137,7 @@ public class QuestaoService {
         // Validate that the question still has at least one cargo association after update
         List<QuestaoCargo> currentAssociations = questaoCargoRepository.findByQuestaoId(id);
         if (currentAssociations.isEmpty()) {
-            throw new RuntimeException("Uma questão deve estar associada a pelo menos um cargo");
+            throw new ValidationException("Uma questão deve estar associada a pelo menos um cargo");
         }
 
         return convertToDto(updatedQuestao);
@@ -169,7 +170,7 @@ public class QuestaoService {
                 .findByQuestaoIdAndConcursoCargoId(questaoCargoDto.getQuestaoId(), questaoCargoDto.getConcursoCargoId());
 
         if (!existingAssociations.isEmpty()) {
-            throw new RuntimeException("Cargo já associado à questão");
+            throw new ValidationException("Cargo já associado à questão");
         }
 
         Questao questao = questaoRepository.findById(questaoCargoDto.getQuestaoId())
@@ -198,7 +199,7 @@ public class QuestaoService {
         // Check if removing this association would leave the question with no cargo associations
         List<QuestaoCargo> currentAssociations = questaoCargoRepository.findByQuestaoId(questaoId);
         if (currentAssociations.size() <= 1) {
-            throw new RuntimeException("Uma questão deve estar associada a pelo menos um cargo");
+            throw new ValidationException("Uma questão deve estar associada a pelo menos um cargo");
         }
 
         // Delete the association

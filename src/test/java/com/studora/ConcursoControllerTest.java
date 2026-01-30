@@ -6,9 +6,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.studora.dto.ConcursoDto;
 import com.studora.entity.Banca;
 import com.studora.entity.Concurso;
+import com.studora.entity.ConcursoCargo;
+import com.studora.entity.Cargo;
 import com.studora.entity.Instituicao;
 import com.studora.repository.BancaRepository;
+import com.studora.repository.ConcursoCargoRepository;
 import com.studora.repository.ConcursoRepository;
+import com.studora.repository.CargoRepository;
 import com.studora.repository.InstituicaoRepository;
 import com.studora.util.TestUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,6 +42,12 @@ class ConcursoControllerTest {
 
     @Autowired
     private BancaRepository bancaRepository;
+
+    @Autowired
+    private CargoRepository cargoRepository;
+
+    @Autowired
+    private ConcursoCargoRepository concursoCargoRepository;
 
     @BeforeEach
     void setUp() {
@@ -188,5 +198,41 @@ class ConcursoControllerTest {
         mockMvc
             .perform(get("/api/concursos/{id}", concurso.getId()))
             .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testRemoveCargoFromConcurso_UnprocessableEntity_NoRemainingCargo() throws Exception {
+        // Create instituicao and banca
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Instituição Test");
+        instituicao = instituicaoRepository.save(instituicao);
+
+        Banca banca = new Banca();
+        banca.setNome("Banca Test");
+        banca = bancaRepository.save(banca);
+
+        // Create concurso
+        Concurso concurso = new Concurso(instituicao, banca, 2023);
+        concurso = concursoRepository.save(concurso);
+
+        // Create cargo
+        Cargo cargo = new Cargo();
+        cargo.setNome("Cargo Test");
+        cargo = cargoRepository.save(cargo);
+
+        // Create concurso-cargo association
+        ConcursoCargo concursoCargo = new ConcursoCargo();
+        concursoCargo.setConcurso(concurso);
+        concursoCargo.setCargo(cargo);
+        concursoCargo = concursoCargoRepository.save(concursoCargo);
+
+        // Try to remove the only cargo association (should fail with 422)
+        mockMvc
+            .perform(delete("/api/concursos/{concursoId}/cargos/{cargoId}", concurso.getId(), cargo.getId()))
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.title").value("Entidade não processável"))
+            .andExpect(jsonPath("$.status").value(422))
+            .andExpect(jsonPath("$.detail").value("Um concurso deve estar associado a pelo menos um cargo"));
     }
 }

@@ -2,12 +2,14 @@ package com.studora.service;
 
 import com.studora.dto.InstituicaoDto;
 import com.studora.entity.Instituicao;
+import com.studora.exception.ConflictException;
 import com.studora.exception.ResourceNotFoundException;
 import com.studora.repository.InstituicaoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,6 +31,12 @@ public class InstituicaoService {
     }
 
     public InstituicaoDto save(InstituicaoDto instituicaoDto) {
+        // Check for duplicate instituicao name (excluding current instituicao if updating)
+        Optional<Instituicao> existingInstituicao = instituicaoRepository.findByNome(instituicaoDto.getNome());
+        if (existingInstituicao.isPresent() && !existingInstituicao.get().getId().equals(instituicaoDto.getId())) {
+            throw new ConflictException("Já existe uma instituição com o nome '" + instituicaoDto.getNome() + "'");
+        }
+
         Instituicao instituicao;
         if (instituicaoDto.getId() != null) {
             instituicao = instituicaoRepository.findById(instituicaoDto.getId())

@@ -2,12 +2,14 @@ package com.studora.service;
 
 import com.studora.dto.CargoDto;
 import com.studora.entity.Cargo;
+import com.studora.exception.ConflictException;
 import com.studora.exception.ResourceNotFoundException;
 import com.studora.repository.CargoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,6 +31,12 @@ public class CargoService {
     }
 
     public CargoDto save(CargoDto cargoDto) {
+        // Check for duplicate cargo (same name, nivel, and area)
+        Optional<Cargo> existingCargo = cargoRepository.findByNomeAndNivelAndArea(cargoDto.getNome(), cargoDto.getNivel(), cargoDto.getArea());
+        if (existingCargo.isPresent() && !existingCargo.get().getId().equals(cargoDto.getId())) {
+            throw new ConflictException("Já existe um cargo com o nome '" + cargoDto.getNome() + "', nível '" + cargoDto.getNivel() + "' e área '" + cargoDto.getArea() + "'");
+        }
+
         Cargo cargo;
         if (cargoDto.getId() != null) {
             cargo = cargoRepository.findById(cargoDto.getId())
