@@ -24,6 +24,17 @@ public class QuestaoDto {
     @Schema(description = "Indica se a questão foi anulada", example = "false", defaultValue = "false")
     private Boolean anulada = false;
 
+    @Schema(description = "URL da imagem associada à questão", example = "https://exemplo.com/imagem.jpg")
+    private String imageUrl;
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = (imageUrl != null && !imageUrl.trim().isEmpty()) ? imageUrl : null;
+    }
+
     @Schema(description = "IDs dos subtemas associados à questão")
     private List<Long> subtemaIds; // IDs of associated subtemas
 

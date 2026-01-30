@@ -187,7 +187,7 @@ class QuestaoControllerTest {
     }
 
     @Test
-    void testGetQuestoesNaoAnuladas() throws Exception {
+    void testGetQuestoesAnuladas() throws Exception {
         Questao qValid = new Questao(concurso, "Valida");
         qValid.setAnulada(false);
         questaoRepository.save(qValid);
@@ -197,14 +197,14 @@ class QuestaoControllerTest {
         questaoRepository.save(qAnulada);
 
         mockMvc
-            .perform(get("/api/questoes/nao-anuladas"))
+            .perform(get("/api/questoes/anuladas"))
             .andExpect(status().isOk())
             .andExpect(
                 jsonPath("$.length()").value(
                     org.hamcrest.Matchers.greaterThanOrEqualTo(1)
                 )
             )
-            .andExpect(jsonPath("$[?(@.anulada == true)]").doesNotExist());
+            .andExpect(jsonPath("$[?(@.anulada == false)]").doesNotExist());
     }
 
     @Test

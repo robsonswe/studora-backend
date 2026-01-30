@@ -38,6 +38,12 @@ class QuestaoServiceTest {
     @Mock
     private QuestaoCargoRepository questaoCargoRepository;
 
+    @Mock
+    private TemaRepository temaRepository;
+
+    @Mock
+    private DisciplinaRepository disciplinaRepository;
+
     @InjectMocks
     private QuestaoService questaoService;
 
@@ -102,6 +108,7 @@ class QuestaoServiceTest {
         QuestaoDto questaoDto = new QuestaoDto();
         questaoDto.setEnunciado("Qual a capital da França?");
         questaoDto.setConcursoId(1L);
+        questaoDto.setImageUrl("https://exemplo.com/imagem.jpg");
         // Add at least one cargo association to comply with validation
         questaoDto.setConcursoCargoIds(Arrays.asList(1L));
 
@@ -149,6 +156,7 @@ class QuestaoServiceTest {
         QuestaoDto questaoDto = new QuestaoDto();
         questaoDto.setEnunciado("Qual a capital da França?");
         questaoDto.setConcursoId(1L);
+        questaoDto.setImageUrl("https://exemplo.com/imagem.jpg");
 
         when(concursoRepository.findById(1L)).thenReturn(Optional.empty());
 
@@ -233,6 +241,7 @@ class QuestaoServiceTest {
         QuestaoDto questaoDto = new QuestaoDto();
         questaoDto.setEnunciado("Qual a capital da França?");
         questaoDto.setConcursoId(1L);
+        questaoDto.setImageUrl("https://exemplo.com/imagem.jpg");
         // Deliberately not setting concursoCargoIds to test validation
 
         com.studora.entity.Instituicao instituicao =
@@ -283,5 +292,150 @@ class QuestaoServiceTest {
         verify(questaoCargoRepository, times(1)).findByQuestaoIdAndConcursoCargoId(questaoId, concursoCargoId);
         verify(questaoCargoRepository, times(1)).findByQuestaoId(questaoId);
         verify(questaoCargoRepository, never()).deleteAll(anyList()); // Should not delete if it would leave no associations
+    }
+
+    @Test
+    void testGetQuestoesAnuladas_Success() {
+        // Arrange
+        Concurso concurso = new Concurso();
+        concurso.setId(1L);
+
+        Questao questao1 = new Questao();
+        questao1.setId(1L);
+        questao1.setEnunciado("Questão anulada 1");
+        questao1.setAnulada(true);
+        questao1.setConcurso(concurso);
+
+        Questao questao2 = new Questao();
+        questao2.setId(2L);
+        questao2.setEnunciado("Questão anulada 2");
+        questao2.setAnulada(true);
+        questao2.setConcurso(concurso);
+
+        List<Questao> anuladas = Arrays.asList(questao1, questao2);
+
+        when(questaoRepository.findByAnuladaTrue()).thenReturn(anuladas);
+
+        // Act
+        List<QuestaoDto> result = questaoService.getQuestoesAnuladas();
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertTrue(result.stream().allMatch(q -> q.getAnulada()));
+        verify(questaoRepository, times(1)).findByAnuladaTrue();
+    }
+
+    @Test
+    void testGetQuestoesByCargoId_Success() {
+        // Arrange
+        Long cargoId = 1L;
+
+        // Create a ConcursoCargo
+        ConcursoCargo concursoCargo = new ConcursoCargo();
+        concursoCargo.setId(cargoId);
+
+        // Create Concurso
+        Concurso concurso = new Concurso();
+        concurso.setId(1L);
+
+        // Create QuestaoCargo associations
+        Questao questao1 = new Questao();
+        questao1.setId(1L);
+        questao1.setEnunciado("Questão 1");
+        questao1.setConcurso(concurso);
+
+        QuestaoCargo qc1 = new QuestaoCargo();
+        qc1.setQuestao(questao1);
+        qc1.setConcursoCargo(concursoCargo);
+
+        Questao questao2 = new Questao();
+        questao2.setId(2L);
+        questao2.setEnunciado("Questão 2");
+        questao2.setConcurso(concurso);
+
+        QuestaoCargo qc2 = new QuestaoCargo();
+        qc2.setQuestao(questao2);
+        qc2.setConcursoCargo(concursoCargo);
+
+        List<QuestaoCargo> questaoCargos = Arrays.asList(qc1, qc2);
+        List<Long> questaoIds = Arrays.asList(1L, 2L);
+        List<Questao> questoes = Arrays.asList(questao1, questao2);
+
+        when(questaoCargoRepository.findByConcursoCargoId(cargoId)).thenReturn(questaoCargos);
+        when(questaoRepository.findAllById(questaoIds)).thenReturn(questoes);
+
+        // Act
+        List<QuestaoDto> result = questaoService.getQuestoesByCargoId(cargoId);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        verify(questaoCargoRepository, times(1)).findByConcursoCargoId(cargoId);
+        verify(questaoRepository, times(1)).findAllById(questaoIds);
+    }
+
+    @Test
+    void testGetQuestoesByTemaId_Success() {
+        // Arrange
+        Long temaId = 1L;
+
+        com.studora.entity.Tema tema = new com.studora.entity.Tema();
+        tema.setId(temaId);
+        tema.setNome("Direito Constitucional");
+
+        Concurso concurso = new Concurso();
+        concurso.setId(1L);
+
+        Questao questao1 = new Questao();
+        questao1.setId(1L);
+        questao1.setEnunciado("Questão 1");
+        questao1.setConcurso(concurso);
+
+        List<Questao> questoes = Arrays.asList(questao1);
+
+        when(temaRepository.findById(temaId)).thenReturn(Optional.of(tema));
+        when(questaoRepository.findBySubtemasTemaId(temaId)).thenReturn(questoes);
+
+        // Act
+        List<QuestaoDto> result = questaoService.getQuestoesByTemaId(temaId);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(temaRepository, times(1)).findById(temaId);
+        verify(questaoRepository, times(1)).findBySubtemasTemaId(temaId);
+    }
+
+    @Test
+    void testGetQuestoesByDisciplinaId_Success() {
+        // Arrange
+        Long disciplinaId = 1L;
+
+        com.studora.entity.Disciplina disciplina = new com.studora.entity.Disciplina();
+        disciplina.setId(disciplinaId);
+        disciplina.setNome("Direito");
+
+        Concurso concurso = new Concurso();
+        concurso.setId(1L);
+
+        Questao questao1 = new Questao();
+        questao1.setId(1L);
+        questao1.setEnunciado("Questão 1");
+        questao1.setConcurso(concurso);
+
+        List<Questao> questoes = Arrays.asList(questao1);
+
+        when(disciplinaRepository.findById(disciplinaId)).thenReturn(Optional.of(disciplina));
+        when(questaoRepository.findBySubtemasTemaDisciplinaId(disciplinaId)).thenReturn(questoes);
+
+        // Act
+        List<QuestaoDto> result = questaoService.getQuestoesByDisciplinaId(disciplinaId);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(disciplinaRepository, times(1)).findById(disciplinaId);
+        verify(questaoRepository, times(1)).findBySubtemasTemaDisciplinaId(disciplinaId);
     }
 }

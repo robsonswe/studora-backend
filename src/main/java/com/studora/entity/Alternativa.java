@@ -55,20 +55,6 @@ public class Alternativa {
     @Schema(description = "Respostas associadas a esta alternativa")
     private List<Resposta> respostas;
 
-    @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "alternativa_imagem",
-        joinColumns = @JoinColumn(name = "alternativa_id"),
-        inverseJoinColumns = @JoinColumn(name = "imagem_id"),
-        indexes = {
-            @Index(
-                name = "idx_alternativa_imagem_imagem",
-                columnList = "imagem_id"
-            ),
-        }
-    )
-    @Schema(description = "Imagens associadas à alternativa")
-    private List<Imagem> imagens;
 
     public Alternativa() {}
 
@@ -129,11 +115,4 @@ public class Alternativa {
         this.respostas = respostas;
     }
 
-    public List<Imagem> getImagens() {
-        return imagens;
-    }
-
-    public void setImagens(List<Imagem> imagens) {
-        this.imagens = imagens;
-    }
 }

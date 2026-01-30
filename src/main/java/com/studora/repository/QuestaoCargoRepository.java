@@ -13,4 +13,6 @@ public interface QuestaoCargoRepository extends JpaRepository<QuestaoCargo, Long
 
     @Query("SELECT qc FROM QuestaoCargo qc WHERE qc.questao.id = :questaoId AND qc.concursoCargo.id = :concursoCargoId")
     List<QuestaoCargo> findByQuestaoIdAndConcursoCargoId(@Param("questaoId") Long questaoId, @Param("concursoCargoId") Long concursoCargoId);
+
+    List<QuestaoCargo> findByConcursoCargoId(Long concursoCargoId);
 }

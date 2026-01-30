@@ -31,6 +31,12 @@ public class QuestaoService {
     @Autowired
     private QuestaoCargoRepository questaoCargoRepository;
 
+    @Autowired
+    private TemaRepository temaRepository;
+
+    @Autowired
+    private DisciplinaRepository disciplinaRepository;
+
     public List<QuestaoDto> getAllQuestoes() {
         return questaoRepository
             .findAll()
@@ -70,12 +76,56 @@ public class QuestaoService {
             .collect(Collectors.toList());
     }
 
-    public List<QuestaoDto> getQuestoesNaoAnuladas() {
+    public List<QuestaoDto> getQuestoesByTemaId(Long temaId) {
+        Tema tema = temaRepository
+            .findById(temaId)
+            .orElseThrow(() ->
+                new ResourceNotFoundException("Tema", "ID", temaId)
+            );
+
         return questaoRepository
-            .findByAnuladaFalse()
+            .findBySubtemasTemaId(temaId)
             .stream()
             .map(this::convertToDto)
             .collect(Collectors.toList());
+    }
+
+    public List<QuestaoDto> getQuestoesByDisciplinaId(Long disciplinaId) {
+        Disciplina disciplina = disciplinaRepository
+            .findById(disciplinaId)
+            .orElseThrow(() ->
+                new ResourceNotFoundException("Disciplina", "ID", disciplinaId)
+            );
+
+        return questaoRepository
+            .findBySubtemasTemaDisciplinaId(disciplinaId)
+            .stream()
+            .map(this::convertToDto)
+            .collect(Collectors.toList());
+    }
+
+    public List<QuestaoDto> getQuestoesAnuladas() {
+        return questaoRepository
+            .findByAnuladaTrue()
+            .stream()
+            .map(this::convertToDto)
+            .collect(Collectors.toList());
+    }
+
+    public List<QuestaoDto> getQuestoesByCargoId(Long cargoId) {
+        List<QuestaoCargo> questaoCargos = questaoCargoRepository.findByConcursoCargoId(cargoId);
+        List<Long> questaoIds = questaoCargos.stream()
+                .map(qc -> qc.getQuestao().getId())
+                .collect(Collectors.toList());
+
+        if (questaoIds.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<Questao> questoes = questaoRepository.findAllById(questaoIds);
+        return questoes.stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
     }
 
     @Transactional

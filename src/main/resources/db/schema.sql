@@ -116,6 +116,7 @@ CREATE TABLE questao (
     concurso_id     INTEGER NOT NULL,
     enunciado       TEXT NOT NULL,
     anulada         INTEGER NOT NULL DEFAULT 0,
+    image_url       TEXT,
 
     FOREIGN KEY (concurso_id) REFERENCES concurso(id)
 );
@@ -180,46 +181,8 @@ CREATE INDEX idx_alternativa_questao
 CREATE INDEX idx_alternativa_correta
     ON alternativa (questao_id, correta);
 
--- =========================
--- IMAGEM
--- =========================
-CREATE TABLE imagem (
-    id          INTEGER PRIMARY KEY,
-    url         TEXT NOT NULL,
-    descricao   TEXT
-);
 
--- =========================
--- QUESTÃO ↔ IMAGEM
--- =========================
-CREATE TABLE questao_imagem (
-    questao_id  INTEGER NOT NULL,
-    imagem_id   INTEGER NOT NULL,
 
-    PRIMARY KEY (questao_id, imagem_id),
-
-    FOREIGN KEY (questao_id) REFERENCES questao(id) ON DELETE CASCADE,
-    FOREIGN KEY (imagem_id) REFERENCES imagem(id)
-);
-
-CREATE INDEX idx_questao_imagem_imagem
-    ON questao_imagem (imagem_id);
-
--- =========================
--- ALTERNATIVA ↔ IMAGEM
--- =========================
-CREATE TABLE alternativa_imagem (
-    alternativa_id INTEGER NOT NULL,
-    imagem_id      INTEGER NOT NULL,
-
-    PRIMARY KEY (alternativa_id, imagem_id),
-
-    FOREIGN KEY (alternativa_id) REFERENCES alternativa(id) ON DELETE CASCADE,
-    FOREIGN KEY (imagem_id) REFERENCES imagem(id)
-);
-
-CREATE INDEX idx_alternativa_imagem_imagem
-    ON alternativa_imagem (imagem_id);
 
 -- =========================
 -- RESPOSTA

@@ -37,7 +37,7 @@ public class QuestaoController {
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = QuestaoDto.class)),
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false}]"
+                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false}]"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -62,7 +62,7 @@ public class QuestaoController {
                 content = @Content(
                     schema = @Schema(implementation = QuestaoDto.class),
                     examples = @ExampleObject(
-                        value = "{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false}"
+                        value = "{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false}"
                     )
                 )),
             @ApiResponse(responseCode = "404", description = "Questão não encontrada",
@@ -94,7 +94,7 @@ public class QuestaoController {
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = QuestaoDto.class)),
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false}]"
+                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false}]"
                     )
                 )),
             @ApiResponse(responseCode = "404", description = "Concurso não encontrado",
@@ -126,7 +126,7 @@ public class QuestaoController {
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = QuestaoDto.class)),
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false}]"
+                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false}]"
                     )
                 )),
             @ApiResponse(responseCode = "404", description = "Subtema não encontrado",
@@ -151,27 +151,91 @@ public class QuestaoController {
     }
 
     @Operation(
-        summary = "Obter questões não anuladas",
-        description = "Retorna uma lista de questões que não foram anuladas",
+        summary = "Obter questões anuladas",
+        description = "Retorna uma lista de questões que foram anuladas",
         responses = {
-            @ApiResponse(responseCode = "200", description = "Lista de questões não anuladas retornada com sucesso",
+            @ApiResponse(responseCode = "200", description = "Lista de questões anuladas retornada com sucesso",
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = QuestaoDto.class)),
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false}]"
+                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": true}]"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/questoes/nao-anuladas\"}"
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/questoes/anuladas\"}"
                     )))
         }
     )
-    @GetMapping("/nao-anuladas")
-    public ResponseEntity<List<QuestaoDto>> getQuestoesNaoAnuladas() {
-        List<QuestaoDto> questoes = questaoService.getQuestoesNaoAnuladas();
+    @GetMapping("/anuladas")
+    public ResponseEntity<List<QuestaoDto>> getQuestoesAnuladas() {
+        List<QuestaoDto> questoes = questaoService.getQuestoesAnuladas();
+        return ResponseEntity.ok(questoes);
+    }
+
+    @Operation(
+        summary = "Obter questões por ID do tema",
+        description = "Retorna uma lista de questões associadas a um tema específico",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Lista de questões retornada com sucesso",
+                content = @Content(
+                    array = @ArraySchema(schema = @Schema(implementation = QuestaoDto.class)),
+                    examples = @ExampleObject(
+                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false}]"
+                    )
+                )),
+            @ApiResponse(responseCode = "404", description = "Tema não encontrado",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Tema com ID: '1'\",\"instance\":\"/api/questoes/tema/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/questoes/tema/1\"}"
+                    )))
+        }
+    )
+    @GetMapping("/tema/{temaId}")
+    public ResponseEntity<List<QuestaoDto>> getQuestoesByTemaId(
+            @Parameter(description = "ID do tema para filtrar questões", required = true) @PathVariable Long temaId) {
+        List<QuestaoDto> questoes = questaoService.getQuestoesByTemaId(temaId);
+        return ResponseEntity.ok(questoes);
+    }
+
+    @Operation(
+        summary = "Obter questões por ID da disciplina",
+        description = "Retorna uma lista de questões associadas a uma disciplina específica",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Lista de questões retornada com sucesso",
+                content = @Content(
+                    array = @ArraySchema(schema = @Schema(implementation = QuestaoDto.class)),
+                    examples = @ExampleObject(
+                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false}]"
+                    )
+                )),
+            @ApiResponse(responseCode = "404", description = "Disciplina não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Disciplina com ID: '1'\",\"instance\":\"/api/questoes/disciplina/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/questoes/disciplina/1\"}"
+                    )))
+        }
+    )
+    @GetMapping("/disciplina/{disciplinaId}")
+    public ResponseEntity<List<QuestaoDto>> getQuestoesByDisciplinaId(
+            @Parameter(description = "ID da disciplina para filtrar questões", required = true) @PathVariable Long disciplinaId) {
+        List<QuestaoDto> questoes = questaoService.getQuestoesByDisciplinaId(disciplinaId);
         return ResponseEntity.ok(questoes);
     }
 
@@ -191,7 +255,7 @@ public class QuestaoController {
                 content = @Content(
                     schema = @Schema(implementation = QuestaoDto.class),
                     examples = @ExampleObject(
-                        value = "{\"id\": 2, \"enunciado\": \"Sobre a organização administrativa do Estado, o que define a descentralização?\", \"concursoId\": 1, \"subtemaIds\": [3], \"concursoCargoIds\": [1, 2], \"anulada\": false}"
+                        value = "{\"id\": 2, \"enunciado\": \"Sobre a organização administrativa do Estado, o que define a descentralização?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/nova-imagem.jpg\", \"subtemaIds\": [3], \"concursoCargoIds\": [1, 2], \"anulada\": false}"
                     )
                 )),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
@@ -237,7 +301,7 @@ public class QuestaoController {
                 content = @Content(
                     schema = @Schema(implementation = QuestaoDto.class),
                     examples = @ExampleObject(
-                        value = "{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta pela união indissolúvel de quais entes?\", \"concursoId\": 1, \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false}"
+                        value = "{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta pela união indissolúvel de quais entes?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem-atualizada.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false}"
                     )
                 )),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",

@@ -33,6 +33,10 @@ public class Questao {
     @Schema(description = "Indica se a questão foi anulada", example = "false", defaultValue = "false")
     private Boolean anulada = false;
 
+    @Column(name = "image_url", columnDefinition = "TEXT")
+    @Schema(description = "URL da imagem associada à questão", example = "https://exemplo.com/imagem.jpg")
+    private String imageUrl;
+
     @OneToMany(
         mappedBy = "questao",
         cascade = CascadeType.ALL,
@@ -64,20 +68,6 @@ public class Questao {
     @Schema(description = "Subtemas associados à questão")
     private List<Subtema> subtemas;
 
-    @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "questao_imagem",
-        joinColumns = @JoinColumn(name = "questao_id"),
-        inverseJoinColumns = @JoinColumn(name = "imagem_id"),
-        indexes = {
-            @Index(
-                name = "idx_questao_imagem_imagem",
-                columnList = "imagem_id"
-            ),
-        }
-    )
-    @Schema(description = "Imagens associadas à questão")
-    private List<Imagem> imagens;
 
     @OneToMany(
         mappedBy = "questao",
@@ -152,12 +142,12 @@ public class Questao {
         this.subtemas = subtemas;
     }
 
-    public List<Imagem> getImagens() {
-        return imagens;
+    public String getImageUrl() {
+        return imageUrl;
     }
 
-    public void setImagens(List<Imagem> imagens) {
-        this.imagens = imagens;
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = (imageUrl != null && !imageUrl.trim().isEmpty()) ? imageUrl : null;
     }
 
     public List<QuestaoCargo> getQuestaoCargos() {
