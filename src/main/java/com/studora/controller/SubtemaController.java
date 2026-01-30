@@ -1,6 +1,5 @@
 package com.studora.controller;
 
-import com.studora.dto.ErrorResponse;
 import com.studora.dto.SubtemaDto;
 import com.studora.service.SubtemaService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -10,8 +9,10 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,10 +35,16 @@ public class SubtemaController {
             @ApiResponse(responseCode = "200", description = "Lista de subtemas retornada com sucesso",
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = SubtemaDto.class)),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        value = "[{\"id\": 1, \"nome\": \"Direitos Individuais\", \"temaId\": 1}]"
+                    examples = @ExampleObject(
+                        value = "[{\"id\": 1, \"nome\": \"Habeas Corpus\", \"temaId\": 1}, {\"id\": 2, \"nome\": \"Mandado de Segurança\", \"temaId\": 1}]"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/subtemas\"}"
+                    )))
         }
     )
     @GetMapping
@@ -53,10 +60,22 @@ public class SubtemaController {
             @ApiResponse(responseCode = "200", description = "Subtema encontrado e retornado com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = SubtemaDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        value = "{\"id\": 1, \"nome\": \"Direitos Individuais\", \"temaId\": 1}"
+                    examples = @ExampleObject(
+                        value = "{\"id\": 1, \"nome\": \"Habeas Corpus\", \"temaId\": 1}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "404", description = "Subtema não encontrado",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Subtema com ID: '123'\",\"instance\":\"/api/subtemas/123\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/subtemas/123\"}"
+                    )))
         }
     )
     @GetMapping("/{id}")
@@ -73,10 +92,22 @@ public class SubtemaController {
             @ApiResponse(responseCode = "200", description = "Lista de subtemas retornada com sucesso",
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = SubtemaDto.class)),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        value = "[{\"id\": 1, \"nome\": \"Direitos Individuais\", \"temaId\": 1}]"
+                    examples = @ExampleObject(
+                        value = "[{\"id\": 1, \"nome\": \"Habeas Corpus\", \"temaId\": 1}, {\"id\": 2, \"nome\": \"Mandado de Segurança\", \"temaId\": 1}]"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "404", description = "Tema não encontrado",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Tema com ID: '1'\",\"instance\":\"/api/subtemas/tema/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/subtemas/tema/1\"}"
+                    )))
         }
     )
     @GetMapping("/tema/{temaId}")
@@ -101,10 +132,22 @@ public class SubtemaController {
             @ApiResponse(responseCode = "201", description = "Novo subtema criado com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = SubtemaDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        value = "{\"id\": 2, \"nome\": \"Direitos Sociais\", \"temaId\": 1}"
+                    examples = @ExampleObject(
+                        value = "{\"id\": 3, \"nome\": \"Direito à Vida\", \"temaId\": 1}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/subtemas\",\"errors\":{\"nome\":\"não deve estar em branco\"}}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/subtemas\"}"
+                    )))
         }
     )
     @PostMapping
@@ -129,10 +172,28 @@ public class SubtemaController {
             @ApiResponse(responseCode = "200", description = "Subtema atualizado com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = SubtemaDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        value = "{\"id\": 1, \"nome\": \"Direitos Individuais Atualizado\", \"temaId\": 1}"
+                    examples = @ExampleObject(
+                        value = "{\"id\": 1, \"nome\": \"Habeas Corpus e Habeas Data\", \"temaId\": 1}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/subtemas/1\",\"errors\":{\"nome\":\"não deve estar em branco\"}}"
+                    ))),
+            @ApiResponse(responseCode = "404", description = "Subtema não encontrado",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Subtema com ID: '1'\",\"instance\":\"/api/subtemas/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/subtemas/1\"}"
+                    )))
         }
     )
     @PutMapping("/{id}")
@@ -147,7 +208,19 @@ public class SubtemaController {
         summary = "Excluir subtema",
         description = "Remove um subtema existente com base no ID fornecido",
         responses = {
-            @ApiResponse(responseCode = "204", description = "Subtema excluído com sucesso")
+            @ApiResponse(responseCode = "204", description = "Subtema excluído com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Subtema não encontrado",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Subtema com ID: '1'\",\"instance\":\"/api/subtemas/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/subtemas/1\"}"
+                    )))
         }
     )
     @DeleteMapping("/{id}")

@@ -1,6 +1,5 @@
 package com.studora.controller;
 
-import com.studora.dto.ErrorResponse;
 import com.studora.dto.InstituicaoDto;
 import com.studora.service.InstituicaoService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -10,8 +9,10 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,10 +33,16 @@ public class InstituicaoController {
             @ApiResponse(responseCode = "200", description = "Lista de instituições retornada com sucesso",
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = InstituicaoDto.class)),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    examples = @ExampleObject(
                         value = "[{\"id\": 1, \"nome\": \"Polícia Federal\"}]"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/instituicoes\"}"
+                    )))
         }
     )
     @GetMapping
@@ -51,10 +58,22 @@ public class InstituicaoController {
             @ApiResponse(responseCode = "200", description = "Instituição encontrada e retornada com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = InstituicaoDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    examples = @ExampleObject(
                         value = "{\"id\": 1, \"nome\": \"Polícia Federal\"}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "404", description = "Instituição não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Instituição com ID: '123'\",\"instance\":\"/api/instituicoes/123\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/instituicoes/123\"}"
+                    )))
         }
     )
     @GetMapping("/{id}")
@@ -79,10 +98,22 @@ public class InstituicaoController {
             @ApiResponse(responseCode = "201", description = "Nova instituição criada com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = InstituicaoDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    examples = @ExampleObject(
                         value = "{\"id\": 2, \"nome\": \"Receita Federal\"}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/instituicoes\",\"errors\":{\"nome\":\"não deve estar em branco\"}}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/instituicoes\"}"
+                    )))
         }
     )
     @PostMapping
@@ -107,10 +138,28 @@ public class InstituicaoController {
             @ApiResponse(responseCode = "200", description = "Instituição atualizada com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = InstituicaoDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    examples = @ExampleObject(
                         value = "{\"id\": 1, \"nome\": \"Polícia Federal Atualizada\"}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/instituicoes/1\",\"errors\":{\"nome\":\"não deve estar em branco\"}}"
+                    ))),
+            @ApiResponse(responseCode = "404", description = "Instituição não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Instituição com ID: '1'\",\"instance\":\"/api/instituicoes/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/instituicoes/1\"}"
+                    )))
         }
     )
     @PutMapping("/{id}")
@@ -127,7 +176,19 @@ public class InstituicaoController {
         summary = "Excluir instituição",
         description = "Remove uma instituição existente com base no ID fornecido",
         responses = {
-            @ApiResponse(responseCode = "204", description = "Instituição excluída com sucesso")
+            @ApiResponse(responseCode = "204", description = "Instituição excluída com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Instituição não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Instituição com ID: '1'\",\"instance\":\"/api/instituicoes/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/instituicoes/1\"}"
+                    )))
         }
     )
     @DeleteMapping("/{id}")

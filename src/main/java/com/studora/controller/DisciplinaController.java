@@ -1,7 +1,6 @@
 package com.studora.controller;
 
 import com.studora.dto.DisciplinaDto;
-import com.studora.dto.ErrorResponse;
 import com.studora.service.DisciplinaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -10,8 +9,10 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,10 +35,16 @@ public class DisciplinaController {
             @ApiResponse(responseCode = "200", description = "Lista de disciplinas retornada com sucesso",
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = DisciplinaDto.class)),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        value = "[{\"id\": 1, \"nome\": \"Direito Constitucional\"}]"
+                    examples = @ExampleObject(
+                        value = "[{\"id\": 1, \"nome\": \"Direito Constitucional\"}, {\"id\": 2, \"nome\": \"Língua Portuguesa\"}]"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/disciplinas\"}"
+                    )))
         }
     )
     @GetMapping
@@ -53,10 +60,22 @@ public class DisciplinaController {
             @ApiResponse(responseCode = "200", description = "Disciplina encontrada e retornada com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = DisciplinaDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    examples = @ExampleObject(
                         value = "{\"id\": 1, \"nome\": \"Direito Constitucional\"}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "404", description = "Disciplina não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Disciplina com ID: '123'\",\"instance\":\"/api/disciplinas/123\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/disciplinas/123\"}"
+                    )))
         }
     )
     @GetMapping("/{id}")
@@ -81,10 +100,22 @@ public class DisciplinaController {
             @ApiResponse(responseCode = "201", description = "Nova disciplina criada com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = DisciplinaDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        value = "{\"id\": 2, \"nome\": \"Direito Administrativo\"}"
+                    examples = @ExampleObject(
+                        value = "{\"id\": 3, \"nome\": \"Direito Administrativo\"}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/disciplinas\",\"errors\":{\"nome\":\"não deve estar em branco\"}}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/disciplinas\"}"
+                    )))
         }
     )
     @PostMapping
@@ -109,10 +140,28 @@ public class DisciplinaController {
             @ApiResponse(responseCode = "200", description = "Disciplina atualizada com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = DisciplinaDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        value = "{\"id\": 1, \"nome\": \"Direito Constitucional Atualizado\"}"
+                    examples = @ExampleObject(
+                        value = "{\"id\": 1, \"nome\": \"Direito Constitucional Aplicado\"}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/disciplinas/1\",\"errors\":{\"nome\":\"não deve estar em branco\"}}"
+                    ))),
+            @ApiResponse(responseCode = "404", description = "Disciplina não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Disciplina com ID: '1'\",\"instance\":\"/api/disciplinas/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/disciplinas/1\"}"
+                    )))
         }
     )
     @PutMapping("/{id}")
@@ -127,7 +176,19 @@ public class DisciplinaController {
         summary = "Excluir disciplina",
         description = "Remove uma disciplina existente com base no ID fornecido",
         responses = {
-            @ApiResponse(responseCode = "204", description = "Disciplina excluída com sucesso")
+            @ApiResponse(responseCode = "204", description = "Disciplina excluída com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Disciplina não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Disciplina com ID: '1'\",\"instance\":\"/api/disciplinas/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/disciplinas/1\"}"
+                    )))
         }
     )
     @DeleteMapping("/{id}")

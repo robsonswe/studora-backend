@@ -2,7 +2,6 @@ package com.studora.controller;
 
 import com.studora.dto.ConcursoCargoDto;
 import com.studora.dto.ConcursoDto;
-import com.studora.dto.ErrorResponse;
 import com.studora.service.ConcursoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -11,8 +10,10 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,10 +34,16 @@ public class ConcursoController {
             @ApiResponse(responseCode = "200", description = "Lista de concursos retornada com sucesso",
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = ConcursoDto.class)),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    examples = @ExampleObject(
                         value = "[{\"id\": 1, \"instituicaoId\": 1, \"bancaId\": 1, \"ano\": 2023}]"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/concursos\"}"
+                    )))
         }
     )
     @GetMapping
@@ -52,10 +59,22 @@ public class ConcursoController {
             @ApiResponse(responseCode = "200", description = "Concurso encontrado e retornado com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = ConcursoDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    examples = @ExampleObject(
                         value = "{\"id\": 1, \"instituicaoId\": 1, \"bancaId\": 1, \"ano\": 2023}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "404", description = "Concurso não encontrado",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Concurso com ID: '123'\",\"instance\":\"/api/concursos/123\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/concursos/123\"}"
+                    )))
         }
     )
     @GetMapping("/{id}")
@@ -80,10 +99,22 @@ public class ConcursoController {
             @ApiResponse(responseCode = "201", description = "Novo concurso criado com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = ConcursoDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    examples = @ExampleObject(
                         value = "{\"id\": 2, \"instituicaoId\": 2, \"bancaId\": 2, \"ano\": 2024}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/concursos\",\"errors\":{\"ano\":\"deve ser maior que 1900\"}}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/concursos\"}"
+                    )))
         }
     )
     @PostMapping
@@ -108,10 +139,28 @@ public class ConcursoController {
             @ApiResponse(responseCode = "200", description = "Concurso atualizado com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = ConcursoDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    examples = @ExampleObject(
                         value = "{\"id\": 1, \"instituicaoId\": 1, \"bancaId\": 1, \"ano\": 2023}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/concursos/1\",\"errors\":{\"ano\":\"deve ser maior que 1900\"}}"
+                    ))),
+            @ApiResponse(responseCode = "404", description = "Concurso não encontrado",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Concurso com ID: '1'\",\"instance\":\"/api/concursos/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/concursos/1\"}"
+                    )))
         }
     )
     @PutMapping("/{id}")
@@ -127,7 +176,19 @@ public class ConcursoController {
         summary = "Excluir concurso",
         description = "Remove um concurso existente com base no ID fornecido",
         responses = {
-            @ApiResponse(responseCode = "204", description = "Concurso excluído com sucesso")
+            @ApiResponse(responseCode = "204", description = "Concurso excluída com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Concurso não encontrado",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Concurso com ID: '1'\",\"instance\":\"/api/concursos/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/concursos/1\"}"
+                    )))
         }
     )
     @DeleteMapping("/{id}")
@@ -145,10 +206,22 @@ public class ConcursoController {
             @ApiResponse(responseCode = "200", description = "Lista de cargos retornada com sucesso",
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = ConcursoCargoDto.class)),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    examples = @ExampleObject(
                         value = "[{\"id\": 1, \"concursoId\": 1, \"cargoId\": 1}]"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "404", description = "Concurso não encontrado",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Concurso com ID: '1'\",\"instance\":\"/api/concursos/1/cargos\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/concursos/1/cargos\"}"
+                    )))
         }
     )
     @GetMapping("/{id}/cargos")
@@ -173,10 +246,28 @@ public class ConcursoController {
             @ApiResponse(responseCode = "201", description = "Cargo adicionado ao concurso com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = ConcursoCargoDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    examples = @ExampleObject(
                         value = "{\"id\": 5, \"concursoId\": 1, \"cargoId\": 2}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/concursos/1/cargos\",\"errors\":{\"cargoId\":\"não deve ser nulo\"}}"
+                    ))),
+            @ApiResponse(responseCode = "404", description = "Concurso não encontrado",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Concurso com ID: '1'\",\"instance\":\"/api/concursos/1/cargos\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/concursos/1/cargos\"}"
+                    )))
         }
     )
     @PostMapping("/{id}/cargos")
@@ -192,7 +283,19 @@ public class ConcursoController {
         summary = "Remover cargo do concurso",
         description = "Desassocia um cargo de um concurso específico",
         responses = {
-            @ApiResponse(responseCode = "204", description = "Cargo removido do concurso com sucesso")
+            @ApiResponse(responseCode = "204", description = "Cargo removido do concurso com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Recurso não encontrado",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar a associação para remover.\",\"instance\":\"/api/concursos/1/cargos/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/concursos/1/cargos/1\"}"
+                    )))
         }
     )
     @DeleteMapping("/{concursoId}/cargos/{cargoId}")

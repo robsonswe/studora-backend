@@ -1,6 +1,5 @@
 package com.studora.controller;
 
-import com.studora.dto.ErrorResponse;
 import com.studora.dto.TemaDto;
 import com.studora.service.TemaService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -10,8 +9,10 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,10 +35,16 @@ public class TemaController {
             @ApiResponse(responseCode = "200", description = "Lista de temas retornada com sucesso",
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = TemaDto.class)),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    examples = @ExampleObject(
                         value = "[{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1}]"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/temas\"}"
+                    )))
         }
     )
     @GetMapping
@@ -53,10 +60,22 @@ public class TemaController {
             @ApiResponse(responseCode = "200", description = "Tema encontrado e retornado com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = TemaDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    examples = @ExampleObject(
                         value = "{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "404", description = "Tema não encontrado",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Tema com ID: '123'\",\"instance\":\"/api/temas/123\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/temas/123\"}"
+                    )))
         }
     )
     @GetMapping("/{id}")
@@ -73,10 +92,22 @@ public class TemaController {
             @ApiResponse(responseCode = "200", description = "Lista de temas retornada com sucesso",
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = TemaDto.class)),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    examples = @ExampleObject(
                         value = "[{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1}]"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "404", description = "Disciplina não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Disciplina com ID: '1'\",\"instance\":\"/api/temas/disciplina/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/temas/disciplina/1\"}"
+                    )))
         }
     )
     @GetMapping("/disciplina/{disciplinaId}")
@@ -101,10 +132,22 @@ public class TemaController {
             @ApiResponse(responseCode = "201", description = "Novo tema criado com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = TemaDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    examples = @ExampleObject(
                         value = "{\"id\": 2, \"nome\": \"Organização do Estado\", \"disciplinaId\": 1}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/temas\",\"errors\":{\"nome\":\"não deve estar em branco\"}}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/temas\"}"
+                    )))
         }
     )
     @PostMapping
@@ -129,10 +172,28 @@ public class TemaController {
             @ApiResponse(responseCode = "200", description = "Tema atualizado com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = TemaDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    examples = @ExampleObject(
                         value = "{\"id\": 1, \"nome\": \"Direitos Fundamentais Atualizado\", \"disciplinaId\": 1}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/temas/1\",\"errors\":{\"nome\":\"não deve estar em branco\"}}"
+                    ))),
+            @ApiResponse(responseCode = "404", description = "Tema não encontrado",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Tema com ID: '1'\",\"instance\":\"/api/temas/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/temas/1\"}"
+                    )))
         }
     )
     @PutMapping("/{id}")
@@ -147,7 +208,19 @@ public class TemaController {
         summary = "Excluir tema",
         description = "Remove um tema existente com base no ID fornecido",
         responses = {
-            @ApiResponse(responseCode = "204", description = "Tema excluído com sucesso")
+            @ApiResponse(responseCode = "204", description = "Tema excluído com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Tema não encontrado",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Tema com ID: '1'\",\"instance\":\"/api/temas/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/temas/1\"}"
+                    )))
         }
     )
     @DeleteMapping("/{id}")

@@ -1,6 +1,5 @@
 package com.studora.controller;
 
-import com.studora.dto.ErrorResponse;
 import com.studora.dto.ImagemDto;
 import com.studora.service.ImagemService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -10,8 +9,10 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,10 +35,16 @@ public class ImagemController {
             @ApiResponse(responseCode = "200", description = "Lista de imagens retornada com sucesso",
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = ImagemDto.class)),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    examples = @ExampleObject(
                         value = "[{\"id\": 1, \"url\": \"http://example.com/image.png\", \"descricao\": \"Imagem de teste\"}]"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/imagens\"}"
+                    )))
         }
     )
     @GetMapping
@@ -53,10 +60,22 @@ public class ImagemController {
             @ApiResponse(responseCode = "200", description = "Imagem encontrada e retornada com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = ImagemDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    examples = @ExampleObject(
                         value = "{\"id\": 1, \"url\": \"http://example.com/image.png\", \"descricao\": \"Imagem de teste\"}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "404", description = "Imagem não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Imagem com ID: '123'\",\"instance\":\"/api/imagens/123\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/imagens/123\"}"
+                    )))
         }
     )
     @GetMapping("/{id}")
@@ -81,10 +100,22 @@ public class ImagemController {
             @ApiResponse(responseCode = "201", description = "Nova imagem criada com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = ImagemDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    examples = @ExampleObject(
                         value = "{\"id\": 2, \"url\": \"http://example.com/image2.png\", \"descricao\": \"Nova imagem\"}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/imagens\",\"errors\":{\"url\":\"não deve estar em branco\"}}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/imagens\"}"
+                    )))
         }
     )
     @PostMapping
@@ -109,10 +140,28 @@ public class ImagemController {
             @ApiResponse(responseCode = "200", description = "Imagem atualizada com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = ImagemDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    examples = @ExampleObject(
                         value = "{\"id\": 1, \"url\": \"http://example.com/image_updated.png\", \"descricao\": \"Imagem atualizada\"}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/imagens/1\",\"errors\":{\"url\":\"não deve estar em branco\"}}"
+                    ))),
+            @ApiResponse(responseCode = "404", description = "Imagem não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Imagem com ID: '1'\",\"instance\":\"/api/imagens/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/imagens/1\"}"
+                    )))
         }
     )
     @PutMapping("/{id}")
@@ -127,7 +176,19 @@ public class ImagemController {
         summary = "Excluir imagem",
         description = "Remove uma imagem existente com base no ID fornecido",
         responses = {
-            @ApiResponse(responseCode = "204", description = "Imagem excluída com sucesso")
+            @ApiResponse(responseCode = "204", description = "Imagem excluída com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Imagem não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Imagem com ID: '1'\",\"instance\":\"/api/imagens/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/imagens/1\"}"
+                    )))
         }
     )
     @DeleteMapping("/{id}")

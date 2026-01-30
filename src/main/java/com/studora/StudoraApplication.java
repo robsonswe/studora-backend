@@ -15,7 +15,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
         version = "1.0.0",
         contact = @Contact(
             name = "Suporte Studora",
-            email = "suporte@studora.com.br"
+            email = "suporte@example.com"
         ),
         license = @License(
             name = "MIT License",

@@ -1,7 +1,6 @@
 package com.studora.controller;
 
 import com.studora.dto.AlternativaDto;
-import com.studora.dto.ErrorResponse;
 import com.studora.service.AlternativaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -10,8 +9,10 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,10 +35,16 @@ public class AlternativaController {
             @ApiResponse(responseCode = "200", description = "Lista de alternativas retornada com sucesso",
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = AlternativaDto.class)),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        value = "[{\"id\": 1, \"texto\": \"Alternativa A\", \"correta\": true, \"questaoId\": 1}]"
+                    examples = @ExampleObject(
+                        value = "[{\"id\": 1, \"ordem\": 1, \"texto\": \"A União, os Estados, o Distrito Federal e os Municípios.\", \"correta\": true, \"questaoId\": 1, \"justificativa\": \"Conforme o Art. 1º da CF/88.\"}]"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/alternativas\"}"
+                    )))
         }
     )
     @GetMapping
@@ -53,10 +60,22 @@ public class AlternativaController {
             @ApiResponse(responseCode = "200", description = "Alternativa encontrada e retornada com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = AlternativaDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        value = "{\"id\": 1, \"texto\": \"Alternativa A\", \"correta\": true, \"questaoId\": 1}"
+                    examples = @ExampleObject(
+                        value = "{\"id\": 1, \"ordem\": 1, \"texto\": \"A União, os Estados, o Distrito Federal e os Municípios.\", \"correta\": true, \"questaoId\": 1, \"justificativa\": \"Conforme o Art. 1º da CF/88.\"}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "404", description = "Alternativa não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Alternativa com ID: '123'\",\"instance\":\"/api/alternativas/123\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/alternativas/123\"}"
+                    )))
         }
     )
     @GetMapping("/{id}")
@@ -73,10 +92,22 @@ public class AlternativaController {
             @ApiResponse(responseCode = "200", description = "Lista de alternativas retornada com sucesso",
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = AlternativaDto.class)),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        value = "[{\"id\": 1, \"texto\": \"Alternativa A\", \"correta\": true, \"questaoId\": 1}]"
+                    examples = @ExampleObject(
+                        value = "[{\"id\": 1, \"ordem\": 1, \"texto\": \"A União, os Estados, o Distrito Federal e os Municípios.\", \"correta\": true, \"questaoId\": 1}]"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "404", description = "Questão não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Questão com ID: '1'\",\"instance\":\"/api/alternativas/questao/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/alternativas/questao/1\"}"
+                    )))
         }
     )
     @GetMapping("/questao/{questaoId}")
@@ -93,10 +124,22 @@ public class AlternativaController {
             @ApiResponse(responseCode = "200", description = "Lista de alternativas corretas retornada com sucesso",
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = AlternativaDto.class)),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        value = "[{\"id\": 1, \"texto\": \"Alternativa A\", \"correta\": true, \"questaoId\": 1}]"
+                    examples = @ExampleObject(
+                        value = "[{\"id\": 1, \"ordem\": 1, \"texto\": \"A União, os Estados, o Distrito Federal e os Municípios.\", \"correta\": true, \"questaoId\": 1}]"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "404", description = "Questão não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Questão com ID: '1'\",\"instance\":\"/api/alternativas/questao/1/corretas\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/alternativas/questao/1/corretas\"}"
+                    )))
         }
     )
     @GetMapping("/questao/{questaoId}/corretas")
@@ -121,10 +164,22 @@ public class AlternativaController {
             @ApiResponse(responseCode = "201", description = "Nova alternativa criada com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = AlternativaDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        value = "{\"id\": 2, \"texto\": \"Alternativa B\", \"correta\": false, \"questaoId\": 1}"
+                    examples = @ExampleObject(
+                        value = "{\"id\": 2, \"ordem\": 2, \"texto\": \"Apenas a União e os Estados.\", \"correta\": false, \"questaoId\": 1}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/alternativas\",\"errors\":{\"texto\":\"não deve estar em branco\"}}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/alternativas\"}"
+                    )))
         }
     )
     @PostMapping
@@ -149,10 +204,28 @@ public class AlternativaController {
             @ApiResponse(responseCode = "200", description = "Alternativa atualizada com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = AlternativaDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        value = "{\"id\": 1, \"texto\": \"Alternativa A Atualizada\", \"correta\": true, \"questaoId\": 1}"
+                    examples = @ExampleObject(
+                        value = "{\"id\": 1, \"ordem\": 1, \"texto\": \"A União, os Estados, o Distrito Federal e os Municípios (Atualizada).\", \"correta\": true, \"questaoId\": 1}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/alternativas/1\",\"errors\":{\"texto\":\"não deve estar em branco\"}}"
+                    ))),
+            @ApiResponse(responseCode = "404", description = "Alternativa não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Alternativa com ID: '1'\",\"instance\":\"/api/alternativas/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/alternativas/1\"}"
+                    )))
         }
     )
     @PutMapping("/{id}")
@@ -167,7 +240,19 @@ public class AlternativaController {
         summary = "Excluir alternativa",
         description = "Remove uma alternativa existente com base no ID fornecido",
         responses = {
-            @ApiResponse(responseCode = "204", description = "Alternativa excluída com sucesso")
+            @ApiResponse(responseCode = "204", description = "Alternativa excluída com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Alternativa não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Alternativa com ID: '1'\",\"instance\":\"/api/alternativas/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/alternativas/1\"}"
+                    )))
         }
     )
     @DeleteMapping("/{id}")

@@ -1,7 +1,6 @@
 package com.studora.controller;
 
 import com.studora.dto.BancaDto;
-import com.studora.dto.ErrorResponse;
 import com.studora.service.BancaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -10,8 +9,10 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -33,10 +34,16 @@ public class BancaController {
             @ApiResponse(responseCode = "200", description = "Lista de bancas retornada com sucesso",
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = BancaDto.class)),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        value = "[{\"id\": 1, \"nome\": \"CESPE\"}, {\"id\": 2, \"nome\": \"FGV\"}]"
+                    examples = @ExampleObject(
+                        value = "[{\"id\": 1, \"nome\": \"Cebraspe (CESPE)\"}, {\"id\": 2, \"nome\": \"FGV\"}, {\"id\": 3, \"nome\": \"Vunesp\"}]"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/bancas\"}"
+                    )))
         }
     )
     @GetMapping
@@ -52,10 +59,22 @@ public class BancaController {
             @ApiResponse(responseCode = "200", description = "Banca encontrada e retornada com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = BancaDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        value = "{\"id\": 1, \"nome\": \"CESPE\"}"
+                    examples = @ExampleObject(
+                        value = "{\"id\": 1, \"nome\": \"Cebraspe (CESPE)\"}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "404", description = "Banca não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Banca com ID: '123'\",\"instance\":\"/api/bancas/123\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/bancas/123\"}"
+                    )))
         }
     )
     @GetMapping("/{id}")
@@ -80,10 +99,22 @@ public class BancaController {
             @ApiResponse(responseCode = "201", description = "Nova banca criada com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = BancaDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        value = "{\"id\": 3, \"nome\": \"VUNESP\"}"
+                    examples = @ExampleObject(
+                        value = "{\"id\": 4, \"nome\": \"FCC\"}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/bancas\",\"errors\":{\"nome\":\"não deve estar em branco\"}}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/bancas\"}"
+                    )))
         }
     )
     @PostMapping
@@ -108,10 +139,28 @@ public class BancaController {
             @ApiResponse(responseCode = "200", description = "Banca atualizada com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = BancaDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        value = "{\"id\": 1, \"nome\": \"CESPE Atualizado\"}"
+                    examples = @ExampleObject(
+                        value = "{\"id\": 1, \"nome\": \"Cebraspe (CESPE) - Atualizada\"}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/bancas/1\",\"errors\":{\"nome\":\"não deve estar em branco\"}}"
+                    ))),
+            @ApiResponse(responseCode = "404", description = "Banca não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Banca com ID: '1'\",\"instance\":\"/api/bancas/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/bancas/1\"}"
+                    )))
         }
     )
     @PutMapping("/{id}")
@@ -128,7 +177,19 @@ public class BancaController {
         summary = "Excluir banca",
         description = "Remove uma banca organizadora existente com base no ID fornecido",
         responses = {
-            @ApiResponse(responseCode = "204", description = "Banca excluída com sucesso")
+            @ApiResponse(responseCode = "204", description = "Banca excluída com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Banca não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Banca com ID: '1'\",\"instance\":\"/api/bancas/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/bancas/1\"}"
+                    )))
         }
     )
     @DeleteMapping("/{id}")

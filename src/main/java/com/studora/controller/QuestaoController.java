@@ -2,7 +2,6 @@ package com.studora.controller;
 
 import com.studora.dto.QuestaoCargoDto;
 import com.studora.dto.QuestaoDto;
-import com.studora.dto.ErrorResponse;
 import com.studora.service.QuestaoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -11,8 +10,10 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,10 +36,16 @@ public class QuestaoController {
             @ApiResponse(responseCode = "200", description = "Lista de questões retornada com sucesso",
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = QuestaoDto.class)),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        value = "[{\"id\": 1, \"enunciado\": \"Qual a capital do Brasil?\", \"concursoId\": 1, \"subtemaId\": 1, \"anulada\": false}]"
+                    examples = @ExampleObject(
+                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false}]"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/questoes\"}"
+                    )))
         }
     )
     @GetMapping
@@ -54,10 +61,22 @@ public class QuestaoController {
             @ApiResponse(responseCode = "200", description = "Questão encontrada e retornada com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = QuestaoDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        value = "{\"id\": 1, \"enunciado\": \"Qual a capital do Brasil?\", \"concursoId\": 1, \"subtemaId\": 1, \"anulada\": false}"
+                    examples = @ExampleObject(
+                        value = "{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "404", description = "Questão não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Questão com ID: '123'\",\"instance\":\"/api/questoes/123\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/questoes/123\"}"
+                    )))
         }
     )
     @GetMapping("/{id}")
@@ -74,10 +93,22 @@ public class QuestaoController {
             @ApiResponse(responseCode = "200", description = "Lista de questões retornada com sucesso",
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = QuestaoDto.class)),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        value = "[{\"id\": 1, \"enunciado\": \"Qual a capital do Brasil?\", \"concursoId\": 1, \"subtemaId\": 1, \"anulada\": false}]"
+                    examples = @ExampleObject(
+                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false}]"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "404", description = "Concurso não encontrado",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Concurso com ID: '1'\",\"instance\":\"/api/questoes/concurso/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/questoes/concurso/1\"}"
+                    )))
         }
     )
     @GetMapping("/concurso/{concursoId}")
@@ -94,10 +125,22 @@ public class QuestaoController {
             @ApiResponse(responseCode = "200", description = "Lista de questões retornada com sucesso",
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = QuestaoDto.class)),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        value = "[{\"id\": 1, \"enunciado\": \"Qual a capital do Brasil?\", \"concursoId\": 1, \"subtemaId\": 1, \"anulada\": false}]"
+                    examples = @ExampleObject(
+                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false}]"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "404", description = "Subtema não encontrado",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Subtema com ID: '1'\",\"instance\":\"/api/questoes/subtema/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/questoes/subtema/1\"}"
+                    )))
         }
     )
     @GetMapping("/subtema/{subtemaId}")
@@ -114,10 +157,16 @@ public class QuestaoController {
             @ApiResponse(responseCode = "200", description = "Lista de questões não anuladas retornada com sucesso",
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = QuestaoDto.class)),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        value = "[{\"id\": 1, \"enunciado\": \"Qual a capital do Brasil?\", \"concursoId\": 1, \"subtemaId\": 1, \"anulada\": false}]"
+                    examples = @ExampleObject(
+                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false}]"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/questoes/nao-anuladas\"}"
+                    )))
         }
     )
     @GetMapping("/nao-anuladas")
@@ -141,10 +190,22 @@ public class QuestaoController {
             @ApiResponse(responseCode = "201", description = "Nova questão criada com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = QuestaoDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        value = "{\"id\": 2, \"enunciado\": \"Qual a capital de Portugal?\", \"concursoId\": 1, \"subtemaId\": 1, \"anulada\": false}"
+                    examples = @ExampleObject(
+                        value = "{\"id\": 2, \"enunciado\": \"Sobre a organização administrativa do Estado, o que define a descentralização?\", \"concursoId\": 1, \"subtemaIds\": [3], \"concursoCargoIds\": [1, 2], \"anulada\": false}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/questoes\",\"errors\":{\"enunciado\":\"não deve estar em branco\"}}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/questoes\"}"
+                    )))
         }
     )
     @PostMapping
@@ -169,10 +230,28 @@ public class QuestaoController {
             @ApiResponse(responseCode = "200", description = "Questão atualizada com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = QuestaoDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
-                        value = "{\"id\": 1, \"enunciado\": \"Qual a capital do Brasil? (Atualizada)\", \"concursoId\": 1, \"subtemaId\": 1, \"anulada\": false}"
+                    examples = @ExampleObject(
+                        value = "{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta pela união indissolúvel de quais entes?\", \"concursoId\": 1, \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/questoes/1\",\"errors\":{\"enunciado\":\"não deve estar em branco\"}}"
+                    ))),
+            @ApiResponse(responseCode = "404", description = "Questão não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Questão com ID: '1'\",\"instance\":\"/api/questoes/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/questoes/1\"}"
+                    )))
         }
     )
     @PutMapping("/{id}")
@@ -187,7 +266,19 @@ public class QuestaoController {
         summary = "Excluir questão",
         description = "Remove uma questão existente com base no ID fornecido",
         responses = {
-            @ApiResponse(responseCode = "204", description = "Questão excluída com sucesso")
+            @ApiResponse(responseCode = "204", description = "Questão excluída com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Questão não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Questão com ID: '1'\",\"instance\":\"/api/questoes/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/questoes/1\"}"
+                    )))
         }
     )
     @DeleteMapping("/{id}")
@@ -205,10 +296,22 @@ public class QuestaoController {
             @ApiResponse(responseCode = "200", description = "Lista de cargos retornada com sucesso",
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = QuestaoCargoDto.class)),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    examples = @ExampleObject(
                         value = "[{\"id\": 1, \"questaoId\": 1, \"concursoCargoId\": 1}]"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "404", description = "Questão não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Questão com ID: '1'\",\"instance\":\"/api/questoes/1/cargos\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/questoes/1/cargos\"}"
+                    )))
         }
     )
     @GetMapping("/{id}/cargos")
@@ -233,10 +336,28 @@ public class QuestaoController {
             @ApiResponse(responseCode = "201", description = "Cargo adicionado à questão com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = QuestaoCargoDto.class),
-                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                    examples = @ExampleObject(
                         value = "{\"id\": 2, \"questaoId\": 1, \"concursoCargoId\": 2}"
                     )
-                ))
+                )),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/questoes/1/cargos\",\"errors\":{\"concursoCargoId\":\"não deve ser nulo\"}}"
+                    ))),
+            @ApiResponse(responseCode = "404", description = "Questão não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Questão com ID: '1'\",\"instance\":\"/api/questoes/1/cargos\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/questoes/1/cargos\"}"
+                    )))
         }
     )
     @PostMapping("/{id}/cargos")
@@ -252,7 +373,19 @@ public class QuestaoController {
         summary = "Remover cargo da questão",
         description = "Desassocia um cargo de uma questão específica",
         responses = {
-            @ApiResponse(responseCode = "204", description = "Cargo removido da questão com sucesso")
+            @ApiResponse(responseCode = "204", description = "Cargo removido da questão com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Recurso não encontrado",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar a associação para remover.\",\"instance\":\"/api/questoes/1/cargos/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/questoes/1/cargos/1\"}"
+                    )))
         }
     )
     @DeleteMapping("/{questaoId}/cargos/{concursoCargoId}")
