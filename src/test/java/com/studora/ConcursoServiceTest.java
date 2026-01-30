@@ -1,10 +1,15 @@
 package com.studora;
 
+import com.studora.dto.ConcursoCargoDto;
 import com.studora.dto.ConcursoDto;
 import com.studora.entity.Banca;
+import com.studora.entity.Cargo;
 import com.studora.entity.Concurso;
+import com.studora.entity.ConcursoCargo;
 import com.studora.entity.Instituicao;
 import com.studora.repository.BancaRepository;
+import com.studora.repository.CargoRepository;
+import com.studora.repository.ConcursoCargoRepository;
 import com.studora.repository.ConcursoRepository;
 import com.studora.repository.InstituicaoRepository;
 import com.studora.service.ConcursoService;
@@ -33,6 +38,12 @@ class ConcursoServiceTest {
 
     @Mock
     private BancaRepository bancaRepository;
+
+    @Mock
+    private CargoRepository cargoRepository;
+
+    @Mock
+    private ConcursoCargoRepository concursoCargoRepository;
 
     @InjectMocks
     private ConcursoService concursoService;
@@ -298,5 +309,98 @@ class ConcursoServiceTest {
 
         verify(concursoRepository, times(1)).existsById(concursoId);
         verify(concursoRepository, never()).deleteById(anyLong());
+    }
+
+    @Test
+    void testAddCargoToConcurso_Success() {
+        // Arrange
+        ConcursoCargoDto concursoCargoDto = new ConcursoCargoDto();
+        concursoCargoDto.setConcursoId(1L);
+        concursoCargoDto.setCargoId(2L);
+
+        Concurso concurso = new Concurso();
+        concurso.setId(1L);
+
+        Cargo cargo = new Cargo();
+        cargo.setId(2L);
+
+        ConcursoCargo concursoCargo = new ConcursoCargo();
+        concursoCargo.setId(5L);
+        concursoCargo.setConcurso(concurso);
+        concursoCargo.setCargo(cargo);
+
+        when(concursoRepository.findById(1L)).thenReturn(Optional.of(concurso));
+        when(cargoRepository.findById(2L)).thenReturn(Optional.of(cargo));
+        when(concursoCargoRepository.findByConcursoIdAndCargoId(1L, 2L)).thenReturn(List.of()); // No existing association
+        when(concursoCargoRepository.save(any(ConcursoCargo.class))).thenReturn(concursoCargo);
+
+        // Act
+        ConcursoCargoDto result = concursoService.addCargoToConcurso(concursoCargoDto);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(5L, result.getId());
+        assertEquals(1L, result.getConcursoId());
+        assertEquals(2L, result.getCargoId());
+        verify(concursoRepository, times(1)).findById(1L);
+        verify(cargoRepository, times(1)).findById(2L);
+        verify(concursoCargoRepository, times(1)).findByConcursoIdAndCargoId(1L, 2L);
+        verify(concursoCargoRepository, times(1)).save(any(ConcursoCargo.class));
+    }
+
+    @Test
+    void testAddCargoToConcurso_AlreadyExists() {
+        // Arrange
+        ConcursoCargoDto concursoCargoDto = new ConcursoCargoDto();
+        concursoCargoDto.setConcursoId(1L);
+        concursoCargoDto.setCargoId(2L);
+
+        Concurso concurso = new Concurso();
+        concurso.setId(1L);
+
+        Cargo cargo = new Cargo();
+        cargo.setId(2L);
+
+        ConcursoCargo existingConcursoCargo = new ConcursoCargo();
+        existingConcursoCargo.setId(5L);
+        existingConcursoCargo.setConcurso(concurso);
+        existingConcursoCargo.setCargo(cargo);
+
+        when(concursoCargoRepository.findByConcursoIdAndCargoId(1L, 2L)).thenReturn(Arrays.asList(existingConcursoCargo));
+
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> {
+            concursoService.addCargoToConcurso(concursoCargoDto);
+        });
+
+        verify(concursoCargoRepository, times(1)).findByConcursoIdAndCargoId(1L, 2L);
+        verify(concursoCargoRepository, never()).save(any(ConcursoCargo.class)); // Should not save if already exists
+    }
+
+    @Test
+    void testRemoveLastCargoFromConcurso_FailsValidation() {
+        // Arrange
+        Long concursoId = 1L;
+        Long cargoId = 2L;
+
+        ConcursoCargo existingAssociation = new ConcursoCargo();
+        existingAssociation.setConcurso(new Concurso());
+        existingAssociation.getConcurso().setId(concursoId);
+        existingAssociation.setCargo(new Cargo());
+        existingAssociation.getCargo().setId(cargoId);
+
+        when(concursoCargoRepository.findByConcursoIdAndCargoId(concursoId, cargoId))
+            .thenReturn(Arrays.asList(existingAssociation));
+        when(concursoCargoRepository.findByConcursoId(concursoId))
+            .thenReturn(Arrays.asList(existingAssociation)); // Only one association exists
+
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> {
+            concursoService.removeCargoFromConcurso(concursoId, cargoId);
+        });
+
+        verify(concursoCargoRepository, times(1)).findByConcursoIdAndCargoId(concursoId, cargoId);
+        verify(concursoCargoRepository, times(1)).findByConcursoId(concursoId);
+        verify(concursoCargoRepository, never()).deleteAll(anyList()); // Should not delete if it would leave no associations
     }
 }

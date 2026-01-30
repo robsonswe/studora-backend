@@ -1,5 +1,6 @@
 package com.studora.service;
 
+import com.studora.dto.QuestaoCargoDto;
 import com.studora.dto.QuestaoDto;
 import com.studora.entity.*;
 import com.studora.repository.*;
@@ -83,6 +84,11 @@ public class QuestaoService {
             .findById(questaoDto.getConcursoId())
             .orElseThrow(() -> new RuntimeException("Concurso não encontrado"));
 
+        // Validate that the question has at least one cargo association
+        if (questaoDto.getConcursoCargoIds() == null || questaoDto.getConcursoCargoIds().isEmpty()) {
+            throw new RuntimeException("Uma questão deve estar associada a pelo menos um cargo");
+        }
+
         Questao questao = convertToEntity(questaoDto);
         questao.setConcurso(concurso);
 
@@ -96,18 +102,16 @@ public class QuestaoService {
         Questao savedQuestao = questaoRepository.save(questao);
 
         // Handle QuestaoCargo associations
-        if (questaoDto.getConcursoCargoIds() != null) {
-            for (Long ccId : questaoDto.getConcursoCargoIds()) {
-                ConcursoCargo cc = concursoCargoRepository
-                    .findById(ccId)
-                    .orElseThrow(() ->
-                        new RuntimeException("ConcursoCargo not found: " + ccId)
-                    );
-                QuestaoCargo qc = new QuestaoCargo();
-                qc.setQuestao(savedQuestao);
-                qc.setConcursoCargo(cc);
-                questaoCargoRepository.save(qc);
-            }
+        for (Long ccId : questaoDto.getConcursoCargoIds()) {
+            ConcursoCargo cc = concursoCargoRepository
+                .findById(ccId)
+                .orElseThrow(() ->
+                    new RuntimeException("ConcursoCargo not found: " + ccId)
+                );
+            QuestaoCargo qc = new QuestaoCargo();
+            qc.setQuestao(savedQuestao);
+            qc.setConcursoCargo(cc);
+            questaoCargoRepository.save(qc);
         }
 
         return convertToDto(savedQuestao);
@@ -129,11 +133,74 @@ public class QuestaoService {
         }
 
         Questao updatedQuestao = questaoRepository.save(existingQuestao);
+
+        // Validate that the question still has at least one cargo association after update
+        List<QuestaoCargo> currentAssociations = questaoCargoRepository.findByQuestaoId(id);
+        if (currentAssociations.isEmpty()) {
+            throw new RuntimeException("Uma questão deve estar associada a pelo menos um cargo");
+        }
+
         return convertToDto(updatedQuestao);
     }
 
+    @Transactional
     public void deleteQuestao(Long id) {
+        // First, remove all cargo associations for this questao
+        List<QuestaoCargo> questaoCargos = questaoCargoRepository.findByQuestaoId(id);
+        questaoCargoRepository.deleteAll(questaoCargos);
+
         questaoRepository.deleteById(id);
+    }
+
+    // Methods for managing cargo associations
+    public List<QuestaoCargoDto> getCargosByQuestaoId(Long questaoId) {
+        List<QuestaoCargo> questaoCargos = questaoCargoRepository.findByQuestaoId(questaoId);
+        return questaoCargos.stream()
+                .map(this::convertQuestaoCargoToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public QuestaoCargoDto addCargoToQuestao(QuestaoCargoDto questaoCargoDto) {
+        // Check if the association already exists
+        List<QuestaoCargo> existingAssociations = questaoCargoRepository
+                .findByQuestaoIdAndConcursoCargoId(questaoCargoDto.getQuestaoId(), questaoCargoDto.getConcursoCargoId());
+
+        if (!existingAssociations.isEmpty()) {
+            throw new RuntimeException("Cargo já associado à questão");
+        }
+
+        Questao questao = questaoRepository.findById(questaoCargoDto.getQuestaoId())
+                .orElseThrow(() -> new RuntimeException("Questão não encontrada"));
+
+        ConcursoCargo concursoCargo = concursoCargoRepository.findById(questaoCargoDto.getConcursoCargoId())
+                .orElseThrow(() -> new RuntimeException("ConcursoCargo não encontrado"));
+
+        QuestaoCargo questaoCargo = new QuestaoCargo();
+        questaoCargo.setQuestao(questao);
+        questaoCargo.setConcursoCargo(concursoCargo);
+
+        QuestaoCargo savedQuestaoCargo = questaoCargoRepository.save(questaoCargo);
+        return convertQuestaoCargoToDto(savedQuestaoCargo);
+    }
+
+    @Transactional
+    public void removeCargoFromQuestao(Long questaoId, Long concursoCargoId) {
+        List<QuestaoCargo> questaoCargos = questaoCargoRepository
+                .findByQuestaoIdAndConcursoCargoId(questaoId, concursoCargoId);
+
+        if (questaoCargos.isEmpty()) {
+            throw new RuntimeException("Associação entre questão e cargo não encontrada");
+        }
+
+        // Check if removing this association would leave the question with no cargo associations
+        List<QuestaoCargo> currentAssociations = questaoCargoRepository.findByQuestaoId(questaoId);
+        if (currentAssociations.size() <= 1) {
+            throw new RuntimeException("Uma questão deve estar associada a pelo menos um cargo");
+        }
+
+        // Delete the association
+        questaoCargoRepository.deleteAll(questaoCargos);
     }
 
     private QuestaoDto convertToDto(Questao questao) {
@@ -163,6 +230,14 @@ public class QuestaoService {
             );
         }
 
+        return dto;
+    }
+
+    private QuestaoCargoDto convertQuestaoCargoToDto(QuestaoCargo questaoCargo) {
+        QuestaoCargoDto dto = new QuestaoCargoDto();
+        dto.setId(questaoCargo.getId());
+        dto.setQuestaoId(questaoCargo.getQuestao().getId());
+        dto.setConcursoCargoId(questaoCargo.getConcursoCargo().getId());
         return dto;
     }
 

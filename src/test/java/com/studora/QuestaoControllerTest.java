@@ -49,8 +49,15 @@ class QuestaoControllerTest {
     @Autowired
     private DisciplinaRepository disciplinaRepository;
 
+    @Autowired
+    private CargoRepository cargoRepository;
+
+    @Autowired
+    private ConcursoCargoRepository concursoCargoRepository;
+
     private Concurso concurso;
     private Subtema subtema;
+    private ConcursoCargo concursoCargo;
 
     @BeforeEach
     void setUp() {
@@ -71,6 +78,18 @@ class QuestaoControllerTest {
         );
         Tema tema = temaRepository.save(new Tema(disciplina, "Tema Q Test"));
         subtema = subtemaRepository.save(new Subtema(tema, "Subtema Q Test"));
+
+        // Create a cargo and associate it with the concurso
+        Cargo cargo = new Cargo();
+        cargo.setNome("Cargo Test");
+        cargo.setNivel("Nível Test");
+        cargo.setArea("Área Test");
+        cargo = cargoRepository.save(cargo);
+
+        concursoCargo = new ConcursoCargo();
+        concursoCargo.setConcurso(concurso);
+        concursoCargo.setCargo(cargo);
+        concursoCargo = concursoCargoRepository.save(concursoCargo);
     }
 
     @Test
@@ -79,6 +98,8 @@ class QuestaoControllerTest {
         questaoDto.setEnunciado("Qual a capital do Brasil?");
         questaoDto.setConcursoId(concurso.getId());
         questaoDto.setSubtemaIds(Collections.singletonList(subtema.getId()));
+        // Add the concursoCargo association
+        questaoDto.setConcursoCargoIds(Collections.singletonList(concursoCargo.getId()));
 
         mockMvc
             .perform(
@@ -188,15 +209,38 @@ class QuestaoControllerTest {
 
     @Test
     void testUpdateQuestao() throws Exception {
+        // First create a question with cargo association
         Questao questao = new Questao();
         questao.setEnunciado("Old Enunciado");
         questao.setConcurso(concurso);
         questao = questaoRepository.save(questao);
 
+        // Create a QuestaoCargo association to ensure the question has at least one cargo
+        QuestaoCargo questaoCargo = new QuestaoCargo();
+        questaoCargo.setQuestao(questao);
+        questaoCargo.setConcursoCargo(concursoCargo);
+        // Save the association directly to the database
+        // This ensures the question has at least one cargo association
+        // The update method will preserve existing associations if not explicitly changed
+        // Create a QuestaoCargoDto to add the cargo association
+        com.studora.dto.QuestaoCargoDto questaoCargoDto = new com.studora.dto.QuestaoCargoDto();
+        questaoCargoDto.setQuestaoId(questao.getId());
+        questaoCargoDto.setConcursoCargoId(concursoCargo.getId());
+
+        mockMvc
+            .perform(
+                post("/api/questoes/{id}/cargos", questao.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(questaoCargoDto))
+            )
+            .andExpect(status().isCreated());
+
         QuestaoDto updatedDto = new QuestaoDto();
         updatedDto.setEnunciado("New Enunciado");
         updatedDto.setConcursoId(concurso.getId());
         updatedDto.setAnulada(true);
+        // Maintain the cargo association
+        updatedDto.setConcursoCargoIds(Collections.singletonList(concursoCargo.getId()));
 
         mockMvc
             .perform(
