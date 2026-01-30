@@ -1,42 +1,140 @@
 package com.studora.controller;
 
 import com.studora.dto.BancaDto;
+import com.studora.dto.ErrorResponse;
 import com.studora.service.BancaService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/bancas")
+@Tag(name = "Bancas", description = "Endpoints para gerenciamento de bancas organizadoras")
 public class BancaController {
 
     @Autowired
     private BancaService bancaService;
 
+    @Operation(
+        summary = "Obter todas as bancas",
+        description = "Retorna uma lista com todas as bancas organizadoras cadastradas",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Lista de bancas retornada com sucesso",
+                content = @Content(
+                    array = @ArraySchema(schema = @Schema(implementation = BancaDto.class)),
+                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                        value = "[{\"id\": 1, \"nome\": \"CESPE\"}, {\"id\": 2, \"nome\": \"FGV\"}]"
+                    )
+                ))
+        }
+    )
     @GetMapping
-    public List<BancaDto> getAllBancas() {
-        return bancaService.findAll();
+    public ResponseEntity<List<BancaDto>> getAllBancas() {
+        List<BancaDto> bancas = bancaService.findAll();
+        return ResponseEntity.ok(bancas);
     }
 
+    @Operation(
+        summary = "Obter banca por ID",
+        description = "Retorna uma banca organizadora específica com base no ID fornecido",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Banca encontrada e retornada com sucesso",
+                content = @Content(
+                    schema = @Schema(implementation = BancaDto.class),
+                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                        value = "{\"id\": 1, \"nome\": \"CESPE\"}"
+                    )
+                ))
+        }
+    )
     @GetMapping("/{id}")
-    public BancaDto getBancaById(@PathVariable Long id) {
-        return bancaService.findById(id);
+    public ResponseEntity<BancaDto> getBancaById(
+            @Parameter(description = "ID da banca a ser buscada", required = true) @PathVariable Long id) {
+        BancaDto banca = bancaService.findById(id);
+        return ResponseEntity.ok(banca);
     }
 
+    @Operation(
+        summary = "Criar nova banca",
+        description = "Cria uma nova banca organizadora com base nos dados fornecidos",
+        requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            description = "Dados da nova banca a ser criada",
+            required = true,
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = BancaDto.class)
+            )
+        ),
+        responses = {
+            @ApiResponse(responseCode = "201", description = "Nova banca criada com sucesso",
+                content = @Content(
+                    schema = @Schema(implementation = BancaDto.class),
+                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                        value = "{\"id\": 3, \"nome\": \"VUNESP\"}"
+                    )
+                ))
+        }
+    )
     @PostMapping
-    public BancaDto createBanca(@RequestBody BancaDto bancaDto) {
-        return bancaService.save(bancaDto);
+    public ResponseEntity<BancaDto> createBanca(
+            @RequestBody BancaDto bancaDto) {
+        BancaDto createdBanca = bancaService.save(bancaDto);
+        return new ResponseEntity<>(createdBanca, HttpStatus.CREATED);
     }
 
+    @Operation(
+        summary = "Atualizar banca",
+        description = "Atualiza os dados de uma banca organizadora existente",
+        requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            description = "Dados atualizados da banca",
+            required = true,
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = BancaDto.class)
+            )
+        ),
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Banca atualizada com sucesso",
+                content = @Content(
+                    schema = @Schema(implementation = BancaDto.class),
+                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                        value = "{\"id\": 1, \"nome\": \"CESPE Atualizado\"}"
+                    )
+                ))
+        }
+    )
     @PutMapping("/{id}")
-    public BancaDto updateBanca(@PathVariable Long id, @RequestBody BancaDto bancaDto) {
-        bancaDto.setId(id);
-        return bancaService.save(bancaDto);
+    public ResponseEntity<BancaDto> updateBanca(
+            @Parameter(description = "ID da banca a ser atualizada", required = true) @PathVariable Long id,
+            @RequestBody BancaDto bancaDto) {
+        BancaDto existingBanca = bancaService.findById(id);
+        existingBanca.setNome(bancaDto.getNome());
+        BancaDto updatedBanca = bancaService.save(existingBanca);
+        return ResponseEntity.ok(updatedBanca);
     }
 
+    @Operation(
+        summary = "Excluir banca",
+        description = "Remove uma banca organizadora existente com base no ID fornecido",
+        responses = {
+            @ApiResponse(responseCode = "204", description = "Banca excluída com sucesso")
+        }
+    )
     @DeleteMapping("/{id}")
-    public void deleteBanca(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteBanca(
+            @Parameter(description = "ID da banca a ser excluída", required = true) @PathVariable Long id) {
         bancaService.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 }

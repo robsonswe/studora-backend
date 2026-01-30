@@ -2,6 +2,7 @@ package com.studora.service;
 
 import com.studora.dto.BancaDto;
 import com.studora.entity.Banca;
+import com.studora.exception.ResourceNotFoundException;
 import com.studora.repository.BancaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,17 +23,27 @@ public class BancaService {
     }
 
     public BancaDto findById(Long id) {
-        return bancaRepository.findById(id)
-                .map(this::convertToDto)
-                .orElse(null);
+        Banca banca = bancaRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Banca", "ID", id));
+        return convertToDto(banca);
     }
 
     public BancaDto save(BancaDto bancaDto) {
-        Banca banca = convertToEntity(bancaDto);
+        Banca banca;
+        if (bancaDto.getId() != null) {
+            banca = bancaRepository.findById(bancaDto.getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Banca", "ID", bancaDto.getId()));
+            banca.setNome(bancaDto.getNome());
+        } else {
+            banca = convertToEntity(bancaDto);
+        }
         return convertToDto(bancaRepository.save(banca));
     }
 
     public void deleteById(Long id) {
+        if (!bancaRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Banca", "ID", id);
+        }
         bancaRepository.deleteById(id);
     }
 

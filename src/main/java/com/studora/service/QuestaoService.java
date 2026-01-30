@@ -3,6 +3,7 @@ package com.studora.service;
 import com.studora.dto.QuestaoCargoDto;
 import com.studora.dto.QuestaoDto;
 import com.studora.entity.*;
+import com.studora.exception.ResourceNotFoundException;
 import com.studora.repository.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,7 +42,7 @@ public class QuestaoService {
         Questao questao = questaoRepository
             .findById(id)
             .orElseThrow(() ->
-                new RuntimeException("Questão não encontrada com ID: " + id)
+                new ResourceNotFoundException("Questão", "ID", id)
             );
         return convertToDto(questao);
     }
@@ -58,9 +59,7 @@ public class QuestaoService {
         Subtema subtema = subtemaRepository
             .findById(subtemaId)
             .orElseThrow(() ->
-                new RuntimeException(
-                    "Subtema não encontrado com ID: " + subtemaId
-                )
+                new ResourceNotFoundException("Subtema", "ID", subtemaId)
             );
 
         return questaoRepository
@@ -82,7 +81,7 @@ public class QuestaoService {
     public QuestaoDto createQuestao(QuestaoDto questaoDto) {
         Concurso concurso = concursoRepository
             .findById(questaoDto.getConcursoId())
-            .orElseThrow(() -> new RuntimeException("Concurso não encontrado"));
+            .orElseThrow(() -> new ResourceNotFoundException("Concurso", "ID", questaoDto.getConcursoId()));
 
         // Validate that the question has at least one cargo association
         if (questaoDto.getConcursoCargoIds() == null || questaoDto.getConcursoCargoIds().isEmpty()) {
@@ -106,7 +105,7 @@ public class QuestaoService {
             ConcursoCargo cc = concursoCargoRepository
                 .findById(ccId)
                 .orElseThrow(() ->
-                    new RuntimeException("ConcursoCargo not found: " + ccId)
+                    new ResourceNotFoundException("ConcursoCargo", "ID", ccId)
                 );
             QuestaoCargo qc = new QuestaoCargo();
             qc.setQuestao(savedQuestao);
@@ -121,7 +120,7 @@ public class QuestaoService {
     public QuestaoDto updateQuestao(Long id, QuestaoDto questaoDto) {
         Questao existingQuestao = questaoRepository
             .findById(id)
-            .orElseThrow(() -> new RuntimeException("Questão não encontrada"));
+            .orElseThrow(() -> new ResourceNotFoundException("Questão", "ID", id));
 
         existingQuestao.setEnunciado(questaoDto.getEnunciado());
         existingQuestao.setAnulada(questaoDto.getAnulada());
@@ -145,6 +144,9 @@ public class QuestaoService {
 
     @Transactional
     public void deleteQuestao(Long id) {
+        if (!questaoRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Questão", "ID", id);
+        }
         // First, remove all cargo associations for this questao
         List<QuestaoCargo> questaoCargos = questaoCargoRepository.findByQuestaoId(id);
         questaoCargoRepository.deleteAll(questaoCargos);
@@ -171,10 +173,10 @@ public class QuestaoService {
         }
 
         Questao questao = questaoRepository.findById(questaoCargoDto.getQuestaoId())
-                .orElseThrow(() -> new RuntimeException("Questão não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Questão", "ID", questaoCargoDto.getQuestaoId()));
 
         ConcursoCargo concursoCargo = concursoCargoRepository.findById(questaoCargoDto.getConcursoCargoId())
-                .orElseThrow(() -> new RuntimeException("ConcursoCargo não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("ConcursoCargo", "ID", questaoCargoDto.getConcursoCargoId()));
 
         QuestaoCargo questaoCargo = new QuestaoCargo();
         questaoCargo.setQuestao(questao);
@@ -190,7 +192,7 @@ public class QuestaoService {
                 .findByQuestaoIdAndConcursoCargoId(questaoId, concursoCargoId);
 
         if (questaoCargos.isEmpty()) {
-            throw new RuntimeException("Associação entre questão e cargo não encontrada");
+            throw new ResourceNotFoundException("Associação entre questão e cargo não encontrada");
         }
 
         // Check if removing this association would leave the question with no cargo associations

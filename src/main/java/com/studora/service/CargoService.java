@@ -2,6 +2,7 @@ package com.studora.service;
 
 import com.studora.dto.CargoDto;
 import com.studora.entity.Cargo;
+import com.studora.exception.ResourceNotFoundException;
 import com.studora.repository.CargoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,17 +23,29 @@ public class CargoService {
     }
 
     public CargoDto findById(Long id) {
-        return cargoRepository.findById(id)
-                .map(this::convertToDto)
-                .orElse(null);
+        Cargo cargo = cargoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Cargo", "ID", id));
+        return convertToDto(cargo);
     }
 
     public CargoDto save(CargoDto cargoDto) {
-        Cargo cargo = convertToEntity(cargoDto);
+        Cargo cargo;
+        if (cargoDto.getId() != null) {
+            cargo = cargoRepository.findById(cargoDto.getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Cargo", "ID", cargoDto.getId()));
+            cargo.setNome(cargoDto.getNome());
+            cargo.setNivel(cargoDto.getNivel());
+            cargo.setArea(cargoDto.getArea());
+        } else {
+            cargo = convertToEntity(cargoDto);
+        }
         return convertToDto(cargoRepository.save(cargo));
     }
 
     public void deleteById(Long id) {
+        if (!cargoRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Cargo", "ID", id);
+        }
         cargoRepository.deleteById(id);
     }
 

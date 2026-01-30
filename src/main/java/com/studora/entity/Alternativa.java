@@ -1,5 +1,6 @@
 package com.studora.entity;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import java.util.List;
 
@@ -17,26 +18,33 @@ import java.util.List;
         ),
     }
 )
+@Schema(description = "Entidade que representa uma alternativa de uma questão")
 public class Alternativa {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Schema(description = "ID único da alternativa", example = "1")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "questao_id", nullable = false)
+    @Schema(description = "Questão à qual a alternativa pertence")
     private Questao questao;
 
     @Column(nullable = false)
+    @Schema(description = "Ordem da alternativa na lista", example = "1")
     private Integer ordem;
 
     @Column(nullable = false, columnDefinition = "TEXT")
+    @Schema(description = "Texto da alternativa", example = "A resposta correta é a opção A")
     private String texto;
 
     @Column(nullable = false)
+    @Schema(description = "Indica se a alternativa é a correta", example = "true")
     private Boolean correta;
 
     @Column(columnDefinition = "TEXT")
+    @Schema(description = "Justificativa da alternativa", example = "Esta é a alternativa correta porque...")
     private String justificativa;
 
     @OneToMany(
@@ -44,6 +52,7 @@ public class Alternativa {
         cascade = CascadeType.ALL,
         fetch = FetchType.LAZY
     )
+    @Schema(description = "Respostas associadas a esta alternativa")
     private List<Resposta> respostas;
 
     @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -58,6 +67,7 @@ public class Alternativa {
             ),
         }
     )
+    @Schema(description = "Imagens associadas à alternativa")
     private List<Imagem> imagens;
 
     public Alternativa() {}

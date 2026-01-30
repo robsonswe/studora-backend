@@ -2,6 +2,7 @@ package com.studora.service;
 
 import com.studora.dto.ImagemDto;
 import com.studora.entity.Imagem;
+import com.studora.exception.ResourceNotFoundException;
 import com.studora.repository.ImagemRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -23,7 +24,7 @@ public class ImagemService {
     
     public ImagemDto getImagemById(Long id) {
         Imagem imagem = imagemRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Imagem não encontrada com ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Imagem", "ID", id));
         return convertToDto(imagem);
     }
     
@@ -35,7 +36,7 @@ public class ImagemService {
     
     public ImagemDto updateImagem(Long id, ImagemDto imagemDto) {
         Imagem existingImagem = imagemRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Imagem não encontrada com ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Imagem", "ID", id));
         
         // Update fields
         existingImagem.setUrl(imagemDto.getUrl());
@@ -47,7 +48,7 @@ public class ImagemService {
     
     public void deleteImagem(Long id) {
         if (!imagemRepository.existsById(id)) {
-            throw new RuntimeException("Imagem não encontrada com ID: " + id);
+            throw new ResourceNotFoundException("Imagem", "ID", id);
         }
         imagemRepository.deleteById(id);
     }

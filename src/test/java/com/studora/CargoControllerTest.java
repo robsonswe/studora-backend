@@ -36,20 +36,14 @@ class CargoControllerTest {
         dto.setNivel("Superior");
         dto.setArea("TI");
 
-        String response = mockMvc
+        mockMvc
             .perform(
                 post("/api/cargos")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(dto))
             )
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.nome").value("Analista"))
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-
-        // Extract ID (simple parse for test)
-        // In real world use ObjectMapper, but here we assume it worked.
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.nome").value("Analista"));
 
         // Get All
         mockMvc
@@ -78,6 +72,6 @@ class CargoControllerTest {
 
         mockMvc
             .perform(delete("/api/cargos/{id}", cargo.getId()))
-            .andExpect(status().isOk());
+            .andExpect(status().isNoContent());
     }
 }

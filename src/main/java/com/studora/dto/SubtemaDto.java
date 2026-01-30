@@ -1,50 +1,32 @@
 package com.studora.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+@Schema(description = "DTO para representar um subtema")
+@Data
 public class SubtemaDto {
-    
+
+    @Schema(description = "ID único do subtema", example = "1")
     private Long id;
-    
+
     @NotNull(message = "ID do tema é obrigatório")
+    @Schema(description = "ID do tema ao qual o subtema pertence", example = "1", required = true)
     private Long temaId;
-    
+
     @NotBlank(message = "Nome do subtema é obrigatório")
     @Size(max = 255, message = "Nome do subtema deve ter no máximo 255 caracteres")
+    @Schema(description = "Nome do subtema", example = "Equações de primeiro grau", required = true)
     private String nome;
-    
+
     // Constructors
     public SubtemaDto() {}
-    
+
     public SubtemaDto(Long temaId, String nome) {
         this.temaId = temaId;
-        this.nome = nome;
-    }
-    
-    // Getters and Setters
-    public Long getId() {
-        return id;
-    }
-    
-    public void setId(Long id) {
-        this.id = id;
-    }
-    
-    public Long getTemaId() {
-        return temaId;
-    }
-    
-    public void setTemaId(Long temaId) {
-        this.temaId = temaId;
-    }
-    
-    public String getNome() {
-        return nome;
-    }
-    
-    public void setNome(String nome) {
         this.nome = nome;
     }
 }

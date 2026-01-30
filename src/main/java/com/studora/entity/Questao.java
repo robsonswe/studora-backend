@@ -1,5 +1,6 @@
 package com.studora.entity;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import java.util.List;
 
@@ -11,20 +12,25 @@ import java.util.List;
         @Index(name = "idx_questao_anulada", columnList = "anulada"),
     }
 )
+@Schema(description = "Entidade que representa uma questão de concurso")
 public class Questao {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Schema(description = "ID único da questão", example = "1")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "concurso_id", nullable = false)
+    @Schema(description = "Concurso ao qual a questão pertence")
     private Concurso concurso;
 
     @Column(nullable = false, columnDefinition = "TEXT")
+    @Schema(description = "Texto do enunciado da questão", example = "Qual é a capital do Brasil?")
     private String enunciado;
 
     @Column(nullable = false, columnDefinition = "INTEGER")
+    @Schema(description = "Indica se a questão foi anulada", example = "false", defaultValue = "false")
     private Boolean anulada = false;
 
     @OneToMany(
@@ -32,6 +38,7 @@ public class Questao {
         cascade = CascadeType.ALL,
         fetch = FetchType.LAZY
     )
+    @Schema(description = "Alternativas associadas à questão")
     private List<Alternativa> alternativas;
 
     @OneToMany(
@@ -39,6 +46,7 @@ public class Questao {
         cascade = CascadeType.ALL,
         fetch = FetchType.LAZY
     )
+    @Schema(description = "Respostas associadas à questão")
     private List<Resposta> respostas;
 
     @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -53,6 +61,7 @@ public class Questao {
             ),
         }
     )
+    @Schema(description = "Subtemas associados à questão")
     private List<Subtema> subtemas;
 
     @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -67,6 +76,7 @@ public class Questao {
             ),
         }
     )
+    @Schema(description = "Imagens associadas à questão")
     private List<Imagem> imagens;
 
     @OneToMany(
@@ -74,6 +84,7 @@ public class Questao {
         cascade = CascadeType.ALL,
         fetch = FetchType.LAZY
     )
+    @Schema(description = "Associações entre a questão e cargos do concurso")
     private List<QuestaoCargo> questaoCargos;
 
     // Constructors

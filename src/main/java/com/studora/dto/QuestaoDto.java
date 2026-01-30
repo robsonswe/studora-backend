@@ -1,23 +1,33 @@
 package com.studora.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
+@Schema(description = "DTO para representar uma questão")
+@Data
 public class QuestaoDto {
 
+    @Schema(description = "ID único da questão", example = "1")
     private Long id;
 
     @NotNull(message = "ID do concurso é obrigatório")
+    @Schema(description = "ID do concurso ao qual a questão pertence", example = "1", required = true)
     private Long concursoId;
 
     @NotBlank(message = "Enunciado da questão é obrigatório")
+    @Schema(description = "Texto do enunciado da questão", example = "Qual é a capital do Brasil?", required = true)
     private String enunciado;
 
+    @Schema(description = "Indica se a questão foi anulada", example = "false", defaultValue = "false")
     private Boolean anulada = false;
 
+    @Schema(description = "IDs dos subtemas associados à questão")
     private List<Long> subtemaIds; // IDs of associated subtemas
 
+    @Schema(description = "IDs dos cargos do concurso associados à questão")
     private List<Long> concursoCargoIds; // IDs of associated ConcursoCargo records
 
     // Constructors
@@ -26,54 +36,5 @@ public class QuestaoDto {
     public QuestaoDto(Long concursoId, String enunciado) {
         this.concursoId = concursoId;
         this.enunciado = enunciado;
-    }
-
-    // Getters and Setters
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public Long getConcursoId() {
-        return concursoId;
-    }
-
-    public void setConcursoId(Long concursoId) {
-        this.concursoId = concursoId;
-    }
-
-    public String getEnunciado() {
-        return enunciado;
-    }
-
-    public void setEnunciado(String enunciado) {
-        this.enunciado = enunciado;
-    }
-
-    public Boolean getAnulada() {
-        return anulada;
-    }
-
-    public void setAnulada(Boolean anulada) {
-        this.anulada = anulada;
-    }
-
-    public List<Long> getSubtemaIds() {
-        return subtemaIds;
-    }
-
-    public void setSubtemaIds(List<Long> subtemaIds) {
-        this.subtemaIds = subtemaIds;
-    }
-
-    public List<Long> getConcursoCargoIds() {
-        return concursoCargoIds;
-    }
-
-    public void setConcursoCargoIds(List<Long> concursoCargoIds) {
-        this.concursoCargoIds = concursoCargoIds;
     }
 }

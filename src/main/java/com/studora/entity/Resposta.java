@@ -1,5 +1,6 @@
 package com.studora.entity;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -15,21 +16,26 @@ import java.time.LocalDateTime;
         @Index(name = "idx_resposta_data", columnList = "respondidaEm"),
     }
 )
+@Schema(description = "Entidade que representa uma resposta a uma questão")
 public class Resposta {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Schema(description = "ID único da resposta", example = "1")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "questao_id", nullable = false)
+    @Schema(description = "Questão respondida")
     private Questao questao;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "alternativa_id", nullable = false)
+    @Schema(description = "Alternativa escolhida como resposta")
     private Alternativa alternativaEscolhida;
 
     @Column(nullable = false)
+    @Schema(description = "Data e hora em que a resposta foi registrada", example = "2023-06-15T10:30:00")
     private LocalDateTime respondidaEm = LocalDateTime.now();
 
     // Constructors

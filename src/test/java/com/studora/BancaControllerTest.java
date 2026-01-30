@@ -63,7 +63,7 @@ class BancaControllerTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(dto))
             )
-            .andExpect(status().isOk())
+            .andExpect(status().isCreated())
             .andExpect(jsonPath("$.nome").value("FGV"));
     }
 
@@ -94,6 +94,6 @@ class BancaControllerTest {
 
         mockMvc
             .perform(delete("/api/bancas/{id}", banca.getId()))
-            .andExpect(status().isOk());
+            .andExpect(status().isNoContent());
     }
 }

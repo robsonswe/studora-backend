@@ -39,7 +39,7 @@ class InstituicaoControllerTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(dto))
             )
-            .andExpect(status().isOk())
+            .andExpect(status().isCreated())
             .andExpect(jsonPath("$.nome").value("USP"));
     }
 

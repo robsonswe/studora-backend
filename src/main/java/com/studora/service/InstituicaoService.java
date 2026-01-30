@@ -2,6 +2,7 @@ package com.studora.service;
 
 import com.studora.dto.InstituicaoDto;
 import com.studora.entity.Instituicao;
+import com.studora.exception.ResourceNotFoundException;
 import com.studora.repository.InstituicaoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,17 +23,27 @@ public class InstituicaoService {
     }
 
     public InstituicaoDto findById(Long id) {
-        return instituicaoRepository.findById(id)
-                .map(this::convertToDto)
-                .orElse(null);
+        Instituicao instituicao = instituicaoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Instituição", "ID", id));
+        return convertToDto(instituicao);
     }
 
     public InstituicaoDto save(InstituicaoDto instituicaoDto) {
-        Instituicao instituicao = convertToEntity(instituicaoDto);
+        Instituicao instituicao;
+        if (instituicaoDto.getId() != null) {
+            instituicao = instituicaoRepository.findById(instituicaoDto.getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Instituição", "ID", instituicaoDto.getId()));
+            instituicao.setNome(instituicaoDto.getNome());
+        } else {
+            instituicao = convertToEntity(instituicaoDto);
+        }
         return convertToDto(instituicaoRepository.save(instituicao));
     }
 
     public void deleteById(Long id) {
+        if (!instituicaoRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Instituição", "ID", id);
+        }
         instituicaoRepository.deleteById(id);
     }
 

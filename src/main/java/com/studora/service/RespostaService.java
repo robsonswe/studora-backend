@@ -4,6 +4,7 @@ import com.studora.dto.RespostaDto;
 import com.studora.entity.Alternativa;
 import com.studora.entity.Questao;
 import com.studora.entity.Resposta;
+import com.studora.exception.ResourceNotFoundException;
 import com.studora.repository.AlternativaRepository;
 import com.studora.repository.QuestaoRepository;
 import com.studora.repository.RespostaRepository;
@@ -34,7 +35,7 @@ public class RespostaService {
     
     public RespostaDto getRespostaById(Long id) {
         Resposta resposta = respostaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Resposta não encontrada com ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Resposta", "ID", id));
         return convertToDto(resposta);
     }
     
@@ -52,10 +53,10 @@ public class RespostaService {
     
     public RespostaDto createResposta(RespostaDto respostaDto) {
         Questao questao = questaoRepository.findById(respostaDto.getQuestaoId())
-                .orElseThrow(() -> new RuntimeException("Questão não encontrada com ID: " + respostaDto.getQuestaoId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Questão", "ID", respostaDto.getQuestaoId()));
         
         Alternativa alternativa = alternativaRepository.findById(respostaDto.getAlternativaId())
-                .orElseThrow(() -> new RuntimeException("Alternativa não encontrada com ID: " + respostaDto.getAlternativaId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Alternativa", "ID", respostaDto.getAlternativaId()));
         
         Resposta resposta = convertToEntity(respostaDto);
         resposta.setQuestao(questao);
@@ -67,13 +68,13 @@ public class RespostaService {
     
     public RespostaDto updateResposta(Long id, RespostaDto respostaDto) {
         Resposta existingResposta = respostaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Resposta não encontrada com ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Resposta", "ID", id));
         
         Questao questao = questaoRepository.findById(respostaDto.getQuestaoId())
-                .orElseThrow(() -> new RuntimeException("Questão não encontrada com ID: " + respostaDto.getQuestaoId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Questão", "ID", respostaDto.getQuestaoId()));
         
         Alternativa alternativa = alternativaRepository.findById(respostaDto.getAlternativaId())
-                .orElseThrow(() -> new RuntimeException("Alternativa não encontrada com ID: " + respostaDto.getAlternativaId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Alternativa", "ID", respostaDto.getAlternativaId()));
         
         // Update fields
         existingResposta.setQuestao(questao);
@@ -87,7 +88,7 @@ public class RespostaService {
     
     public void deleteResposta(Long id) {
         if (!respostaRepository.existsById(id)) {
-            throw new RuntimeException("Resposta não encontrada com ID: " + id);
+            throw new ResourceNotFoundException("Resposta", "ID", id);
         }
         respostaRepository.deleteById(id);
     }

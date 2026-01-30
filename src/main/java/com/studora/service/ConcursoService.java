@@ -7,6 +7,7 @@ import com.studora.entity.Cargo;
 import com.studora.entity.Concurso;
 import com.studora.entity.ConcursoCargo;
 import com.studora.entity.Instituicao;
+import com.studora.exception.ResourceNotFoundException;
 import com.studora.repository.BancaRepository;
 import com.studora.repository.CargoRepository;
 import com.studora.repository.ConcursoCargoRepository;
@@ -45,7 +46,7 @@ public class ConcursoService {
 
     public ConcursoDto findById(Long id) {
         Concurso concurso = concursoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Concurso não encontrado com ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Concurso", "ID", id));
         return convertToDto(concurso);
     }
 
@@ -58,13 +59,13 @@ public class ConcursoService {
         if (concursoDto.getId() != null) {
             // Update existing concurso
             Concurso existingConcurso = concursoRepository.findById(concursoDto.getId())
-                    .orElseThrow(() -> new RuntimeException("Concurso não encontrado com ID: " + concursoDto.getId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Concurso", "ID", concursoDto.getId()));
 
             // Update the existing entity with new values
             Instituicao instituicao = instituicaoRepository.findById(concursoDto.getInstituicaoId())
-                    .orElseThrow(() -> new RuntimeException("Instituicao not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Instituição", "ID", concursoDto.getInstituicaoId()));
             Banca banca = bancaRepository.findById(concursoDto.getBancaId())
-                    .orElseThrow(() -> new RuntimeException("Banca not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Banca", "ID", concursoDto.getBancaId()));
 
             existingConcurso.setInstituicao(instituicao);
             existingConcurso.setBanca(banca);
@@ -74,12 +75,6 @@ public class ConcursoService {
         } else {
             // Create new concurso
             concurso = convertToEntity(concursoDto);
-
-            // For new concursos, we don't necessarily need to validate cargo association at creation
-            // since cargos can be added later. But if we want to enforce it at creation:
-            // We would need to check if the concursoDto includes cargo associations
-            // However, the current DTO doesn't have a direct way to create concurso with cargos
-            // So we'll skip this validation for creation and rely on the association endpoints
         }
 
         Concurso savedConcurso = concursoRepository.save(concurso);
@@ -90,7 +85,7 @@ public class ConcursoService {
     @Transactional
     public void deleteById(Long id) {
         if (!concursoRepository.existsById(id)) {
-            throw new RuntimeException("Concurso não encontrado com ID: " + id);
+            throw new ResourceNotFoundException("Concurso", "ID", id);
         }
 
         // First, remove all cargo associations for this concurso
@@ -119,10 +114,10 @@ public class ConcursoService {
         }
 
         Concurso concurso = concursoRepository.findById(concursoCargoDto.getConcursoId())
-                .orElseThrow(() -> new RuntimeException("Concurso não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Concurso", "ID", concursoCargoDto.getConcursoId()));
 
         Cargo cargo = cargoRepository.findById(concursoCargoDto.getCargoId())
-                .orElseThrow(() -> new RuntimeException("Cargo não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Cargo", "ID", concursoCargoDto.getCargoId()));
 
         ConcursoCargo concursoCargo = new ConcursoCargo();
         concursoCargo.setConcurso(concurso);
@@ -138,7 +133,7 @@ public class ConcursoService {
                 .findByConcursoIdAndCargoId(concursoId, cargoId);
 
         if (concursoCargos.isEmpty()) {
-            throw new RuntimeException("Associação entre concurso e cargo não encontrada");
+            throw new ResourceNotFoundException("Associação entre concurso e cargo não encontrada");
         }
 
         // Check if removing this association would leave the concurso with no cargo associations
@@ -170,10 +165,10 @@ public class ConcursoService {
 
     private Concurso convertToEntity(ConcursoDto dto) {
         Instituicao instituicao = instituicaoRepository.findById(dto.getInstituicaoId())
-                .orElseThrow(() -> new RuntimeException("Instituicao not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Instituição", "ID", dto.getInstituicaoId()));
 
         Banca banca = bancaRepository.findById(dto.getBancaId())
-                .orElseThrow(() -> new RuntimeException("Banca not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Banca", "ID", dto.getBancaId()));
 
         Concurso concurso = new Concurso();
         concurso.setId(dto.getId());

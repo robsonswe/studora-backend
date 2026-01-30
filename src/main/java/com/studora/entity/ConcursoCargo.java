@@ -1,5 +1,6 @@
 package com.studora.entity;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -18,17 +19,21 @@ import lombok.Data;
         @Index(name = "idx_concurso_cargo_cargo", columnList = "cargo_id"),
     }
 )
+@Schema(description = "Entidade que representa a associação entre concurso e cargo")
 public class ConcursoCargo {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Schema(description = "ID único da associação concurso-cargo", example = "1")
     private Long id;
 
     @ManyToOne
     @JoinColumn(name = "concurso_id", nullable = false)
+    @Schema(description = "Concurso associado")
     private Concurso concurso;
 
     @ManyToOne
     @JoinColumn(name = "cargo_id", nullable = false)
+    @Schema(description = "Cargo associado")
     private Cargo cargo;
 }

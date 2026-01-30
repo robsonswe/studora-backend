@@ -3,6 +3,7 @@ package com.studora.service;
 import com.studora.dto.TemaDto;
 import com.studora.entity.Disciplina;
 import com.studora.entity.Tema;
+import com.studora.exception.ResourceNotFoundException;
 import com.studora.repository.DisciplinaRepository;
 import com.studora.repository.TemaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +29,7 @@ public class TemaService {
     
     public TemaDto getTemaById(Long id) {
         Tema tema = temaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Tema não encontrado com ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Tema", "ID", id));
         return convertToDto(tema);
     }
     
@@ -40,7 +41,7 @@ public class TemaService {
     
     public TemaDto createTema(TemaDto temaDto) {
         Disciplina disciplina = disciplinaRepository.findById(temaDto.getDisciplinaId())
-                .orElseThrow(() -> new RuntimeException("Disciplina não encontrada com ID: " + temaDto.getDisciplinaId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Disciplina", "ID", temaDto.getDisciplinaId()));
         
         Tema tema = convertToEntity(temaDto);
         tema.setDisciplina(disciplina);
@@ -51,10 +52,10 @@ public class TemaService {
     
     public TemaDto updateTema(Long id, TemaDto temaDto) {
         Tema existingTema = temaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Tema não encontrado com ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Tema", "ID", id));
         
         Disciplina disciplina = disciplinaRepository.findById(temaDto.getDisciplinaId())
-                .orElseThrow(() -> new RuntimeException("Disciplina não encontrada com ID: " + temaDto.getDisciplinaId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Disciplina", "ID", temaDto.getDisciplinaId()));
         
         // Update fields
         existingTema.setDisciplina(disciplina);
@@ -66,7 +67,7 @@ public class TemaService {
     
     public void deleteTema(Long id) {
         if (!temaRepository.existsById(id)) {
-            throw new RuntimeException("Tema não encontrado com ID: " + id);
+            throw new ResourceNotFoundException("Tema", "ID", id);
         }
         temaRepository.deleteById(id);
     }

@@ -3,6 +3,7 @@ package com.studora.service;
 import com.studora.dto.SubtemaDto;
 import com.studora.entity.Subtema;
 import com.studora.entity.Tema;
+import com.studora.exception.ResourceNotFoundException;
 import com.studora.repository.SubtemaRepository;
 import com.studora.repository.TemaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +29,7 @@ public class SubtemaService {
     
     public SubtemaDto getSubtemaById(Long id) {
         Subtema subtema = subtemaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Subtema não encontrado com ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Subtema", "ID", id));
         return convertToDto(subtema);
     }
     
@@ -40,7 +41,7 @@ public class SubtemaService {
     
     public SubtemaDto createSubtema(SubtemaDto subtemaDto) {
         Tema tema = temaRepository.findById(subtemaDto.getTemaId())
-                .orElseThrow(() -> new RuntimeException("Tema não encontrado com ID: " + subtemaDto.getTemaId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Tema", "ID", subtemaDto.getTemaId()));
         
         Subtema subtema = convertToEntity(subtemaDto);
         subtema.setTema(tema);
@@ -51,10 +52,10 @@ public class SubtemaService {
     
     public SubtemaDto updateSubtema(Long id, SubtemaDto subtemaDto) {
         Subtema existingSubtema = subtemaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Subtema não encontrado com ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Subtema", "ID", id));
         
         Tema tema = temaRepository.findById(subtemaDto.getTemaId())
-                .orElseThrow(() -> new RuntimeException("Tema não encontrado com ID: " + subtemaDto.getTemaId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Tema", "ID", subtemaDto.getTemaId()));
         
         // Update fields
         existingSubtema.setTema(tema);
@@ -66,7 +67,7 @@ public class SubtemaService {
     
     public void deleteSubtema(Long id) {
         if (!subtemaRepository.existsById(id)) {
-            throw new RuntimeException("Subtema não encontrado com ID: " + id);
+            throw new ResourceNotFoundException("Subtema", "ID", id);
         }
         subtemaRepository.deleteById(id);
     }

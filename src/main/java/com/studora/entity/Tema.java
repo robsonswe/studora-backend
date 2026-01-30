@@ -1,5 +1,6 @@
 package com.studora.entity;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import java.util.List;
 
@@ -13,20 +14,25 @@ import java.util.List;
         @Index(name = "idx_tema_disciplina", columnList = "disciplina_id")
     }
 )
+@Schema(description = "Entidade que representa um tema dentro de uma disciplina")
 public class Tema {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Schema(description = "ID único do tema", example = "1")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "disciplina_id", nullable = false)
+    @Schema(description = "Disciplina à qual o tema pertence")
     private Disciplina disciplina;
 
     @Column(nullable = false)
+    @Schema(description = "Nome do tema", example = "Álgebra")
     private String nome;
 
     @OneToMany(mappedBy = "tema", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @Schema(description = "Subtemas associados ao tema")
     private List<Subtema> subtemas;
 
     // Constructors

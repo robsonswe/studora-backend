@@ -2,6 +2,7 @@ package com.studora.service;
 
 import com.studora.dto.DisciplinaDto;
 import com.studora.entity.Disciplina;
+import com.studora.exception.ResourceNotFoundException;
 import com.studora.repository.DisciplinaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -23,7 +24,7 @@ public class DisciplinaService {
     
     public DisciplinaDto getDisciplinaById(Long id) {
         Disciplina disciplina = disciplinaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Disciplina não encontrada com ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Disciplina", "ID", id));
         return convertToDto(disciplina);
     }
     
@@ -35,7 +36,7 @@ public class DisciplinaService {
     
     public DisciplinaDto updateDisciplina(Long id, DisciplinaDto disciplinaDto) {
         Disciplina existingDisciplina = disciplinaRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Disciplina não encontrada com ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Disciplina", "ID", id));
         
         // Update field
         existingDisciplina.setNome(disciplinaDto.getNome());
@@ -46,7 +47,7 @@ public class DisciplinaService {
     
     public void deleteDisciplina(Long id) {
         if (!disciplinaRepository.existsById(id)) {
-            throw new RuntimeException("Disciplina não encontrada com ID: " + id);
+            throw new ResourceNotFoundException("Disciplina", "ID", id);
         }
         disciplinaRepository.deleteById(id);
     }
