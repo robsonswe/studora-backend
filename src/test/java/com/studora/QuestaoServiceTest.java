@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import com.studora.dto.AlternativaDto;
 import com.studora.dto.QuestaoCargoDto;
 import com.studora.dto.QuestaoDto;
 import com.studora.entity.Concurso;
@@ -43,6 +44,12 @@ class QuestaoServiceTest {
 
     @Mock
     private DisciplinaRepository disciplinaRepository;
+
+    @Mock
+    private AlternativaRepository alternativaRepository;
+
+    @Mock
+    private RespostaRepository respostaRepository;
 
     @InjectMocks
     private QuestaoService questaoService;
@@ -112,6 +119,21 @@ class QuestaoServiceTest {
         // Add at least one cargo association to comply with validation
         questaoDto.setConcursoCargoIds(Arrays.asList(1L));
 
+        // Add alternativas to comply with validation
+        AlternativaDto alt1 = new AlternativaDto();
+        alt1.setOrdem(1);
+        alt1.setTexto("Alternativa A");
+        alt1.setCorreta(true);
+        alt1.setJustificativa("Justificativa A");
+
+        AlternativaDto alt2 = new AlternativaDto();
+        alt2.setOrdem(2);
+        alt2.setTexto("Alternativa B");
+        alt2.setCorreta(false);
+        alt2.setJustificativa("Justificativa B");
+
+        questaoDto.setAlternativas(Arrays.asList(alt1, alt2));
+
         com.studora.entity.Instituicao instituicao =
             new com.studora.entity.Instituicao();
         instituicao.setId(1L);
@@ -157,6 +179,21 @@ class QuestaoServiceTest {
         questaoDto.setEnunciado("Qual a capital da França?");
         questaoDto.setConcursoId(1L);
         questaoDto.setImageUrl("https://exemplo.com/imagem.jpg");
+
+        // Add alternativas to comply with validation
+        AlternativaDto alt1 = new AlternativaDto();
+        alt1.setOrdem(1);
+        alt1.setTexto("Alternativa A");
+        alt1.setCorreta(true);
+        alt1.setJustificativa("Justificativa A");
+
+        AlternativaDto alt2 = new AlternativaDto();
+        alt2.setOrdem(2);
+        alt2.setTexto("Alternativa B");
+        alt2.setCorreta(false);
+        alt2.setJustificativa("Justificativa B");
+
+        questaoDto.setAlternativas(Arrays.asList(alt1, alt2));
 
         when(concursoRepository.findById(1L)).thenReturn(Optional.empty());
 
@@ -242,6 +279,21 @@ class QuestaoServiceTest {
         questaoDto.setEnunciado("Qual a capital da França?");
         questaoDto.setConcursoId(1L);
         questaoDto.setImageUrl("https://exemplo.com/imagem.jpg");
+
+        // Add alternativas to comply with validation
+        AlternativaDto alt1 = new AlternativaDto();
+        alt1.setOrdem(1);
+        alt1.setTexto("Alternativa A");
+        alt1.setCorreta(true);
+        alt1.setJustificativa("Justificativa A");
+
+        AlternativaDto alt2 = new AlternativaDto();
+        alt2.setOrdem(2);
+        alt2.setTexto("Alternativa B");
+        alt2.setCorreta(false);
+        alt2.setJustificativa("Justificativa B");
+
+        questaoDto.setAlternativas(Arrays.asList(alt1, alt2));
         // Deliberately not setting concursoCargoIds to test validation
 
         com.studora.entity.Instituicao instituicao =

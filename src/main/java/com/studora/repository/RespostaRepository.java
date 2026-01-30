@@ -10,4 +10,5 @@ import java.util.List;
 public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     List<Resposta> findByQuestaoId(Long questaoId);
     List<Resposta> findByAlternativaEscolhidaId(Long alternativaId);
+    void deleteByQuestaoId(Long questaoId);
 }

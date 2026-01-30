@@ -4,9 +4,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.studora.dto.QuestaoDto;
+import com.studora.dto.request.QuestaoCreateRequest;
+import com.studora.dto.request.QuestaoUpdateRequest;
 import com.studora.entity.*;
 import com.studora.repository.*;
 import com.studora.util.TestUtil;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,6 +58,12 @@ class QuestaoControllerTest {
     @Autowired
     private ConcursoCargoRepository concursoCargoRepository;
 
+    @Autowired
+    private QuestaoCargoRepository questaoCargoRepository;
+
+    @Autowired
+    private AlternativaRepository alternativaRepository;
+
     private Concurso concurso;
     private Subtema subtema;
     private ConcursoCargo concursoCargo;
@@ -94,18 +103,33 @@ class QuestaoControllerTest {
 
     @Test
     void testCreateQuestao() throws Exception {
-        QuestaoDto questaoDto = new QuestaoDto();
-        questaoDto.setEnunciado("Qual a capital do Brasil?");
-        questaoDto.setConcursoId(concurso.getId());
-        questaoDto.setSubtemaIds(Collections.singletonList(subtema.getId()));
+        // Create alternativas
+        com.studora.dto.AlternativaDto alt1 = new com.studora.dto.AlternativaDto();
+        alt1.setOrdem(1);
+        alt1.setTexto("Brasília");
+        alt1.setCorreta(true);
+        alt1.setJustificativa("Capital oficial do Brasil");
+
+        com.studora.dto.AlternativaDto alt2 = new com.studora.dto.AlternativaDto();
+        alt2.setOrdem(2);
+        alt2.setTexto("São Paulo");
+        alt2.setCorreta(false);
+        alt2.setJustificativa("Maior cidade do Brasil");
+
+        QuestaoCreateRequest questaoCreateRequest = new QuestaoCreateRequest();
+        questaoCreateRequest.setEnunciado("Qual a capital do Brasil?");
+        questaoCreateRequest.setConcursoId(concurso.getId());
+        questaoCreateRequest.setSubtemaIds(Collections.singletonList(subtema.getId()));
         // Add the concursoCargo association
-        questaoDto.setConcursoCargoIds(Collections.singletonList(concursoCargo.getId()));
+        questaoCreateRequest.setConcursoCargoIds(Collections.singletonList(concursoCargo.getId()));
+        // Add alternativas to comply with validation
+        questaoCreateRequest.setAlternativas(Arrays.asList(alt1, alt2));
 
         mockMvc
             .perform(
                 post("/api/questoes")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(questaoDto))
+                    .content(TestUtil.asJsonString(questaoCreateRequest))
             )
             .andExpect(status().isCreated())
             .andExpect(
@@ -235,18 +259,18 @@ class QuestaoControllerTest {
             )
             .andExpect(status().isCreated());
 
-        QuestaoDto updatedDto = new QuestaoDto();
-        updatedDto.setEnunciado("New Enunciado");
-        updatedDto.setConcursoId(concurso.getId());
-        updatedDto.setAnulada(true);
+        QuestaoUpdateRequest updatedRequest = new QuestaoUpdateRequest();
+        updatedRequest.setEnunciado("New Enunciado");
+        updatedRequest.setConcursoId(concurso.getId());
+        updatedRequest.setAnulada(true);
         // Maintain the cargo association
-        updatedDto.setConcursoCargoIds(Collections.singletonList(concursoCargo.getId()));
+        updatedRequest.setConcursoCargoIds(Collections.singletonList(concursoCargo.getId()));
 
         mockMvc
             .perform(
                 put("/api/questoes/{id}", questao.getId())
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(updatedDto))
+                    .content(TestUtil.asJsonString(updatedRequest))
             )
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.enunciado").value("New Enunciado"))
@@ -267,5 +291,102 @@ class QuestaoControllerTest {
         mockMvc
             .perform(get("/api/questoes/{id}", questao.getId()))
             .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testAddAlternativaToQuestao() throws Exception {
+        // First create a question
+        Questao questao = new Questao();
+        questao.setEnunciado("Questão para alternativas");
+        questao.setConcurso(concurso);
+        questao = questaoRepository.save(questao);
+
+        // Create a QuestaoCargo association to ensure the question has at least one cargo
+        QuestaoCargo questaoCargo = new QuestaoCargo();
+        questaoCargo.setQuestao(questao);
+        questaoCargo.setConcursoCargo(concursoCargo);
+        questaoCargo = questaoCargoRepository.save(questaoCargo);
+
+        // Create alternativa request
+        com.studora.dto.request.AlternativaCreateRequest alternativaRequest = new com.studora.dto.request.AlternativaCreateRequest();
+        alternativaRequest.setOrdem(1);
+        alternativaRequest.setTexto("Nova alternativa");
+        alternativaRequest.setCorreta(false);
+        alternativaRequest.setJustificativa("Justificativa da nova alternativa");
+
+        mockMvc
+            .perform(
+                post("/api/questoes/{id}/alternativas", questao.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(alternativaRequest))
+            )
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.texto").value("Nova alternativa"))
+            .andExpect(jsonPath("$.ordem").value(1));
+    }
+
+    @Test
+    void testUpdateAlternativaFromQuestao() throws Exception {
+        // First create a question
+        Questao questao = new Questao();
+        questao.setEnunciado("Questão para alternativas");
+        questao.setConcurso(concurso);
+        questao = questaoRepository.save(questao);
+
+        // Create a QuestaoCargo association
+        QuestaoCargo questaoCargo = new QuestaoCargo();
+        questaoCargo.setQuestao(questao);
+        questaoCargo.setConcursoCargo(concursoCargo);
+        questaoCargo = questaoCargoRepository.save(questaoCargo);
+
+        // Create an alternative
+        com.studora.entity.Alternativa alternativa = new com.studora.entity.Alternativa();
+        alternativa.setQuestao(questao);
+        alternativa.setOrdem(1);
+        alternativa.setTexto("Texto antigo");
+        alternativa.setCorreta(false);
+        alternativa.setJustificativa("Justificativa antiga");
+        alternativa = alternativaRepository.save(alternativa);
+
+        // Create alternativa update request
+        com.studora.dto.request.AlternativaUpdateRequest alternativaUpdateRequest = new com.studora.dto.request.AlternativaUpdateRequest();
+        alternativaUpdateRequest.setOrdem(2); // Change order
+        alternativaUpdateRequest.setTexto("Texto novo"); // Change text
+        alternativaUpdateRequest.setCorreta(true); // Change correctness
+        alternativaUpdateRequest.setJustificativa("Justificativa nova"); // Change justification
+
+        mockMvc
+            .perform(
+                put("/api/questoes/{questaoId}/alternativas/{alternativaId}", questao.getId(), alternativa.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(alternativaUpdateRequest))
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.texto").value("Texto novo"))
+            .andExpect(jsonPath("$.ordem").value(2));
+            // Note: correta field is intentionally not returned in responses to hide the correct answer
+    }
+
+    @Test
+    void testAddCargoToQuestao() throws Exception {
+        // First create a question
+        Questao questao = new Questao();
+        questao.setEnunciado("Questão para cargo");
+        questao.setConcurso(concurso);
+        questao = questaoRepository.save(questao);
+
+        // Create cargo association request
+        com.studora.dto.request.QuestaoCargoCreateRequest cargoRequest = new com.studora.dto.request.QuestaoCargoCreateRequest();
+        cargoRequest.setConcursoCargoId(concursoCargo.getId());
+
+        mockMvc
+            .perform(
+                post("/api/questoes/{id}/cargos", questao.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(cargoRequest))
+            )
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.concursoCargoId").value(concursoCargo.getId()))
+            .andExpect(jsonPath("$.questaoId").value(questao.getId()));
     }
 }

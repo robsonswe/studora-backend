@@ -1,17 +1,15 @@
-package com.studora.dto;
+package com.studora.dto.request;
 
+import com.studora.dto.AlternativaDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
-@Schema(description = "DTO para representar uma questão")
+@Schema(description = "Request DTO para criação de uma questão")
 @Data
-public class QuestaoDto {
-
-    @Schema(description = "ID único da questão (gerado automaticamente)", example = "1", accessMode = Schema.AccessMode.READ_ONLY)
-    private Long id;
+public class QuestaoCreateRequest {
 
     @NotNull(message = "ID do concurso é obrigatório")
     @Schema(description = "ID do concurso ao qual a questão pertence", example = "1", required = true)
@@ -45,9 +43,9 @@ public class QuestaoDto {
     private List<AlternativaDto> alternativas; // Alternativas associated with the question
 
     // Constructors
-    public QuestaoDto() {}
+    public QuestaoCreateRequest() {}
 
-    public QuestaoDto(Long concursoId, String enunciado) {
+    public QuestaoCreateRequest(Long concursoId, String enunciado) {
         this.concursoId = concursoId;
         this.enunciado = enunciado;
     }
