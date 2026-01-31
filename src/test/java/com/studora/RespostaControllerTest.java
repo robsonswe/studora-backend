@@ -4,6 +4,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.studora.dto.RespostaDto;
+import com.studora.dto.request.RespostaCreateRequest;
 import com.studora.entity.*;
 import com.studora.repository.*;
 import com.studora.util.TestUtil;
@@ -76,15 +77,15 @@ class RespostaControllerTest {
 
     @Test
     void testCreateResposta() throws Exception {
-        RespostaDto respostaDto = new RespostaDto();
-        respostaDto.setQuestaoId(questao.getId());
-        respostaDto.setAlternativaId(alternativa.getId());
+        RespostaCreateRequest respostaCreateRequest = new RespostaCreateRequest();
+        respostaCreateRequest.setQuestaoId(questao.getId());
+        respostaCreateRequest.setAlternativaId(alternativa.getId());
 
         mockMvc
             .perform(
                 post("/api/respostas")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(respostaDto))
+                    .content(TestUtil.asJsonString(respostaCreateRequest))
             )
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.questaoId").value(questao.getId()));
@@ -166,15 +167,15 @@ class RespostaControllerTest {
         alternativaAnulada = alternativaRepository.save(alternativaAnulada);
 
         // Try to create a resposta for the annulled question
-        RespostaDto respostaDto = new RespostaDto();
-        respostaDto.setQuestaoId(annulledQuestao.getId());
-        respostaDto.setAlternativaId(alternativaAnulada.getId());
+        RespostaCreateRequest respostaCreateRequest = new RespostaCreateRequest();
+        respostaCreateRequest.setQuestaoId(annulledQuestao.getId());
+        respostaCreateRequest.setAlternativaId(alternativaAnulada.getId());
 
         mockMvc
             .perform(
                 post("/api/respostas")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(respostaDto))
+                    .content(TestUtil.asJsonString(respostaCreateRequest))
             )
             .andExpect(status().isUnprocessableEntity())
             .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))

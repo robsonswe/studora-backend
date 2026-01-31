@@ -8,7 +8,6 @@ import java.util.List;
 
 @Repository
 public interface RespostaRepository extends JpaRepository<Resposta, Long> {
-    List<Resposta> findByQuestaoId(Long questaoId);
-    List<Resposta> findByAlternativaEscolhidaId(Long alternativaId);
+    Resposta findByQuestaoId(Long questaoId);
     void deleteByQuestaoId(Long questaoId);
 }

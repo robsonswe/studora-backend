@@ -1,6 +1,7 @@
 package com.studora;
 
 import com.studora.dto.RespostaDto;
+import com.studora.dto.request.RespostaCreateRequest;
 import com.studora.entity.Alternativa;
 import com.studora.entity.Questao;
 import com.studora.entity.Resposta;
@@ -83,9 +84,9 @@ class RespostaServiceTest {
     @Test
     void testCreateResposta_Success() {
         // Arrange
-        RespostaDto respostaDto = new RespostaDto();
-        respostaDto.setQuestaoId(1L);
-        respostaDto.setAlternativaId(1L);
+        RespostaCreateRequest respostaCreateRequest = new RespostaCreateRequest();
+        respostaCreateRequest.setQuestaoId(1L);
+        respostaCreateRequest.setAlternativaId(1L);
 
         Questao questao = new Questao();
         questao.setId(1L);
@@ -100,10 +101,11 @@ class RespostaServiceTest {
 
         when(questaoRepository.findById(1L)).thenReturn(Optional.of(questao));
         when(alternativaRepository.findById(1L)).thenReturn(Optional.of(alternativa));
+        when(respostaRepository.findByQuestaoId(1L)).thenReturn(null); // No existing response for this question
         when(respostaRepository.save(any(Resposta.class))).thenReturn(savedResposta);
 
         // Act
-        RespostaDto result = respostaService.createResposta(respostaDto);
+        RespostaDto result = respostaService.createResposta(respostaCreateRequest);
 
         // Assert
         assertNotNull(result);
@@ -112,21 +114,22 @@ class RespostaServiceTest {
         assertEquals(alternativa.getId(), result.getAlternativaId());
         verify(questaoRepository, times(1)).findById(1L);
         verify(alternativaRepository, times(1)).findById(1L);
+        verify(respostaRepository, times(1)).findByQuestaoId(1L);
         verify(respostaRepository, times(1)).save(any(Resposta.class));
     }
 
     @Test
     void testCreateResposta_QuestaoNotFound() {
         // Arrange
-        RespostaDto respostaDto = new RespostaDto();
-        respostaDto.setQuestaoId(1L);
-        respostaDto.setAlternativaId(1L);
+        RespostaCreateRequest respostaCreateRequest = new RespostaCreateRequest();
+        respostaCreateRequest.setQuestaoId(1L);
+        respostaCreateRequest.setAlternativaId(1L);
 
         when(questaoRepository.findById(1L)).thenReturn(Optional.empty());
 
         // Act & Assert
         assertThrows(RuntimeException.class, () -> {
-            respostaService.createResposta(respostaDto);
+            respostaService.createResposta(respostaCreateRequest);
         });
 
         verify(questaoRepository, times(1)).findById(1L);
@@ -137,23 +140,25 @@ class RespostaServiceTest {
     @Test
     void testCreateResposta_AlternativaNotFound() {
         // Arrange
-        RespostaDto respostaDto = new RespostaDto();
-        respostaDto.setQuestaoId(1L);
-        respostaDto.setAlternativaId(1L);
+        RespostaCreateRequest respostaCreateRequest = new RespostaCreateRequest();
+        respostaCreateRequest.setQuestaoId(1L);
+        respostaCreateRequest.setAlternativaId(1L);
 
         Questao questao = new Questao();
         questao.setId(1L);
 
         when(questaoRepository.findById(1L)).thenReturn(Optional.of(questao));
         when(alternativaRepository.findById(1L)).thenReturn(Optional.empty());
+        when(respostaRepository.findByQuestaoId(1L)).thenReturn(null); // No existing response for this question
 
         // Act & Assert
         assertThrows(RuntimeException.class, () -> {
-            respostaService.createResposta(respostaDto);
+            respostaService.createResposta(respostaCreateRequest);
         });
 
         verify(questaoRepository, times(1)).findById(1L);
         verify(alternativaRepository, times(1)).findById(1L);
+        verify(respostaRepository, times(1)).findByQuestaoId(1L);
         verify(respostaRepository, never()).save(any(Resposta.class));
     }
 }

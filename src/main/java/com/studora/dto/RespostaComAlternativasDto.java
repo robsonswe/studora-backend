@@ -2,22 +2,20 @@ package com.studora.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
-@Schema(description = "DTO para representar uma resposta a uma questão")
+@Schema(description = "DTO para representar uma resposta a uma questão com alternativas")
 @Data
-public class RespostaDto {
+public class RespostaComAlternativasDto {
 
     @Schema(description = "ID único da resposta (gerado automaticamente)", example = "1", accessMode = Schema.AccessMode.READ_ONLY)
     private Long id;
 
-    @NotNull(message = "ID da questão é obrigatório")
     @Schema(description = "ID da questão respondida", example = "1", required = true)
     private Long questaoId;
 
-    @NotNull(message = "ID da alternativa é obrigatório")
     @Schema(description = "ID da alternativa selecionada como resposta", example = "1", required = true)
     private Long alternativaId;
 
@@ -27,11 +25,9 @@ public class RespostaDto {
     @Schema(description = "Data e hora em que a resposta foi registrada (gerada automaticamente)", example = "2023-06-15T10:30:00", accessMode = Schema.AccessMode.READ_ONLY)
     private LocalDateTime respondidaEm;
 
-    // Constructors
-    public RespostaDto() {}
+    @Schema(description = "Lista de alternativas associadas à questão", implementation = AlternativaDto.class)
+    private List<AlternativaDto> alternativas;
 
-    public RespostaDto(Long questaoId, Long alternativaId) {
-        this.questaoId = questaoId;
-        this.alternativaId = alternativaId;
-    }
+    // Constructors
+    public RespostaComAlternativasDto() {}
 }
