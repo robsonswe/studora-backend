@@ -4,6 +4,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.studora.dto.BancaDto;
+import com.studora.dto.request.BancaCreateRequest;
+import com.studora.dto.request.BancaUpdateRequest;
 import com.studora.entity.Banca;
 import com.studora.repository.BancaRepository;
 import com.studora.util.TestUtil;
@@ -54,14 +56,14 @@ class BancaControllerTest {
 
     @Test
     void testCreateBanca() throws Exception {
-        BancaDto dto = new BancaDto();
-        dto.setNome("FGV");
+        BancaCreateRequest request = new BancaCreateRequest();
+        request.setNome("FGV");
 
         mockMvc
             .perform(
                 post("/api/bancas")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(dto))
+                    .content(TestUtil.asJsonString(request))
             )
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.nome").value("FGV"));
@@ -73,14 +75,14 @@ class BancaControllerTest {
         banca.setNome("OldName");
         banca = bancaRepository.save(banca);
 
-        BancaDto dto = new BancaDto();
-        dto.setNome("NewName");
+        BancaUpdateRequest request = new BancaUpdateRequest();
+        request.setNome("NewName");
 
         mockMvc
             .perform(
                 put("/api/bancas/{id}", banca.getId())
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(dto))
+                    .content(TestUtil.asJsonString(request))
             )
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.nome").value("NewName"));
@@ -105,14 +107,14 @@ class BancaControllerTest {
         bancaRepository.save(banca1);
 
         // Try to create another banca with the same name
-        BancaDto dto = new BancaDto();
-        dto.setNome("CESPE");
+        BancaCreateRequest request = new BancaCreateRequest();
+        request.setNome("CESPE");
 
         mockMvc
             .perform(
                 post("/api/bancas")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(dto))
+                    .content(TestUtil.asJsonString(request))
             )
             .andExpect(status().isConflict())
             .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))

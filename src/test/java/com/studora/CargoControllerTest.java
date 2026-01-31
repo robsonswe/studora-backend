@@ -4,6 +4,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.studora.dto.CargoDto;
+import com.studora.dto.request.CargoCreateRequest;
 import com.studora.entity.Cargo;
 import com.studora.repository.CargoRepository;
 import com.studora.util.TestUtil;
@@ -31,16 +32,16 @@ class CargoControllerTest {
     @Test
     void testCrudCargo() throws Exception {
         // Create
-        CargoDto dto = new CargoDto();
-        dto.setNome("Analista");
-        dto.setNivel("Superior");
-        dto.setArea("TI");
+        CargoCreateRequest request = new CargoCreateRequest();
+        request.setNome("Analista");
+        request.setNivel("Superior");
+        request.setArea("TI");
 
         mockMvc
             .perform(
                 post("/api/cargos")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(dto))
+                    .content(TestUtil.asJsonString(request))
             )
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.nome").value("Analista"));
@@ -85,16 +86,16 @@ class CargoControllerTest {
         cargoRepository.save(cargo1);
 
         // Try to create another cargo with the same name, nivel, and area
-        CargoDto dto = new CargoDto();
-        dto.setNome("Analista");
-        dto.setNivel("Superior");
-        dto.setArea("TI");
+        CargoCreateRequest request = new CargoCreateRequest();
+        request.setNome("Analista");
+        request.setNivel("Superior");
+        request.setArea("TI");
 
         mockMvc
             .perform(
                 post("/api/cargos")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(dto))
+                    .content(TestUtil.asJsonString(request))
             )
             .andExpect(status().isConflict())
             .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))

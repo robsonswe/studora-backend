@@ -2,6 +2,8 @@ package com.studora.controller;
 
 import com.studora.dto.CargoDto;
 import com.studora.dto.QuestaoDto;
+import com.studora.dto.request.CargoCreateRequest;
+import com.studora.dto.request.CargoUpdateRequest;
 import com.studora.service.CargoService;
 import com.studora.service.QuestaoService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -96,7 +98,7 @@ public class CargoController {
             required = true,
             content = @Content(
                 mediaType = "application/json",
-                schema = @Schema(implementation = CargoDto.class)
+                schema = @Schema(implementation = CargoCreateRequest.class)
             )
         ),
         responses = {
@@ -129,7 +131,13 @@ public class CargoController {
     )
     @PostMapping
     public ResponseEntity<CargoDto> createCargo(
-            @RequestBody CargoDto cargoDto) {
+            @RequestBody CargoCreateRequest cargoCreateRequest) {
+        // Convert the request DTO to the regular DTO for processing
+        CargoDto cargoDto = new CargoDto();
+        cargoDto.setNome(cargoCreateRequest.getNome());
+        cargoDto.setNivel(cargoCreateRequest.getNivel());
+        cargoDto.setArea(cargoCreateRequest.getArea());
+
         CargoDto createdCargo = cargoService.save(cargoDto);
         return new ResponseEntity<>(createdCargo, HttpStatus.CREATED);
     }
@@ -142,7 +150,7 @@ public class CargoController {
             required = true,
             content = @Content(
                 mediaType = "application/json",
-                schema = @Schema(implementation = CargoDto.class)
+                schema = @Schema(implementation = CargoUpdateRequest.class)
             )
         ),
         responses = {
@@ -182,11 +190,11 @@ public class CargoController {
     @PutMapping("/{id}")
     public ResponseEntity<CargoDto> updateCargo(
             @Parameter(description = "ID da cargo a ser atualizada", required = true) @PathVariable Long id,
-            @RequestBody CargoDto cargoDto) {
+            @RequestBody CargoUpdateRequest cargoUpdateRequest) {
         CargoDto existingCargo = cargoService.findById(id);
-        existingCargo.setNome(cargoDto.getNome());
-        existingCargo.setNivel(cargoDto.getNivel());
-        existingCargo.setArea(cargoDto.getArea());
+        existingCargo.setNome(cargoUpdateRequest.getNome());
+        existingCargo.setNivel(cargoUpdateRequest.getNivel());
+        existingCargo.setArea(cargoUpdateRequest.getArea());
         CargoDto updatedCargo = cargoService.save(existingCargo);
         return ResponseEntity.ok(updatedCargo);
     }

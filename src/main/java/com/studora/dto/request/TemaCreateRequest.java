@@ -1,4 +1,4 @@
-package com.studora.dto;
+package com.studora.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -6,12 +6,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-@Schema(description = "DTO para representar um tema")
+@Schema(description = "Request DTO para criação de um tema")
 @Data
-public class TemaDto {
-
-    @Schema(description = "ID único do tema (gerado automaticamente)", example = "1", accessMode = Schema.AccessMode.READ_ONLY)
-    private Long id;
+public class TemaCreateRequest {
 
     @NotNull(message = "ID da disciplina é obrigatório")
     @Schema(description = "ID da disciplina à qual o tema pertence", example = "1", required = true)
@@ -23,9 +20,9 @@ public class TemaDto {
     private String nome;
 
     // Constructors
-    public TemaDto() {}
+    public TemaCreateRequest() {}
 
-    public TemaDto(Long disciplinaId, String nome) {
+    public TemaCreateRequest(Long disciplinaId, String nome) {
         this.disciplinaId = disciplinaId;
         this.nome = nome;
     }

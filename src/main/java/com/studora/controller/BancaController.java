@@ -1,6 +1,8 @@
 package com.studora.controller;
 
 import com.studora.dto.BancaDto;
+import com.studora.dto.request.BancaCreateRequest;
+import com.studora.dto.request.BancaUpdateRequest;
 import com.studora.service.BancaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -92,7 +94,7 @@ public class BancaController {
             required = true,
             content = @Content(
                 mediaType = "application/json",
-                schema = @Schema(implementation = BancaDto.class)
+                schema = @Schema(implementation = BancaCreateRequest.class)
             )
         ),
         responses = {
@@ -125,7 +127,11 @@ public class BancaController {
     )
     @PostMapping
     public ResponseEntity<BancaDto> createBanca(
-            @RequestBody BancaDto bancaDto) {
+            @RequestBody BancaCreateRequest bancaCreateRequest) {
+        // Convert the request DTO to the regular DTO for processing
+        BancaDto bancaDto = new BancaDto();
+        bancaDto.setNome(bancaCreateRequest.getNome());
+
         BancaDto createdBanca = bancaService.save(bancaDto);
         return new ResponseEntity<>(createdBanca, HttpStatus.CREATED);
     }
@@ -138,7 +144,7 @@ public class BancaController {
             required = true,
             content = @Content(
                 mediaType = "application/json",
-                schema = @Schema(implementation = BancaDto.class)
+                schema = @Schema(implementation = BancaUpdateRequest.class)
             )
         ),
         responses = {
@@ -178,9 +184,9 @@ public class BancaController {
     @PutMapping("/{id}")
     public ResponseEntity<BancaDto> updateBanca(
             @Parameter(description = "ID da banca a ser atualizada", required = true) @PathVariable Long id,
-            @RequestBody BancaDto bancaDto) {
+            @RequestBody BancaUpdateRequest bancaUpdateRequest) {
         BancaDto existingBanca = bancaService.findById(id);
-        existingBanca.setNome(bancaDto.getNome());
+        existingBanca.setNome(bancaUpdateRequest.getNome());
         BancaDto updatedBanca = bancaService.save(existingBanca);
         return ResponseEntity.ok(updatedBanca);
     }

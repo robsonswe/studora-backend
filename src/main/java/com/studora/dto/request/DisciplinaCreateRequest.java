@@ -1,16 +1,13 @@
-package com.studora.dto;
+package com.studora.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-@Schema(description = "DTO para representar uma disciplina")
+@Schema(description = "Request DTO para criação de uma disciplina")
 @Data
-public class DisciplinaDto {
-
-    @Schema(description = "ID único da disciplina (gerado automaticamente)", example = "1", accessMode = Schema.AccessMode.READ_ONLY)
-    private Long id;
+public class DisciplinaCreateRequest {
 
     @NotBlank(message = "Nome da disciplina é obrigatório")
     @Size(max = 255, message = "Nome da disciplina deve ter no máximo 255 caracteres")
@@ -18,9 +15,9 @@ public class DisciplinaDto {
     private String nome;
 
     // Constructors
-    public DisciplinaDto() {}
+    public DisciplinaCreateRequest() {}
 
-    public DisciplinaDto(String nome) {
+    public DisciplinaCreateRequest(String nome) {
         this.nome = nome;
     }
 }

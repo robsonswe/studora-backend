@@ -1,6 +1,8 @@
 package com.studora.controller;
 
 import com.studora.dto.TemaDto;
+import com.studora.dto.request.TemaCreateRequest;
+import com.studora.dto.request.TemaUpdateRequest;
 import com.studora.service.TemaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -125,7 +127,7 @@ public class TemaController {
             required = true,
             content = @Content(
                 mediaType = "application/json",
-                schema = @Schema(implementation = TemaDto.class)
+                schema = @Schema(implementation = TemaCreateRequest.class)
             )
         ),
         responses = {
@@ -158,7 +160,12 @@ public class TemaController {
     )
     @PostMapping
     public ResponseEntity<TemaDto> createTema(
-            @Valid @RequestBody TemaDto temaDto) {
+            @Valid @RequestBody TemaCreateRequest temaCreateRequest) {
+        // Convert the request DTO to the regular DTO for processing
+        TemaDto temaDto = new TemaDto();
+        temaDto.setDisciplinaId(temaCreateRequest.getDisciplinaId());
+        temaDto.setNome(temaCreateRequest.getNome());
+
         TemaDto createdTema = temaService.createTema(temaDto);
         return new ResponseEntity<>(createdTema, HttpStatus.CREATED);
     }
@@ -171,7 +178,7 @@ public class TemaController {
             required = true,
             content = @Content(
                 mediaType = "application/json",
-                schema = @Schema(implementation = TemaDto.class)
+                schema = @Schema(implementation = TemaUpdateRequest.class)
             )
         ),
         responses = {
@@ -211,7 +218,13 @@ public class TemaController {
     @PutMapping("/{id}")
     public ResponseEntity<TemaDto> updateTema(
             @Parameter(description = "ID do tema a ser atualizado", required = true) @PathVariable Long id,
-            @Valid @RequestBody TemaDto temaDto) {
+            @Valid @RequestBody TemaUpdateRequest temaUpdateRequest) {
+        // Convert the request DTO to the regular DTO for processing
+        TemaDto temaDto = new TemaDto();
+        temaDto.setId(id); // Set the ID from the path parameter
+        temaDto.setDisciplinaId(temaUpdateRequest.getDisciplinaId());
+        temaDto.setNome(temaUpdateRequest.getNome());
+
         TemaDto updatedTema = temaService.updateTema(id, temaDto);
         return ResponseEntity.ok(updatedTema);
     }

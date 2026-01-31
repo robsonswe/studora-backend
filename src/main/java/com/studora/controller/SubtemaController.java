@@ -1,6 +1,8 @@
 package com.studora.controller;
 
 import com.studora.dto.SubtemaDto;
+import com.studora.dto.request.SubtemaCreateRequest;
+import com.studora.dto.request.SubtemaUpdateRequest;
 import com.studora.service.SubtemaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -125,7 +127,7 @@ public class SubtemaController {
             required = true,
             content = @Content(
                 mediaType = "application/json",
-                schema = @Schema(implementation = SubtemaDto.class)
+                schema = @Schema(implementation = SubtemaCreateRequest.class)
             )
         ),
         responses = {
@@ -158,7 +160,12 @@ public class SubtemaController {
     )
     @PostMapping
     public ResponseEntity<SubtemaDto> createSubtema(
-            @Valid @RequestBody SubtemaDto subtemaDto) {
+            @Valid @RequestBody SubtemaCreateRequest subtemaCreateRequest) {
+        // Convert the request DTO to the regular DTO for processing
+        SubtemaDto subtemaDto = new SubtemaDto();
+        subtemaDto.setTemaId(subtemaCreateRequest.getTemaId());
+        subtemaDto.setNome(subtemaCreateRequest.getNome());
+
         SubtemaDto createdSubtema = subtemaService.createSubtema(subtemaDto);
         return new ResponseEntity<>(createdSubtema, HttpStatus.CREATED);
     }
@@ -171,7 +178,7 @@ public class SubtemaController {
             required = true,
             content = @Content(
                 mediaType = "application/json",
-                schema = @Schema(implementation = SubtemaDto.class)
+                schema = @Schema(implementation = SubtemaUpdateRequest.class)
             )
         ),
         responses = {
@@ -211,7 +218,13 @@ public class SubtemaController {
     @PutMapping("/{id}")
     public ResponseEntity<SubtemaDto> updateSubtema(
             @Parameter(description = "ID do subtema a ser atualizado", required = true) @PathVariable Long id,
-            @Valid @RequestBody SubtemaDto subtemaDto) {
+            @Valid @RequestBody SubtemaUpdateRequest subtemaUpdateRequest) {
+        // Convert the request DTO to the regular DTO for processing
+        SubtemaDto subtemaDto = new SubtemaDto();
+        subtemaDto.setId(id); // Set the ID from the path parameter
+        subtemaDto.setTemaId(subtemaUpdateRequest.getTemaId());
+        subtemaDto.setNome(subtemaUpdateRequest.getNome());
+
         SubtemaDto updatedSubtema = subtemaService.updateSubtema(id, subtemaDto);
         return ResponseEntity.ok(updatedSubtema);
     }

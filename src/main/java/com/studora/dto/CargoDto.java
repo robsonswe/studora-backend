@@ -6,7 +6,7 @@ import lombok.Data;
 @Schema(description = "DTO para representar um cargo")
 @Data
 public class CargoDto {
-    @Schema(description = "ID único do cargo", example = "1")
+    @Schema(description = "ID único do cargo (gerado automaticamente)", example = "1", accessMode = Schema.AccessMode.READ_ONLY)
     private Long id;
 
     @Schema(description = "Nome do cargo", example = "Analista de Sistemas")

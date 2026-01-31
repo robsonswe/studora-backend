@@ -4,6 +4,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.studora.dto.DisciplinaDto;
+import com.studora.dto.request.DisciplinaCreateRequest;
+import com.studora.dto.request.DisciplinaUpdateRequest;
 import com.studora.entity.Disciplina;
 import com.studora.repository.DisciplinaRepository;
 import com.studora.util.TestUtil;
@@ -36,14 +38,14 @@ class DisciplinaControllerTest {
 
     @Test
     void testCreateDisciplina() throws Exception {
-        DisciplinaDto disciplinaDto = new DisciplinaDto();
-        disciplinaDto.setNome("Direito Test");
+        DisciplinaCreateRequest disciplinaCreateRequest = new DisciplinaCreateRequest();
+        disciplinaCreateRequest.setNome("Direito Test");
 
         mockMvc
             .perform(
                 post("/api/disciplinas")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(disciplinaDto))
+                    .content(TestUtil.asJsonString(disciplinaCreateRequest))
             )
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.nome").value("Direito Test"));
@@ -88,14 +90,14 @@ class DisciplinaControllerTest {
         Disciplina disciplina = new Disciplina("Old Name");
         disciplina = disciplinaRepository.save(disciplina);
 
-        DisciplinaDto updatedDto = new DisciplinaDto();
-        updatedDto.setNome("New Name");
+        DisciplinaUpdateRequest updateRequest = new DisciplinaUpdateRequest();
+        updateRequest.setNome("New Name");
 
         mockMvc
             .perform(
                 put("/api/disciplinas/{id}", disciplina.getId())
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(updatedDto))
+                    .content(TestUtil.asJsonString(updateRequest))
             )
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.nome").value("New Name"));
@@ -122,14 +124,14 @@ class DisciplinaControllerTest {
         disciplinaRepository.save(disciplina1);
 
         // Try to create another disciplina with the same name
-        DisciplinaDto disciplinaDto = new DisciplinaDto();
-        disciplinaDto.setNome("Direito Administrativo");
+        DisciplinaCreateRequest request = new DisciplinaCreateRequest();
+        request.setNome("Direito Administrativo");
 
         mockMvc
             .perform(
                 post("/api/disciplinas")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(disciplinaDto))
+                    .content(TestUtil.asJsonString(request))
             )
             .andExpect(status().isConflict())
             .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))

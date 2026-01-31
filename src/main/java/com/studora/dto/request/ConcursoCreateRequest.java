@@ -1,16 +1,13 @@
-package com.studora.dto;
+package com.studora.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
-@Schema(description = "DTO para representar um concurso")
+@Schema(description = "Request DTO para criação de um concurso")
 @Data
-public class ConcursoDto {
-
-    @Schema(description = "ID único do concurso (gerado automaticamente)", example = "1", accessMode = Schema.AccessMode.READ_ONLY)
-    private Long id;
+public class ConcursoCreateRequest {
 
     @NotNull(message = "ID da instituição é obrigatório")
     @Schema(description = "ID da instituição organizadora do concurso", example = "1", required = true)
@@ -26,9 +23,9 @@ public class ConcursoDto {
     private Integer ano;
 
     // Constructors
-    public ConcursoDto() {}
+    public ConcursoCreateRequest() {}
 
-    public ConcursoDto(Long instituicaoId, Long bancaId, Integer ano) {
+    public ConcursoCreateRequest(Long instituicaoId, Long bancaId, Integer ano) {
         this.instituicaoId = instituicaoId;
         this.bancaId = bancaId;
         this.ano = ano;

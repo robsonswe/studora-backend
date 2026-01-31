@@ -2,6 +2,9 @@ package com.studora.controller;
 
 import com.studora.dto.ConcursoCargoDto;
 import com.studora.dto.ConcursoDto;
+import com.studora.dto.request.ConcursoCreateRequest;
+import com.studora.dto.request.ConcursoUpdateRequest;
+import com.studora.dto.request.ConcursoCargoCreateRequest;
 import com.studora.service.ConcursoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -92,7 +95,7 @@ public class ConcursoController {
             required = true,
             content = @Content(
                 mediaType = "application/json",
-                schema = @Schema(implementation = ConcursoDto.class)
+                schema = @Schema(implementation = ConcursoCreateRequest.class)
             )
         ),
         responses = {
@@ -125,7 +128,13 @@ public class ConcursoController {
     )
     @PostMapping
     public ResponseEntity<ConcursoDto> createConcurso(
-            @RequestBody ConcursoDto concursoDto) {
+            @RequestBody ConcursoCreateRequest concursoCreateRequest) {
+        // Convert the request DTO to the regular DTO for processing
+        ConcursoDto concursoDto = new ConcursoDto();
+        concursoDto.setInstituicaoId(concursoCreateRequest.getInstituicaoId());
+        concursoDto.setBancaId(concursoCreateRequest.getBancaId());
+        concursoDto.setAno(concursoCreateRequest.getAno());
+
         ConcursoDto createdConcurso = concursoService.save(concursoDto);
         return new ResponseEntity<>(createdConcurso, HttpStatus.CREATED);
     }
@@ -138,7 +147,7 @@ public class ConcursoController {
             required = true,
             content = @Content(
                 mediaType = "application/json",
-                schema = @Schema(implementation = ConcursoDto.class)
+                schema = @Schema(implementation = ConcursoUpdateRequest.class)
             )
         ),
         responses = {
@@ -178,8 +187,14 @@ public class ConcursoController {
     @PutMapping("/{id}")
     public ResponseEntity<ConcursoDto> updateConcurso(
             @Parameter(description = "ID do concurso a ser atualizado", required = true) @PathVariable Long id,
-            @RequestBody ConcursoDto concursoDto) {
-        concursoDto.setId(id);
+            @RequestBody ConcursoUpdateRequest concursoUpdateRequest) {
+        // Convert the request DTO to the regular DTO for processing
+        ConcursoDto concursoDto = new ConcursoDto();
+        concursoDto.setId(id); // Set the ID from the path parameter
+        concursoDto.setInstituicaoId(concursoUpdateRequest.getInstituicaoId());
+        concursoDto.setBancaId(concursoUpdateRequest.getBancaId());
+        concursoDto.setAno(concursoUpdateRequest.getAno());
+
         ConcursoDto updatedConcurso = concursoService.save(concursoDto);
         return ResponseEntity.ok(updatedConcurso);
     }
@@ -251,7 +266,7 @@ public class ConcursoController {
             required = true,
             content = @Content(
                 mediaType = "application/json",
-                schema = @Schema(implementation = ConcursoCargoDto.class)
+                schema = @Schema(implementation = ConcursoCargoCreateRequest.class)
             )
         ),
         responses = {
@@ -285,8 +300,12 @@ public class ConcursoController {
     @PostMapping("/{id}/cargos")
     public ResponseEntity<ConcursoCargoDto> addCargoToConcurso(
             @Parameter(description = "ID do concurso ao qual o cargo será adicionado", required = true) @PathVariable Long id,
-            @RequestBody ConcursoCargoDto concursoCargoDto) {
-        concursoCargoDto.setConcursoId(id); // Ensure the concurso ID matches the path variable
+            @RequestBody ConcursoCargoCreateRequest concursoCargoCreateRequest) {
+        // Convert the request DTO to the regular DTO for processing
+        ConcursoCargoDto concursoCargoDto = new ConcursoCargoDto();
+        concursoCargoDto.setConcursoId(id); // Use the path variable, not the request body
+        concursoCargoDto.setCargoId(concursoCargoCreateRequest.getCargoId());
+
         ConcursoCargoDto createdConcursoCargo = concursoService.addCargoToConcurso(concursoCargoDto);
         return new ResponseEntity<>(createdConcursoCargo, HttpStatus.CREATED);
     }

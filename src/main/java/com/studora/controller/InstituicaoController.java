@@ -1,6 +1,8 @@
 package com.studora.controller;
 
 import com.studora.dto.InstituicaoDto;
+import com.studora.dto.request.InstituicaoCreateRequest;
+import com.studora.dto.request.InstituicaoUpdateRequest;
 import com.studora.service.InstituicaoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -91,7 +93,7 @@ public class InstituicaoController {
             required = true,
             content = @Content(
                 mediaType = "application/json",
-                schema = @Schema(implementation = InstituicaoDto.class)
+                schema = @Schema(implementation = InstituicaoCreateRequest.class)
             )
         ),
         responses = {
@@ -124,7 +126,11 @@ public class InstituicaoController {
     )
     @PostMapping
     public ResponseEntity<InstituicaoDto> createInstituicao(
-            @RequestBody InstituicaoDto instituicaoDto) {
+            @RequestBody InstituicaoCreateRequest instituicaoCreateRequest) {
+        // Convert the request DTO to the regular DTO for processing
+        InstituicaoDto instituicaoDto = new InstituicaoDto();
+        instituicaoDto.setNome(instituicaoCreateRequest.getNome());
+
         InstituicaoDto createdInstituicao = instituicaoService.save(instituicaoDto);
         return new ResponseEntity<>(createdInstituicao, HttpStatus.CREATED);
     }
@@ -137,7 +143,7 @@ public class InstituicaoController {
             required = true,
             content = @Content(
                 mediaType = "application/json",
-                schema = @Schema(implementation = InstituicaoDto.class)
+                schema = @Schema(implementation = InstituicaoUpdateRequest.class)
             )
         ),
         responses = {
@@ -177,9 +183,10 @@ public class InstituicaoController {
     @PutMapping("/{id}")
     public ResponseEntity<InstituicaoDto> updateInstituicao(
             @Parameter(description = "ID da instituição a ser atualizada", required = true) @PathVariable Long id,
-            @RequestBody InstituicaoDto instituicaoDto) {
+            @RequestBody InstituicaoUpdateRequest instituicaoUpdateRequest) {
+        // Get the existing institution and update only the name from the request
         InstituicaoDto existingInstituicao = instituicaoService.findById(id);
-        existingInstituicao.setNome(instituicaoDto.getNome());
+        existingInstituicao.setNome(instituicaoUpdateRequest.getNome());
         InstituicaoDto updatedInstituicao = instituicaoService.save(existingInstituicao);
         return ResponseEntity.ok(updatedInstituicao);
     }

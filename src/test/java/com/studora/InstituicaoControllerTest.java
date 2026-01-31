@@ -4,6 +4,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.studora.dto.InstituicaoDto;
+import com.studora.dto.request.InstituicaoCreateRequest;
+import com.studora.dto.request.InstituicaoUpdateRequest;
 import com.studora.entity.Instituicao;
 import com.studora.repository.InstituicaoRepository;
 import com.studora.util.TestUtil;
@@ -30,14 +32,14 @@ class InstituicaoControllerTest {
 
     @Test
     void testCreateInstituicao() throws Exception {
-        InstituicaoDto dto = new InstituicaoDto();
-        dto.setNome("USP");
+        InstituicaoCreateRequest request = new InstituicaoCreateRequest();
+        request.setNome("USP");
 
         mockMvc
             .perform(
                 post("/api/instituicoes")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(dto))
+                    .content(TestUtil.asJsonString(request))
             )
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.nome").value("USP"));
@@ -72,6 +74,27 @@ class InstituicaoControllerTest {
     }
 
     @Test
+    void testUpdateInstituicao() throws Exception {
+        // First create an institution
+        Instituicao inst = new Instituicao();
+        inst.setNome("Instituição Original");
+        inst = instituicaoRepository.save(inst);
+
+        // Create update request
+        InstituicaoUpdateRequest request = new InstituicaoUpdateRequest();
+        request.setNome("Instituição Atualizada");
+
+        mockMvc
+            .perform(
+                put("/api/instituicoes/{id}", inst.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(request))
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.nome").value("Instituição Atualizada"));
+    }
+
+    @Test
     void testCreateInstituicao_Conflict_DuplicateName() throws Exception {
         // Create first instituicao
         Instituicao inst1 = new Instituicao();
@@ -79,14 +102,14 @@ class InstituicaoControllerTest {
         instituicaoRepository.save(inst1);
 
         // Try to create another instituicao with the same name
-        InstituicaoDto dto = new InstituicaoDto();
-        dto.setNome("Universidade Federal do Rio de Janeiro");
+        InstituicaoCreateRequest request = new InstituicaoCreateRequest();
+        request.setNome("Universidade Federal do Rio de Janeiro");
 
         mockMvc
             .perform(
                 post("/api/instituicoes")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(dto))
+                    .content(TestUtil.asJsonString(request))
             )
             .andExpect(status().isConflict())
             .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))

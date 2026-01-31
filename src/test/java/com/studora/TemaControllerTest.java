@@ -4,6 +4,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.studora.dto.TemaDto;
+import com.studora.dto.request.TemaCreateRequest;
+import com.studora.dto.request.TemaUpdateRequest;
 import com.studora.entity.Disciplina;
 import com.studora.entity.Tema;
 import com.studora.repository.DisciplinaRepository;
@@ -45,15 +47,15 @@ class TemaControllerTest {
 
     @Test
     void testCreateTema() throws Exception {
-        TemaDto temaDto = new TemaDto();
-        temaDto.setNome("Controle de Constitucionalidade");
-        temaDto.setDisciplinaId(disciplina.getId());
+        TemaCreateRequest temaCreateRequest = new TemaCreateRequest();
+        temaCreateRequest.setNome("Controle de Constitucionalidade");
+        temaCreateRequest.setDisciplinaId(disciplina.getId());
 
         mockMvc
             .perform(
                 post("/api/temas")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(temaDto))
+                    .content(TestUtil.asJsonString(temaCreateRequest))
             )
             .andExpect(status().isCreated())
             .andExpect(
@@ -112,15 +114,15 @@ class TemaControllerTest {
         tema.setDisciplina(disciplina);
         tema = temaRepository.save(tema);
 
-        TemaDto updatedDto = new TemaDto();
-        updatedDto.setNome("New Name");
-        updatedDto.setDisciplinaId(disciplina.getId());
+        TemaUpdateRequest updateRequest = new TemaUpdateRequest();
+        updateRequest.setNome("New Name");
+        updateRequest.setDisciplinaId(disciplina.getId());
 
         mockMvc
             .perform(
                 put("/api/temas/{id}", tema.getId())
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(updatedDto))
+                    .content(TestUtil.asJsonString(updateRequest))
             )
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.nome").value("New Name"));

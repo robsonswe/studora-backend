@@ -4,6 +4,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.studora.dto.ConcursoDto;
+import com.studora.dto.request.ConcursoCreateRequest;
+import com.studora.dto.request.ConcursoUpdateRequest;
 import com.studora.entity.Banca;
 import com.studora.entity.Concurso;
 import com.studora.entity.ConcursoCargo;
@@ -64,16 +66,16 @@ class ConcursoControllerTest {
         banca.setNome("Banca Create Test");
         banca = bancaRepository.save(banca);
 
-        ConcursoDto concursoDto = new ConcursoDto();
-        concursoDto.setInstituicaoId(instituicao.getId());
-        concursoDto.setBancaId(banca.getId());
-        concursoDto.setAno(2023);
+        ConcursoCreateRequest concursoCreateRequest = new ConcursoCreateRequest();
+        concursoCreateRequest.setInstituicaoId(instituicao.getId());
+        concursoCreateRequest.setBancaId(banca.getId());
+        concursoCreateRequest.setAno(2023);
 
         mockMvc
             .perform(
                 post("/api/concursos")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(concursoDto))
+                    .content(TestUtil.asJsonString(concursoCreateRequest))
             )
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.instituicaoId").value(instituicao.getId()))
@@ -161,16 +163,16 @@ class ConcursoControllerTest {
         Concurso concurso = new Concurso(instituicao1, banca1, 2022);
         concurso = concursoRepository.save(concurso);
 
-        ConcursoDto updatedDto = new ConcursoDto();
-        updatedDto.setInstituicaoId(instituicao2.getId());
-        updatedDto.setBancaId(banca2.getId());
-        updatedDto.setAno(2023);
+        ConcursoUpdateRequest concursoUpdateRequest = new ConcursoUpdateRequest();
+        concursoUpdateRequest.setInstituicaoId(instituicao2.getId());
+        concursoUpdateRequest.setBancaId(banca2.getId());
+        concursoUpdateRequest.setAno(2023);
 
         mockMvc
             .perform(
                 put("/api/concursos/{id}", concurso.getId())
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(updatedDto))
+                    .content(TestUtil.asJsonString(concursoUpdateRequest))
             )
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.instituicaoId").value(instituicao2.getId()))

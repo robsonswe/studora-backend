@@ -1,6 +1,8 @@
 package com.studora.controller;
 
 import com.studora.dto.DisciplinaDto;
+import com.studora.dto.request.DisciplinaCreateRequest;
+import com.studora.dto.request.DisciplinaUpdateRequest;
 import com.studora.service.DisciplinaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -93,7 +95,7 @@ public class DisciplinaController {
             required = true,
             content = @Content(
                 mediaType = "application/json",
-                schema = @Schema(implementation = DisciplinaDto.class)
+                schema = @Schema(implementation = DisciplinaCreateRequest.class)
             )
         ),
         responses = {
@@ -126,7 +128,11 @@ public class DisciplinaController {
     )
     @PostMapping
     public ResponseEntity<DisciplinaDto> createDisciplina(
-            @Valid @RequestBody DisciplinaDto disciplinaDto) {
+            @Valid @RequestBody DisciplinaCreateRequest disciplinaCreateRequest) {
+        // Convert the request DTO to the regular DTO for processing
+        DisciplinaDto disciplinaDto = new DisciplinaDto();
+        disciplinaDto.setNome(disciplinaCreateRequest.getNome());
+
         DisciplinaDto createdDisciplina = disciplinaService.createDisciplina(disciplinaDto);
         return new ResponseEntity<>(createdDisciplina, HttpStatus.CREATED);
     }
@@ -139,7 +145,7 @@ public class DisciplinaController {
             required = true,
             content = @Content(
                 mediaType = "application/json",
-                schema = @Schema(implementation = DisciplinaDto.class)
+                schema = @Schema(implementation = DisciplinaUpdateRequest.class)
             )
         ),
         responses = {
@@ -179,7 +185,12 @@ public class DisciplinaController {
     @PutMapping("/{id}")
     public ResponseEntity<DisciplinaDto> updateDisciplina(
             @Parameter(description = "ID da disciplina a ser atualizada", required = true) @PathVariable Long id,
-            @Valid @RequestBody DisciplinaDto disciplinaDto) {
+            @Valid @RequestBody DisciplinaUpdateRequest disciplinaUpdateRequest) {
+        // Convert the request DTO to the regular DTO for processing
+        DisciplinaDto disciplinaDto = new DisciplinaDto();
+        disciplinaDto.setId(id); // Set the ID from the path parameter
+        disciplinaDto.setNome(disciplinaUpdateRequest.getNome());
+
         DisciplinaDto updatedDisciplina = disciplinaService.updateDisciplina(id, disciplinaDto);
         return ResponseEntity.ok(updatedDisciplina);
     }

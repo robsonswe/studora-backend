@@ -1,4 +1,4 @@
-package com.studora.dto;
+package com.studora.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -6,12 +6,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-@Schema(description = "DTO para representar um subtema")
+@Schema(description = "Request DTO para criação de um subtema")
 @Data
-public class SubtemaDto {
-
-    @Schema(description = "ID único do subtema (gerado automaticamente)", example = "1", accessMode = Schema.AccessMode.READ_ONLY)
-    private Long id;
+public class SubtemaCreateRequest {
 
     @NotNull(message = "ID do tema é obrigatório")
     @Schema(description = "ID do tema ao qual o subtema pertence", example = "1", required = true)
@@ -23,9 +20,9 @@ public class SubtemaDto {
     private String nome;
 
     // Constructors
-    public SubtemaDto() {}
+    public SubtemaCreateRequest() {}
 
-    public SubtemaDto(Long temaId, String nome) {
+    public SubtemaCreateRequest(Long temaId, String nome) {
         this.temaId = temaId;
         this.nome = nome;
     }
