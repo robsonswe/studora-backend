@@ -48,8 +48,8 @@ public class TemaService {
         Disciplina disciplina = disciplinaRepository.findById(temaDto.getDisciplinaId())
                 .orElseThrow(() -> new ResourceNotFoundException("Disciplina", "ID", temaDto.getDisciplinaId()));
 
-        // Check for duplicate tema name within the same disciplina
-        Optional<Tema> existingTema = temaRepository.findByDisciplinaIdAndNome(temaDto.getDisciplinaId(), temaDto.getNome());
+        // Check for duplicate tema name within the same disciplina (case-insensitive)
+        Optional<Tema> existingTema = temaRepository.findByDisciplinaIdAndNomeIgnoreCase(temaDto.getDisciplinaId(), temaDto.getNome());
         if (existingTema.isPresent()) {
             throw new ConflictException("Já existe um tema com o nome '" + temaDto.getNome() + "' na disciplina com ID: " + temaDto.getDisciplinaId());
         }
@@ -68,8 +68,8 @@ public class TemaService {
         Disciplina disciplina = disciplinaRepository.findById(temaDto.getDisciplinaId())
                 .orElseThrow(() -> new ResourceNotFoundException("Disciplina", "ID", temaDto.getDisciplinaId()));
 
-        // Check for duplicate tema name within the same disciplina (excluding current tema)
-        Optional<Tema> duplicateTema = temaRepository.findByDisciplinaIdAndNomeAndIdNot(disciplina.getId(), temaDto.getNome(), id);
+        // Check for duplicate tema name within the same disciplina (excluding current tema, case-insensitive)
+        Optional<Tema> duplicateTema = temaRepository.findByDisciplinaIdAndNomeIgnoreCaseAndIdNot(disciplina.getId(), temaDto.getNome(), id);
         if (duplicateTema.isPresent()) {
             throw new ConflictException("Já existe um tema com o nome '" + temaDto.getNome() + "' na disciplina com ID: " + disciplina.getId());
         }

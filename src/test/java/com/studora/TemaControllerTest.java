@@ -143,4 +143,27 @@ class TemaControllerTest {
             .perform(get("/api/temas/{id}", tema.getId()))
             .andExpect(status().isNotFound());
     }
+
+    @Test
+    void testCreateTema_Conflict_DuplicateName_CaseInsensitive() throws Exception {
+        // Create first tema
+        Tema tema1 = new Tema();
+        tema1.setNome("Atos Administrativos");
+        tema1.setDisciplina(disciplina);
+        temaRepository.save(tema1);
+
+        // Try to create another tema with the same name but different case
+        TemaCreateRequest request = new TemaCreateRequest();
+        request.setNome("atos administrativos");
+        request.setDisciplinaId(disciplina.getId());
+
+        mockMvc
+            .perform(
+                post("/api/temas")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(request))
+            )
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.detail").value("Já existe um tema com o nome 'atos administrativos' na disciplina com ID: " + disciplina.getId()));
+    }
 }
