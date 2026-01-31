@@ -231,14 +231,20 @@ public class SubtemaController {
 
     @Operation(
         summary = "Excluir subtema",
-        description = "Remove um subtema existente com base no ID fornecido",
+        description = "Remove um subtema existente com base no ID fornecido. A exclusão será impedida se houver questões associadas a este subtema.",
         responses = {
-            @ApiResponse(responseCode = "204", description = "Subtema excluído com sucesso"),
+            @ApiResponse(responseCode = "204", description = "Subtema excluída com sucesso"),
             @ApiResponse(responseCode = "404", description = "Subtema não encontrado",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Subtema com ID: '1'\",\"instance\":\"/api/subtemas/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "409", description = "Conflito - Existem questões vinculadas a este subtema",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Não é possível excluir o subtema pois existem questões associadas a ele.\",\"instance\":\"/api/subtemas/1\"}"
                     ))),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",

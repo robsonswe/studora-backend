@@ -197,7 +197,7 @@ public class DisciplinaController {
 
     @Operation(
         summary = "Excluir disciplina",
-        description = "Remove uma disciplina existente com base no ID fornecido",
+        description = "Remove uma disciplina existente com base no ID fornecido. A exclusão será impedida se houver temas associados a esta disciplina.",
         responses = {
             @ApiResponse(responseCode = "204", description = "Disciplina excluída com sucesso"),
             @ApiResponse(responseCode = "404", description = "Disciplina não encontrada",
@@ -205,6 +205,12 @@ public class DisciplinaController {
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Disciplina com ID: '1'\",\"instance\":\"/api/disciplinas/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "409", description = "Conflito - Existem temas vinculados a esta disciplina",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Não é possível excluir a disciplina pois existem temas associados a ela.\",\"instance\":\"/api/disciplinas/1\"}"
                     ))),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",

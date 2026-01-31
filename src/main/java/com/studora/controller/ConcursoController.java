@@ -31,14 +31,14 @@ public class ConcursoController {
     private ConcursoService concursoService;
 
     @Operation(
-        summary = "Obter todas as concursos",
-        description = "Retorna uma lista com todas as concursos cadastrados",
+        summary = "Obter todos os concursos",
+        description = "Retorna uma lista com todos os concursos cadastrados",
         responses = {
             @ApiResponse(responseCode = "200", description = "Lista de concursos retornada com sucesso",
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = ConcursoDto.class)),
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"instituicaoId\": 1, \"bancaId\": 1, \"ano\": 2023}]"
+                        value = "[{\"id\": 1, \"instituicaoId\": 1, \"bancaId\": 1, \"ano\": 2023, \"mes\": 6, \"edital\": \"Edital 01/2023\"}]"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -63,7 +63,7 @@ public class ConcursoController {
                 content = @Content(
                     schema = @Schema(implementation = ConcursoDto.class),
                     examples = @ExampleObject(
-                        value = "{\"id\": 1, \"instituicaoId\": 1, \"bancaId\": 1, \"ano\": 2023}"
+                        value = "{\"id\": 1, \"instituicaoId\": 1, \"bancaId\": 1, \"ano\": 2023, \"mes\": 6, \"edital\": \"Edital 01/2023\"}"
                     )
                 )),
             @ApiResponse(responseCode = "404", description = "Concurso não encontrado",
@@ -91,7 +91,7 @@ public class ConcursoController {
         summary = "Criar novo concurso",
         description = "Cria um novo concurso com base nos dados fornecidos",
         requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            description = "Dados do novo concurso a ser criada",
+            description = "Dados do novo concurso a ser criado",
             required = true,
             content = @Content(
                 mediaType = "application/json",
@@ -103,7 +103,7 @@ public class ConcursoController {
                 content = @Content(
                     schema = @Schema(implementation = ConcursoDto.class),
                     examples = @ExampleObject(
-                        value = "{\"id\": 2, \"instituicaoId\": 2, \"bancaId\": 2, \"ano\": 2024}"
+                        value = "{\"id\": 2, \"instituicaoId\": 2, \"bancaId\": 2, \"ano\": 2024, \"mes\": 1, \"edital\": \"Edital 01/2024\"}"
                     )
                 )),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
@@ -112,11 +112,11 @@ public class ConcursoController {
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/concursos\",\"errors\":{\"ano\":\"deve ser maior que 1900\"}}"
                     ))),
-            @ApiResponse(responseCode = "422", description = "Entidade não processável - Regras de negócio violadas",
+            @ApiResponse(responseCode = "409", description = "Conflito - Já existe um concurso com esta combinação de instituição, banca, ano e mês",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Entidade não processável\",\"status\":422,\"detail\":\"Ano do concurso deve ser um valor razoável\",\"instance\":\"/api/concursos\"}"
+                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Já existe um concurso cadastrado para esta instituição, banca, ano e mês.\",\"instance\":\"/api/concursos\"}"
                     ))),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",
@@ -157,7 +157,7 @@ public class ConcursoController {
                 content = @Content(
                     schema = @Schema(implementation = ConcursoDto.class),
                     examples = @ExampleObject(
-                        value = "{\"id\": 1, \"instituicaoId\": 1, \"bancaId\": 1, \"ano\": 2023}"
+                        value = "{\"id\": 1, \"instituicaoId\": 1, \"bancaId\": 1, \"ano\": 2023, \"mes\": 6, \"edital\": \"Edital 01/2023 - Atualizado\"}"
                     )
                 )),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
@@ -172,11 +172,11 @@ public class ConcursoController {
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Concurso com ID: '1'\",\"instance\":\"/api/concursos/1\"}"
                     ))),
-            @ApiResponse(responseCode = "422", description = "Entidade não processável - Regras de negócio violadas",
+            @ApiResponse(responseCode = "409", description = "Conflito - As alterações entram em conflito com outro concurso existente",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Entidade não processável\",\"status\":422,\"detail\":\"Ano do concurso deve ser um valor razoável\",\"instance\":\"/api/concursos/1\"}"
+                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"As alterações entram em conflito com outro concurso já cadastrado para esta mesma instituição, banca, ano e mês.\",\"instance\":\"/api/concursos/1\"}"
                     ))),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",
@@ -205,9 +205,9 @@ public class ConcursoController {
 
     @Operation(
         summary = "Excluir concurso",
-        description = "Remove um concurso existente com base no ID fornecido",
+        description = "Remove um concurso existente com base no ID fornecido. Esta operação removerá em cascata todas as questões associadas, associações de cargos, alternativas e respostas vinculadas.",
         responses = {
-            @ApiResponse(responseCode = "204", description = "Concurso excluída com sucesso"),
+            @ApiResponse(responseCode = "204", description = "Concurso excluído com sucesso"),
             @ApiResponse(responseCode = "404", description = "Concurso não encontrado",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
@@ -287,11 +287,17 @@ public class ConcursoController {
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/concursos/1/cargos\",\"errors\":{\"cargoId\":\"não deve ser nulo\"}}"
                     ))),
-            @ApiResponse(responseCode = "404", description = "Concurso não encontrado",
+            @ApiResponse(responseCode = "404", description = "Concurso ou Cargo não encontrado",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Concurso com ID: '1'\",\"instance\":\"/api/concursos/1/cargos\"}"
+                    ))),
+            @ApiResponse(responseCode = "422", description = "Entidade não processável - Cargo já associado ao concurso",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Entidade não processável\",\"status\":422,\"detail\":\"Cargo já associado ao concurso\",\"instance\":\"/api/concursos/1/cargos\"}"
                     ))),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",
@@ -316,14 +322,14 @@ public class ConcursoController {
 
     @Operation(
         summary = "Remover cargo do concurso",
-        description = "Desassocia um cargo de um concurso específico",
+        description = "Desassocia um cargo de um concurso específico. A remoção será impedida se este for o único cargo do concurso ou se houver questões que dependam exclusivamente desta associação.",
         responses = {
             @ApiResponse(responseCode = "204", description = "Cargo removido do concurso com sucesso"),
             @ApiResponse(responseCode = "404", description = "Recurso não encontrado",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar a associação para remover.\",\"instance\":\"/api/concursos/1/cargos/1\"}"
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Associação entre concurso e cargo não encontrada\",\"instance\":\"/api/concursos/1/cargos/1\"}"
                     ))),
             @ApiResponse(responseCode = "422", description = "Entidade não processável - Regras de negócio violadas",
                 content = @Content(mediaType = "application/problem+json",

@@ -36,7 +36,7 @@ public class CargoController {
     private QuestaoService questaoService;
 
     @Operation(
-        summary = "Obter todas as cargos",
+        summary = "Obter todos os cargos",
         description = "Retorna uma lista com todos os cargos cadastrados",
         responses = {
             @ApiResponse(responseCode = "200", description = "Lista de cargos retornada com sucesso",
@@ -87,7 +87,7 @@ public class CargoController {
     )
     @GetMapping("/{id}")
     public ResponseEntity<CargoDto> getCargoById(
-            @Parameter(description = "ID do cargo a ser buscada", required = true) @PathVariable Long id) {
+            @Parameter(description = "ID do cargo a ser buscado", required = true) @PathVariable Long id) {
         CargoDto cargo = cargoService.findById(id);
         return ResponseEntity.ok(cargo);
     }
@@ -191,7 +191,7 @@ public class CargoController {
     )
     @PutMapping("/{id}")
     public ResponseEntity<CargoDto> updateCargo(
-            @Parameter(description = "ID da cargo a ser atualizada", required = true) @PathVariable Long id,
+            @Parameter(description = "ID do cargo a ser atualizado", required = true) @PathVariable Long id,
             @Valid @RequestBody CargoUpdateRequest cargoUpdateRequest) {
         CargoDto existingCargo = cargoService.findById(id);
         existingCargo.setNome(cargoUpdateRequest.getNome());
@@ -203,7 +203,7 @@ public class CargoController {
 
     @Operation(
         summary = "Excluir cargo",
-        description = "Remove um cargo existente com base no ID fornecido",
+        description = "Remove um cargo existente com base no ID fornecido. A exclusão será impedida se houver concursos associados a este cargo.",
         responses = {
             @ApiResponse(responseCode = "204", description = "Cargo excluído com sucesso"),
             @ApiResponse(responseCode = "404", description = "Cargo não encontrado",
@@ -211,6 +211,12 @@ public class CargoController {
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Cargo com ID: '1'\",\"instance\":\"/api/cargos/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "409", description = "Conflito - Existem concursos vinculados a este cargo",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Não é possível excluir o cargo pois existem concursos associados a ele.\",\"instance\":\"/api/cargos/1\"}"
                     ))),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",

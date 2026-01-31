@@ -195,7 +195,7 @@ public class InstituicaoController {
 
     @Operation(
         summary = "Excluir instituição",
-        description = "Remove uma instituição existente com base no ID fornecido",
+        description = "Remove uma instituição existente com base no ID fornecido. A exclusão será impedida se houver concursos associados a esta instituição.",
         responses = {
             @ApiResponse(responseCode = "204", description = "Instituição excluída com sucesso"),
             @ApiResponse(responseCode = "404", description = "Instituição não encontrada",
@@ -203,6 +203,12 @@ public class InstituicaoController {
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Instituição com ID: '1'\",\"instance\":\"/api/instituicoes/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "409", description = "Conflito - Existem concursos vinculados a esta instituição",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Não é possível excluir a instituição pois existem concursos associados a ela.\",\"instance\":\"/api/instituicoes/1\"}"
                     ))),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",

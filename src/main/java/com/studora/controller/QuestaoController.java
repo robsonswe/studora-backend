@@ -43,7 +43,7 @@ public class QuestaoController {
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = QuestaoDto.class)),
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\"}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\"}]}]"
+                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\", \"correta\": true}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\", \"correta\": false}]}]"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -68,7 +68,7 @@ public class QuestaoController {
                 content = @Content(
                     schema = @Schema(implementation = QuestaoDto.class),
                     examples = @ExampleObject(
-                        value = "{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\"}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\"}]}"
+                        value = "{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\", \"correta\": true}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\", \"correta\": false}]}"
                     )
                 )),
             @ApiResponse(responseCode = "404", description = "Questão não encontrada",
@@ -93,14 +93,14 @@ public class QuestaoController {
     }
 
     @Operation(
-        summary = "Obter questões por ID do concurso",
+        summary = "Obter questões por concurso",
         description = "Retorna uma lista de questões associadas a um concurso específico",
         responses = {
             @ApiResponse(responseCode = "200", description = "Lista de questões retornada com sucesso",
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = QuestaoDto.class)),
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\"}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\"}]}]"
+                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\", \"correta\": true}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\", \"correta\": false}]}]"
                     )
                 )),
             @ApiResponse(responseCode = "404", description = "Concurso não encontrado",
@@ -125,14 +125,14 @@ public class QuestaoController {
     }
 
     @Operation(
-        summary = "Obter questões por ID do subtema",
+        summary = "Obter questões por subtema",
         description = "Retorna uma lista de questões associadas a um subtema específico",
         responses = {
             @ApiResponse(responseCode = "200", description = "Lista de questões retornada com sucesso",
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = QuestaoDto.class)),
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\"}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\"}]}]"
+                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\", \"correta\": true}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\", \"correta\": false}]}]"
                     )
                 )),
             @ApiResponse(responseCode = "404", description = "Subtema não encontrado",
@@ -158,13 +158,13 @@ public class QuestaoController {
 
     @Operation(
         summary = "Obter questões anuladas",
-        description = "Retorna uma lista de questões que foram anuladas",
+        description = "Retorna uma lista de todas as questões que foram anuladas",
         responses = {
             @ApiResponse(responseCode = "200", description = "Lista de questões anuladas retornada com sucesso",
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = QuestaoDto.class)),
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": true, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\"}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\"}]}]"
+                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": true, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\", \"correta\": false}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\", \"correta\": false}]}]"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -182,14 +182,14 @@ public class QuestaoController {
     }
 
     @Operation(
-        summary = "Obter questões por ID do tema",
+        summary = "Obter questões por tema",
         description = "Retorna uma lista de questões associadas a um tema específico",
         responses = {
             @ApiResponse(responseCode = "200", description = "Lista de questões retornada com sucesso",
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = QuestaoDto.class)),
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false}]"
+                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\", \"correta\": true}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\", \"correta\": false}]}]"
                     )
                 )),
             @ApiResponse(responseCode = "404", description = "Tema não encontrado",
@@ -214,14 +214,14 @@ public class QuestaoController {
     }
 
     @Operation(
-        summary = "Obter questões por ID da disciplina",
+        summary = "Obter questões por disciplina",
         description = "Retorna uma lista de questões associadas a uma disciplina específica",
         responses = {
             @ApiResponse(responseCode = "200", description = "Lista de questões retornada com sucesso",
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = QuestaoDto.class)),
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\"}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\"}]}]"
+                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\", \"correta\": true}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\", \"correta\": false}]}]"
                     )
                 )),
             @ApiResponse(responseCode = "404", description = "Disciplina não encontrada",
@@ -247,7 +247,7 @@ public class QuestaoController {
 
     @Operation(
         summary = "Criar nova questão",
-        description = "Cria uma nova questão com base nos dados fornecidos",
+        description = "Cria uma nova questão com base nos dados fornecidos. A questão deve estar associada a pelo menos um cargo, possuir no mínimo 2 alternativas e exatamente uma alternativa correta (se não for anulada).",
         requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
             description = "Dados da nova questão a ser criada",
             required = true,
@@ -261,7 +261,7 @@ public class QuestaoController {
                 content = @Content(
                     schema = @Schema(implementation = QuestaoDto.class),
                     examples = @ExampleObject(
-                        value = "{\"id\": 2, \"enunciado\": \"Sobre a organização administrativa do Estado, o que define a descentralização?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/nova-imagem.jpg\", \"subtemaIds\": [3], \"concursoCargoIds\": [1, 2], \"anulada\": false, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\"}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\"}]}"
+                        value = "{\"id\": 2, \"enunciado\": \"Sobre a organização administrativa do Estado, o que define a descentralização?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/nova-imagem.jpg\", \"subtemaIds\": [3], \"concursoCargoIds\": [1, 2], \"anulada\": false, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\", \"correta\": true}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\", \"correta\": false}]}"
                     )
                 )),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
@@ -274,7 +274,7 @@ public class QuestaoController {
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Entidade não processável\",\"status\":422,\"detail\":\"Uma questão deve estar associada a pelo menos um cargo\",\"instance\":\"/api/questoes\"}"
+                        value = "{\"type\":\"about:blank\",\"title\":\"Entidade não processável\",\"status\":422,\"detail\":\"Uma questão deve ter pelo menos 2 alternativas\",\"instance\":\"/api/questoes\"}"
                     ))),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",
@@ -303,7 +303,7 @@ public class QuestaoController {
 
     @Operation(
         summary = "Atualizar questão",
-        description = "Atualiza os dados de uma questão existente",
+        description = "Atualiza os dados de uma questão existente. As regras de negócio para alternativas e associação de cargos também se aplicam na atualização. Qualquer atualização removerá as respostas existentes para esta questão.",
         requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
             description = "Dados atualizados da questão",
             required = true,
@@ -317,7 +317,7 @@ public class QuestaoController {
                 content = @Content(
                     schema = @Schema(implementation = QuestaoDto.class),
                     examples = @ExampleObject(
-                        value = "{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta pela união indissolúvel de quais entes?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem-atualizada.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\"}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\"}]}"
+                        value = "{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta pela união indissolúvel de quais entes?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem-atualizada.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\", \"correta\": true}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\", \"correta\": false}]}"
                     )
                 )),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
@@ -336,7 +336,7 @@ public class QuestaoController {
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Entidade não processável\",\"status\":422,\"detail\":\"Uma questão deve estar associada a pelo menos um cargo\",\"instance\":\"/api/questoes/1\"}"
+                        value = "{\"type\":\"about:blank\",\"title\":\"Entidade não processável\",\"status\":422,\"detail\":\"Uma questão deve ter exatamente uma alternativa correta\",\"instance\":\"/api/questoes/1\"}"
                     ))),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",
@@ -366,7 +366,7 @@ public class QuestaoController {
 
     @Operation(
         summary = "Excluir questão",
-        description = "Remove uma questão existente com base no ID fornecido",
+        description = "Remove uma questão existente com base no ID fornecido. Esta operação também removerá todas as alternativas e respostas associadas, além das associações com cargos.",
         responses = {
             @ApiResponse(responseCode = "204", description = "Questão excluída com sucesso"),
             @ApiResponse(responseCode = "404", description = "Questão não encontrada",
@@ -393,7 +393,7 @@ public class QuestaoController {
     // Endpoints for managing cargo associations
     @Operation(
         summary = "Obter cargos por questão",
-        description = "Retorna uma lista de cargos associados a uma questão específica",
+        description = "Retorna uma lista de associações de cargos para uma questão específica",
         responses = {
             @ApiResponse(responseCode = "200", description = "Lista de cargos retornada com sucesso",
                 content = @Content(
@@ -425,7 +425,7 @@ public class QuestaoController {
 
     @Operation(
         summary = "Adicionar cargo à questão",
-        description = "Associa um cargo existente a uma questão específica",
+        description = "Associa um cargo existente a uma questão específica. O cargo deve pertencer ao mesmo concurso da questão.",
         requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
             description = "Dados do cargo a ser adicionado à questão",
             required = true,
@@ -448,7 +448,7 @@ public class QuestaoController {
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/questoes/1/cargos\",\"errors\":{\"concursoCargoId\":\"não deve ser nulo\"}}"
                     ))),
-            @ApiResponse(responseCode = "404", description = "Questão não encontrada",
+            @ApiResponse(responseCode = "404", description = "Questão ou Cargo não encontrado",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
@@ -483,14 +483,14 @@ public class QuestaoController {
 
     @Operation(
         summary = "Remover cargo da questão",
-        description = "Desassocia um cargo de uma questão específica",
+        description = "Desassocia um cargo de uma questão específica. A remoção será impedida se este for o único cargo associado à questão.",
         responses = {
             @ApiResponse(responseCode = "204", description = "Cargo removido da questão com sucesso"),
             @ApiResponse(responseCode = "404", description = "Recurso não encontrado",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar a associação para remover.\",\"instance\":\"/api/questoes/1/cargos/1\"}"
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Associação entre questão e cargo não encontrada\",\"instance\":\"/api/questoes/1/cargos/1\"}"
                     ))),
             @ApiResponse(responseCode = "422", description = "Entidade não processável - Regras de negócio violadas",
                 content = @Content(mediaType = "application/problem+json",

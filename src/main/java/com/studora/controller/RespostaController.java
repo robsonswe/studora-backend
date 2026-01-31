@@ -39,7 +39,7 @@ public class RespostaController {
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = RespostaDto.class)),
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": false, \"respondidaEm\": \"2023-06-15T10:30:00\"}]"
+                        value = "[{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"respondidaEm\": \"2023-06-15T10:30:00\"}]"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -64,7 +64,7 @@ public class RespostaController {
                 content = @Content(
                     schema = @Schema(implementation = RespostaDto.class),
                     examples = @ExampleObject(
-                        value = "{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": false, \"respondidaEm\": \"2023-06-15T10:30:00\"}"
+                        value = "{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"respondidaEm\": \"2023-06-15T10:30:00\"}"
                     )
                 )),
             @ApiResponse(responseCode = "404", description = "Resposta não encontrada",
@@ -89,14 +89,14 @@ public class RespostaController {
     }
 
     @Operation(
-        summary = "Obter resposta por ID da questão",
-        description = "Retorna a resposta associada a uma questão específica (apenas uma resposta por questão)",
+        summary = "Obter resposta por questão",
+        description = "Retorna a resposta associada a uma questão específica. Cada questão possui no máximo uma resposta.",
         responses = {
             @ApiResponse(responseCode = "200", description = "Resposta retornada com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = RespostaDto.class),
                     examples = @ExampleObject(
-                        value = "{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": false, \"respondidaEm\": \"2023-06-15T10:30:00\"}"
+                        value = "{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"respondidaEm\": \"2023-06-15T10:30:00\"}"
                     )
                 )),
             @ApiResponse(responseCode = "404", description = "Resposta não encontrada para a questão",
@@ -123,7 +123,7 @@ public class RespostaController {
 
     @Operation(
         summary = "Criar nova resposta",
-        description = "Cria uma nova resposta com base nos dados fornecidos",
+        description = "Registra uma nova resposta para uma questão. Não é possível responder a questões anuladas ou que já possuam resposta.",
         requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
             description = "Dados da nova resposta a ser criada",
             required = true,
@@ -137,7 +137,7 @@ public class RespostaController {
                 content = @Content(
                     schema = @Schema(implementation = RespostaComAlternativasDto.class),
                     examples = @ExampleObject(
-                        value = "{\"id\": 2, \"questaoId\": 1, \"alternativaId\": 2, \"correta\": false, \"respondidaEm\": \"2023-06-15T10:30:00\", \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Alternativa A\", \"justificativa\": \"Justificativa A\", \"correta\": false}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Alternativa B\", \"justificativa\": \"Justificativa B\", \"correta\": true}]}"
+                        value = "{\"id\": 2, \"questaoId\": 1, \"alternativaId\": 2, \"correta\": true, \"respondidaEm\": \"2023-06-15T10:30:00\", \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Alternativa A\", \"justificativa\": \"Justificativa A\", \"correta\": false}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Alternativa B\", \"justificativa\": \"Justificativa B\", \"correta\": true}]}"
                     )
                 )),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
@@ -169,7 +169,7 @@ public class RespostaController {
 
     @Operation(
         summary = "Atualizar resposta",
-        description = "Atualiza os dados de uma resposta existente",
+        description = "Atualiza a alternativa selecionada em uma resposta existente. O registro de data/hora será atualizado automaticamente.",
         requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
             description = "Dados atualizados da resposta (apenas alternativaId pode ser alterado)",
             required = true,
@@ -222,7 +222,7 @@ public class RespostaController {
 
     @Operation(
         summary = "Excluir resposta",
-        description = "Remove uma resposta existente com base no ID fornecido",
+        description = "Remove o registro de resposta de uma questão",
         responses = {
             @ApiResponse(responseCode = "204", description = "Resposta excluída com sucesso"),
             @ApiResponse(responseCode = "404", description = "Resposta não encontrada",

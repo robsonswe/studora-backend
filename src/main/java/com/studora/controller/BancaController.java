@@ -195,7 +195,7 @@ public class BancaController {
 
     @Operation(
         summary = "Excluir banca",
-        description = "Remove uma banca organizadora existente com base no ID fornecido",
+        description = "Remove uma banca organizadora existente com base no ID fornecido. A exclusão será impedida se houver concursos associados a esta banca.",
         responses = {
             @ApiResponse(responseCode = "204", description = "Banca excluída com sucesso"),
             @ApiResponse(responseCode = "404", description = "Banca não encontrada",
@@ -203,6 +203,12 @@ public class BancaController {
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Banca com ID: '1'\",\"instance\":\"/api/bancas/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "409", description = "Conflito - Existem concursos vinculados a esta banca",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Não é possível excluir a banca pois existem concursos associados a ela.\",\"instance\":\"/api/bancas/1\"}"
                     ))),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",

@@ -31,8 +31,8 @@ public class TemaController {
     private TemaService temaService;
 
     @Operation(
-        summary = "Obter todas as temas",
-        description = "Retorna uma lista com todas as temas cadastrados",
+        summary = "Obter todos os temas",
+        description = "Retorna uma lista com todos os temas cadastrados",
         responses = {
             @ApiResponse(responseCode = "200", description = "Lista de temas retornada com sucesso",
                 content = @Content(
@@ -82,13 +82,13 @@ public class TemaController {
     )
     @GetMapping("/{id}")
     public ResponseEntity<TemaDto> getTemaById(
-            @Parameter(description = "ID do tema a ser buscada", required = true) @PathVariable Long id) {
+            @Parameter(description = "ID do tema a ser buscado", required = true) @PathVariable Long id) {
         TemaDto tema = temaService.getTemaById(id);
         return ResponseEntity.ok(tema);
     }
 
     @Operation(
-        summary = "Obter temas por ID da disciplina",
+        summary = "Obter temas por disciplina",
         description = "Retorna uma lista de temas associados a uma disciplina específica",
         responses = {
             @ApiResponse(responseCode = "200", description = "Lista de temas retornada com sucesso",
@@ -172,7 +172,7 @@ public class TemaController {
 
     @Operation(
         summary = "Atualizar tema",
-        description = "Atualiza os dados de um tema existente",
+        description = "Atualiza os dados de um tema existente. As regras de validação de nome único dentro da disciplina também se aplicam na atualização.",
         requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
             description = "Dados atualizados do tema",
             required = true,
@@ -231,7 +231,7 @@ public class TemaController {
 
     @Operation(
         summary = "Excluir tema",
-        description = "Remove um tema existente com base no ID fornecido",
+        description = "Remove um tema existente com base no ID fornecido. A exclusão será impedida se houver subtemas associados a este tema.",
         responses = {
             @ApiResponse(responseCode = "204", description = "Tema excluído com sucesso"),
             @ApiResponse(responseCode = "404", description = "Tema não encontrado",
@@ -239,6 +239,12 @@ public class TemaController {
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Tema com ID: '1'\",\"instance\":\"/api/temas/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "409", description = "Conflito - Existem subtemas vinculados a este tema",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Não é possível excluir o tema pois existem subtemas associados a ele.\",\"instance\":\"/api/temas/1\"}"
                     ))),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",
