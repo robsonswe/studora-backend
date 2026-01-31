@@ -60,6 +60,7 @@ class ConcursoControllerTest {
     void testCreateConcurso() throws Exception {
         Instituicao instituicao = new Instituicao();
         instituicao.setNome("Instituição Create Test");
+        instituicao.setArea("Educação");
         instituicao = instituicaoRepository.save(instituicao);
 
         Banca banca = new Banca();
@@ -89,6 +90,7 @@ class ConcursoControllerTest {
     void testCreateConcurso_Duplicate_Conflict() throws Exception {
         Instituicao instituicao = new Instituicao();
         instituicao.setNome("Instituição Conflict Test");
+        instituicao.setArea("Educação");
         instituicao = instituicaoRepository.save(instituicao);
 
         Banca banca = new Banca();
@@ -121,6 +123,7 @@ class ConcursoControllerTest {
     void testGetConcursoById() throws Exception {
         Instituicao instituicao = new Instituicao();
         instituicao.setNome("Instituição Get Test");
+        instituicao.setArea("Educação");
         instituicao = instituicaoRepository.save(instituicao);
 
         Banca banca = new Banca();
@@ -150,6 +153,7 @@ class ConcursoControllerTest {
     void testGetAllConcursos() throws Exception {
         Instituicao instituicao1 = new Instituicao();
         instituicao1.setNome("Instituição All 1");
+        instituicao1.setArea("Educação");
         instituicao1 = instituicaoRepository.save(instituicao1);
 
         Banca banca1 = new Banca();
@@ -158,6 +162,7 @@ class ConcursoControllerTest {
 
         Instituicao instituicao2 = new Instituicao();
         instituicao2.setNome("Instituição All 2");
+        instituicao2.setArea("Educação");
         instituicao2 = instituicaoRepository.save(instituicao2);
 
         Banca banca2 = new Banca();
@@ -181,6 +186,7 @@ class ConcursoControllerTest {
     void testUpdateConcurso() throws Exception {
         Instituicao instituicao1 = new Instituicao();
         instituicao1.setNome("Instituição Upd 1");
+        instituicao1.setArea("Educação");
         instituicao1 = instituicaoRepository.save(instituicao1);
 
         Banca banca1 = new Banca();
@@ -189,6 +195,7 @@ class ConcursoControllerTest {
 
         Instituicao instituicao2 = new Instituicao();
         instituicao2.setNome("Instituição Upd 2");
+        instituicao2.setArea("Educação");
         instituicao2 = instituicaoRepository.save(instituicao2);
 
         Banca banca2 = new Banca();
@@ -221,6 +228,7 @@ class ConcursoControllerTest {
     void testDeleteConcurso() throws Exception {
         Instituicao instituicao = new Instituicao();
         instituicao.setNome("Instituição Del Test");
+        instituicao.setArea("Educação");
         instituicao = instituicaoRepository.save(instituicao);
 
         Banca banca = new Banca();
@@ -268,9 +276,9 @@ class ConcursoControllerTest {
 
     @Test
     void testAddCargoToConcurso_NonExistentCargo() throws Exception {
-        // Create concurso
         Instituicao instituicao = new Instituicao();
         instituicao.setNome("Instituição Test");
+        instituicao.setArea("Educação");
         instituicao = instituicaoRepository.save(instituicao);
 
         Banca banca = new Banca();
@@ -303,6 +311,7 @@ class ConcursoControllerTest {
         // Create instituicao and banca
         Instituicao instituicao = new Instituicao();
         instituicao.setNome("Instituição Test");
+        instituicao.setArea("Educação");
         instituicao = instituicaoRepository.save(instituicao);
 
         Banca banca = new Banca();

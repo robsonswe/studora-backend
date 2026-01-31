@@ -33,22 +33,26 @@ class InstituicaoServiceTest {
         Instituicao inst = new Instituicao();
         inst.setId(10L);
         inst.setNome("Test Inst");
+        inst.setArea("Test Area");
 
         when(instituicaoRepository.findById(10L)).thenReturn(Optional.of(inst));
 
         InstituicaoDto result = instituicaoService.findById(10L);
         assertNotNull(result);
         assertEquals("Test Inst", result.getNome());
+        assertEquals("Test Area", result.getArea());
     }
 
     @Test
     void testSave() {
         InstituicaoDto dto = new InstituicaoDto();
         dto.setNome("New Inst");
+        dto.setArea("New Area");
 
         Instituicao entity = new Instituicao();
         entity.setId(1L);
         entity.setNome("New Inst");
+        entity.setArea("New Area");
 
         when(instituicaoRepository.save(any(Instituicao.class))).thenReturn(
             entity
@@ -56,5 +60,23 @@ class InstituicaoServiceTest {
 
         InstituicaoDto result = instituicaoService.save(dto);
         assertEquals("New Inst", result.getNome());
+        assertEquals("New Area", result.getArea());
+    }
+
+    @Test
+    void testSave_Conflict_DuplicateName_CaseInsensitive() {
+        InstituicaoDto dto = new InstituicaoDto();
+        dto.setNome("banco central");
+        dto.setArea("Financeira");
+
+        Instituicao existing = new Instituicao();
+        existing.setId(1L);
+        existing.setNome("Banco Central");
+
+        when(instituicaoRepository.findByNomeIgnoreCase("banco central")).thenReturn(Optional.of(existing));
+
+        assertThrows(com.studora.exception.ConflictException.class, () -> {
+            instituicaoService.save(dto);
+        });
     }
 }

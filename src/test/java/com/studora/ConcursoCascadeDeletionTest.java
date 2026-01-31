@@ -65,6 +65,7 @@ class ConcursoCascadeDeletionTest {
         // 1. Setup metadata
         Instituicao inst = new Instituicao();
         inst.setNome("Inst Test");
+        inst.setArea("Educação");
         inst = instituicaoRepository.save(inst);
 
         Banca banca = new Banca();

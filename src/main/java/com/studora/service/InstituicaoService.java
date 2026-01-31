@@ -35,7 +35,7 @@ public class InstituicaoService {
 
     public InstituicaoDto save(InstituicaoDto instituicaoDto) {
         // Check for duplicate instituicao name (excluding current instituicao if updating)
-        Optional<Instituicao> existingInstituicao = instituicaoRepository.findByNome(instituicaoDto.getNome());
+        Optional<Instituicao> existingInstituicao = instituicaoRepository.findByNomeIgnoreCase(instituicaoDto.getNome());
         if (existingInstituicao.isPresent() && !existingInstituicao.get().getId().equals(instituicaoDto.getId())) {
             throw new ConflictException("Já existe uma instituição com o nome '" + instituicaoDto.getNome() + "'");
         }
@@ -45,6 +45,7 @@ public class InstituicaoService {
             instituicao = instituicaoRepository.findById(instituicaoDto.getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Instituição", "ID", instituicaoDto.getId()));
             instituicao.setNome(instituicaoDto.getNome());
+            instituicao.setArea(instituicaoDto.getArea());
         } else {
             instituicao = convertToEntity(instituicaoDto);
         }
@@ -65,6 +66,7 @@ public class InstituicaoService {
         InstituicaoDto instituicaoDto = new InstituicaoDto();
         instituicaoDto.setId(instituicao.getId());
         instituicaoDto.setNome(instituicao.getNome());
+        instituicaoDto.setArea(instituicao.getArea());
         return instituicaoDto;
     }
 
@@ -72,6 +74,7 @@ public class InstituicaoService {
         Instituicao instituicao = new Instituicao();
         instituicao.setId(instituicaoDto.getId());
         instituicao.setNome(instituicaoDto.getNome());
+        instituicao.setArea(instituicaoDto.getArea());
         return instituicao;
     }
 }

@@ -14,10 +14,15 @@ public class InstituicaoUpdateRequest {
     @Schema(description = "Nome da instituição", example = "Universidade Federal do Rio de Janeiro", required = true)
     private String nome;
 
+    @NotBlank(message = "Área da instituição é obrigatória")
+    @Schema(description = "Área da instituição", example = "Educação", required = true)
+    private String area;
+
     // Constructors
     public InstituicaoUpdateRequest() {}
 
-    public InstituicaoUpdateRequest(String nome) {
+    public InstituicaoUpdateRequest(String nome, String area) {
         this.nome = nome;
+        this.area = area;
     }
 }

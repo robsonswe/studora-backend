@@ -73,6 +73,7 @@ class QuestaoControllerTest {
     void setUp() {
         Instituicao instituicao = new Instituicao();
         instituicao.setNome("Instituição Questão Test");
+        instituicao.setArea("Educação");
         instituicao = instituicaoRepository.save(instituicao);
 
         Banca banca = new Banca();

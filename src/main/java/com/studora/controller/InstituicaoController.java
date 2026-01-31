@@ -130,6 +130,7 @@ public class InstituicaoController {
         // Convert the request DTO to the regular DTO for processing
         InstituicaoDto instituicaoDto = new InstituicaoDto();
         instituicaoDto.setNome(instituicaoCreateRequest.getNome());
+        instituicaoDto.setArea(instituicaoCreateRequest.getArea());
 
         InstituicaoDto createdInstituicao = instituicaoService.save(instituicaoDto);
         return new ResponseEntity<>(createdInstituicao, HttpStatus.CREATED);
@@ -184,9 +185,10 @@ public class InstituicaoController {
     public ResponseEntity<InstituicaoDto> updateInstituicao(
             @Parameter(description = "ID da instituição a ser atualizada", required = true) @PathVariable Long id,
             @RequestBody InstituicaoUpdateRequest instituicaoUpdateRequest) {
-        // Get the existing institution and update only the name from the request
+        // Get the existing institution and update name and area from the request
         InstituicaoDto existingInstituicao = instituicaoService.findById(id);
         existingInstituicao.setNome(instituicaoUpdateRequest.getNome());
+        existingInstituicao.setArea(instituicaoUpdateRequest.getArea());
         InstituicaoDto updatedInstituicao = instituicaoService.save(existingInstituicao);
         return ResponseEntity.ok(updatedInstituicao);
     }

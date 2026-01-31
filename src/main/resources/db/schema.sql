@@ -3,7 +3,8 @@
 -- =========================
 CREATE TABLE instituicao (
     id      INTEGER PRIMARY KEY,
-    nome    TEXT COLLATE NOCASE NOT NULL UNIQUE
+    nome    TEXT COLLATE NOCASE NOT NULL UNIQUE,
+    area    TEXT NOT NULL
 );
 
 -- =========================

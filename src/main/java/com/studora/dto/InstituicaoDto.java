@@ -11,4 +11,7 @@ public class InstituicaoDto {
 
     @Schema(description = "Nome da instituição", example = "Universidade Federal do Rio de Janeiro")
     private String nome;
+
+    @Schema(description = "Área da instituição", example = "Educação")
+    private String area;
 }

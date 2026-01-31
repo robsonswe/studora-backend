@@ -17,4 +17,8 @@ public class Instituicao {
     @Column(nullable = false, unique = true)
     @Schema(description = "Nome da instituição", example = "Universidade Federal do Rio de Janeiro")
     private String nome;
+
+    @Column(nullable = false)
+    @Schema(description = "Área da instituição", example = "Educação")
+    private String area;
 }

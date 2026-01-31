@@ -34,6 +34,7 @@ class InstituicaoControllerTest {
     void testCreateInstituicao() throws Exception {
         InstituicaoCreateRequest request = new InstituicaoCreateRequest();
         request.setNome("USP");
+        request.setArea("Estadual");
 
         mockMvc
             .perform(
@@ -42,25 +43,29 @@ class InstituicaoControllerTest {
                     .content(TestUtil.asJsonString(request))
             )
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.nome").value("USP"));
+            .andExpect(jsonPath("$.nome").value("USP"))
+            .andExpect(jsonPath("$.area").value("Estadual"));
     }
 
     @Test
     void testGetInstituicao() throws Exception {
         Instituicao inst = new Instituicao();
         inst.setNome("UNICAMP");
+        inst.setArea("Estadual");
         inst = instituicaoRepository.save(inst);
 
         mockMvc
             .perform(get("/api/instituicoes/{id}", inst.getId()))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.nome").value("UNICAMP"));
+            .andExpect(jsonPath("$.nome").value("UNICAMP"))
+            .andExpect(jsonPath("$.area").value("Estadual"));
     }
 
     @Test
     void testGetAll() throws Exception {
         Instituicao inst = new Instituicao();
         inst.setNome("UFRJ");
+        inst.setArea("Educação");
         instituicaoRepository.save(inst);
 
         mockMvc
@@ -78,11 +83,13 @@ class InstituicaoControllerTest {
         // First create an institution
         Instituicao inst = new Instituicao();
         inst.setNome("Instituição Original");
+        inst.setArea("Educação");
         inst = instituicaoRepository.save(inst);
 
         // Create update request
         InstituicaoUpdateRequest request = new InstituicaoUpdateRequest();
         request.setNome("Instituição Atualizada");
+        request.setArea("Educação Superior");
 
         mockMvc
             .perform(
@@ -91,7 +98,8 @@ class InstituicaoControllerTest {
                     .content(TestUtil.asJsonString(request))
             )
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.nome").value("Instituição Atualizada"));
+            .andExpect(jsonPath("$.nome").value("Instituição Atualizada"))
+            .andExpect(jsonPath("$.area").value("Educação Superior"));
     }
 
     @Test
@@ -99,11 +107,13 @@ class InstituicaoControllerTest {
         // Create first instituicao
         Instituicao inst1 = new Instituicao();
         inst1.setNome("Universidade Federal do Rio de Janeiro");
+        inst1.setArea("Educação");
         instituicaoRepository.save(inst1);
 
         // Try to create another instituicao with the same name
         InstituicaoCreateRequest request = new InstituicaoCreateRequest();
         request.setNome("Universidade Federal do Rio de Janeiro");
+        request.setArea("Educação");
 
         mockMvc
             .perform(
@@ -116,5 +126,28 @@ class InstituicaoControllerTest {
             .andExpect(jsonPath("$.title").value("Conflito"))
             .andExpect(jsonPath("$.status").value(409))
             .andExpect(jsonPath("$.detail").value("Já existe uma instituição com o nome 'Universidade Federal do Rio de Janeiro'"));
+    }
+
+    @Test
+    void testCreateInstituicao_Conflict_DuplicateName_CaseInsensitive() throws Exception {
+        // Create first instituicao
+        Instituicao inst1 = new Instituicao();
+        inst1.setNome("Banco Central");
+        inst1.setArea("Financeira");
+        instituicaoRepository.save(inst1);
+
+        // Try to create another instituicao with the same name but different case
+        InstituicaoCreateRequest request = new InstituicaoCreateRequest();
+        request.setNome("banco central");
+        request.setArea("Financeira");
+
+        mockMvc
+            .perform(
+                post("/api/instituicoes")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(request))
+            )
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.detail").value("Já existe uma instituição com o nome 'banco central'"));
     }
 }

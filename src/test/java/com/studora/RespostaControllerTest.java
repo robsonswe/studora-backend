@@ -53,6 +53,7 @@ class RespostaControllerTest {
         // Create and save Instituicao and Banca first
         Instituicao instituicao = new Instituicao();
         instituicao.setNome("Instituição Resposta Test");
+        instituicao.setArea("Educação");
         instituicao = instituicaoRepository.save(instituicao);
 
         Banca banca = new Banca();
