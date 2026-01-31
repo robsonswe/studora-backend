@@ -26,6 +26,9 @@ class TemaServiceTest {
     @Mock
     private DisciplinaRepository disciplinaRepository;
 
+    @Mock
+    private com.studora.repository.SubtemaRepository subtemaRepository;
+
     @InjectMocks
     private TemaService temaService;
 
@@ -117,5 +120,29 @@ class TemaServiceTest {
 
         verify(disciplinaRepository, times(1)).findById(1L);
         verify(temaRepository, never()).save(any(Tema.class));
+    }
+
+    @Test
+    void testDeleteTema_Success() {
+        Long id = 1L;
+        when(temaRepository.existsById(id)).thenReturn(true);
+        when(subtemaRepository.existsByTemaId(id)).thenReturn(false);
+
+        temaService.deleteTema(id);
+
+        verify(temaRepository, times(1)).deleteById(id);
+    }
+
+    @Test
+    void testDeleteTema_Conflict() {
+        Long id = 1L;
+        when(temaRepository.existsById(id)).thenReturn(true);
+        when(subtemaRepository.existsByTemaId(id)).thenReturn(true);
+
+        assertThrows(com.studora.exception.ConflictException.class, () -> {
+            temaService.deleteTema(id);
+        });
+
+        verify(temaRepository, never()).deleteById(anyLong());
     }
 }

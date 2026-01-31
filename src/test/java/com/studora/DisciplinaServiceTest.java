@@ -21,6 +21,9 @@ class DisciplinaServiceTest {
     @Mock
     private DisciplinaRepository disciplinaRepository;
 
+    @Mock
+    private com.studora.repository.TemaRepository temaRepository;
+
     @InjectMocks
     private DisciplinaService disciplinaService;
 
@@ -81,5 +84,29 @@ class DisciplinaServiceTest {
         assertNotNull(result);
         assertEquals(savedDisciplina.getNome(), result.getNome());
         verify(disciplinaRepository, times(1)).save(any(Disciplina.class));
+    }
+
+    @Test
+    void testDeleteDisciplina_Success() {
+        Long id = 1L;
+        when(disciplinaRepository.existsById(id)).thenReturn(true);
+        when(temaRepository.existsByDisciplinaId(id)).thenReturn(false);
+
+        disciplinaService.deleteDisciplina(id);
+
+        verify(disciplinaRepository, times(1)).deleteById(id);
+    }
+
+    @Test
+    void testDeleteDisciplina_Conflict() {
+        Long id = 1L;
+        when(disciplinaRepository.existsById(id)).thenReturn(true);
+        when(temaRepository.existsByDisciplinaId(id)).thenReturn(true);
+
+        assertThrows(com.studora.exception.ConflictException.class, () -> {
+            disciplinaService.deleteDisciplina(id);
+        });
+
+        verify(disciplinaRepository, never()).deleteById(anyLong());
     }
 }

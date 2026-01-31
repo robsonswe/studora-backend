@@ -15,6 +15,8 @@ public interface SubtemaRepository extends JpaRepository<Subtema, Long> {
 
     Optional<Subtema> findByTemaIdAndNome(Long temaId, String nome);
 
+    boolean existsByTemaId(Long temaId);
+
     @Query("SELECT s FROM Subtema s WHERE s.tema.id = :temaId AND s.nome = :nome AND s.id != :id")
     Optional<Subtema> findByTemaIdAndNomeAndIdNot(@Param("temaId") Long temaId, @Param("nome") String nome, @Param("id") Long id);
 }

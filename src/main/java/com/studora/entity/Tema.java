@@ -31,7 +31,7 @@ public class Tema {
     @Schema(description = "Nome do tema", example = "Álgebra")
     private String nome;
 
-    @OneToMany(mappedBy = "tema", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "tema", fetch = FetchType.LAZY)
     @Schema(description = "Subtemas associados ao tema")
     private List<Subtema> subtemas;
 

@@ -17,6 +17,9 @@ public class DisciplinaService {
     
     @Autowired
     private DisciplinaRepository disciplinaRepository;
+
+    @Autowired
+    private com.studora.repository.TemaRepository temaRepository;
     
     public List<DisciplinaDto> getAllDisciplinas() {
         return disciplinaRepository.findAll().stream()
@@ -62,6 +65,9 @@ public class DisciplinaService {
     public void deleteDisciplina(Long id) {
         if (!disciplinaRepository.existsById(id)) {
             throw new ResourceNotFoundException("Disciplina", "ID", id);
+        }
+        if (temaRepository.existsByDisciplinaId(id)) {
+            throw new ConflictException("Não é possível excluir a disciplina pois existem temas associados a ela.");
         }
         disciplinaRepository.deleteById(id);
     }

@@ -92,10 +92,6 @@ public class ConcursoService {
             throw new ResourceNotFoundException("Concurso", "ID", id);
         }
 
-        // First, remove all cargo associations for this concurso
-        List<ConcursoCargo> concursoCargos = concursoCargoRepository.findByConcursoId(id);
-        concursoCargoRepository.deleteAll(concursoCargos);
-
         concursoRepository.deleteById(id);
     }
 

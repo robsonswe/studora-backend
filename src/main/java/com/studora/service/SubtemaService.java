@@ -23,6 +23,9 @@ public class SubtemaService {
     @Autowired
     private TemaRepository temaRepository;
 
+    @Autowired
+    private com.studora.repository.QuestaoRepository questaoRepository;
+
     public List<SubtemaDto> getAllSubtemas() {
         return subtemaRepository.findAll().stream()
                 .map(this::convertToDto)
@@ -82,6 +85,9 @@ public class SubtemaService {
     public void deleteSubtema(Long id) {
         if (!subtemaRepository.existsById(id)) {
             throw new ResourceNotFoundException("Subtema", "ID", id);
+        }
+        if (questaoRepository.existsBySubtemasId(id)) {
+            throw new ConflictException("Não é possível excluir o subtema pois existem questões associadas a ele.");
         }
         subtemaRepository.deleteById(id);
     }

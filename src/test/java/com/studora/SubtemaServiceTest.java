@@ -26,6 +26,9 @@ class SubtemaServiceTest {
     @Mock
     private TemaRepository temaRepository;
 
+    @Mock
+    private com.studora.repository.QuestaoRepository questaoRepository;
+
     @InjectMocks
     private SubtemaService subtemaService;
 
@@ -117,5 +120,29 @@ class SubtemaServiceTest {
 
         verify(temaRepository, times(1)).findById(1L);
         verify(subtemaRepository, never()).save(any(Subtema.class));
+    }
+
+    @Test
+    void testDeleteSubtema_Success() {
+        Long id = 1L;
+        when(subtemaRepository.existsById(id)).thenReturn(true);
+        when(questaoRepository.existsBySubtemasId(id)).thenReturn(false);
+
+        subtemaService.deleteSubtema(id);
+
+        verify(subtemaRepository, times(1)).deleteById(id);
+    }
+
+    @Test
+    void testDeleteSubtema_Conflict() {
+        Long id = 1L;
+        when(subtemaRepository.existsById(id)).thenReturn(true);
+        when(questaoRepository.existsBySubtemasId(id)).thenReturn(true);
+
+        assertThrows(com.studora.exception.ConflictException.class, () -> {
+            subtemaService.deleteSubtema(id);
+        });
+
+        verify(subtemaRepository, never()).deleteById(anyLong());
     }
 }
