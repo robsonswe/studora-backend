@@ -43,9 +43,9 @@ CREATE INDEX idx_concurso_ano
 -- =========================
 CREATE TABLE cargo (
     id      INTEGER PRIMARY KEY,
-    nome    TEXT NOT NULL,
-    nivel   TEXT NOT NULL,
-    area    TEXT NOT NULL,
+    nome    TEXT COLLATE NOCASE NOT NULL,
+    nivel   TEXT NOT NULL CHECK (nivel IN ('FUNDAMENTAL', 'MEDIO', 'SUPERIOR')),
+    area    TEXT COLLATE NOCASE NOT NULL,
 
     UNIQUE (nome, nivel, area)
 );

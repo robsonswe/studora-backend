@@ -1,5 +1,6 @@
 package com.studora.dto;
 
+import com.studora.entity.NivelCargo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -12,8 +13,8 @@ public class CargoDto {
     @Schema(description = "Nome do cargo", example = "Analista de Sistemas")
     private String nome;
 
-    @Schema(description = "Nível do cargo", example = "Superior")
-    private String nivel;
+    @Schema(description = "Nível do cargo", example = "SUPERIOR")
+    private NivelCargo nivel;
 
     @Schema(description = "Área do cargo", example = "Tecnologia da Informação")
     private String area;

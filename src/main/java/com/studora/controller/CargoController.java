@@ -22,6 +22,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/cargos")
 @Tag(name = "Cargos", description = "Endpoints para gerenciamento de cargos")
@@ -131,7 +133,7 @@ public class CargoController {
     )
     @PostMapping
     public ResponseEntity<CargoDto> createCargo(
-            @RequestBody CargoCreateRequest cargoCreateRequest) {
+            @Valid @RequestBody CargoCreateRequest cargoCreateRequest) {
         // Convert the request DTO to the regular DTO for processing
         CargoDto cargoDto = new CargoDto();
         cargoDto.setNome(cargoCreateRequest.getNome());
@@ -190,7 +192,7 @@ public class CargoController {
     @PutMapping("/{id}")
     public ResponseEntity<CargoDto> updateCargo(
             @Parameter(description = "ID da cargo a ser atualizada", required = true) @PathVariable Long id,
-            @RequestBody CargoUpdateRequest cargoUpdateRequest) {
+            @Valid @RequestBody CargoUpdateRequest cargoUpdateRequest) {
         CargoDto existingCargo = cargoService.findById(id);
         existingCargo.setNome(cargoUpdateRequest.getNome());
         existingCargo.setNivel(cargoUpdateRequest.getNivel());

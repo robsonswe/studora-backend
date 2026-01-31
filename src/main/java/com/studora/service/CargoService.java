@@ -2,6 +2,7 @@ package com.studora.service;
 
 import com.studora.dto.CargoDto;
 import com.studora.entity.Cargo;
+import com.studora.entity.NivelCargo;
 import com.studora.exception.ConflictException;
 import com.studora.exception.ResourceNotFoundException;
 import com.studora.repository.CargoRepository;
@@ -31,7 +32,7 @@ public class CargoService {
     }
 
     public CargoDto save(CargoDto cargoDto) {
-        // Check for duplicate cargo (same name, nivel, and area)
+        // Check for duplicate cargo (same name, nivel, and area) with case-insensitive comparison
         Optional<Cargo> existingCargo = cargoRepository.findByNomeAndNivelAndArea(cargoDto.getNome(), cargoDto.getNivel(), cargoDto.getArea());
         if (existingCargo.isPresent() && !existingCargo.get().getId().equals(cargoDto.getId())) {
             throw new ConflictException("Já existe um cargo com o nome '" + cargoDto.getNome() + "', nível '" + cargoDto.getNivel() + "' e área '" + cargoDto.getArea() + "'");
