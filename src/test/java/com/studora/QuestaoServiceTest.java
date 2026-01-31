@@ -148,6 +148,7 @@ class QuestaoServiceTest {
 
         ConcursoCargo concursoCargo = new ConcursoCargo();
         concursoCargo.setId(1L);
+        concursoCargo.setConcurso(concurso);
 
         Questao savedQuestao = new Questao();
         savedQuestao.setId(1L);
@@ -213,11 +214,16 @@ class QuestaoServiceTest {
         questaoCargoDto.setQuestaoId(1L);
         questaoCargoDto.setConcursoCargoId(2L);
 
+        Concurso concurso = new Concurso();
+        concurso.setId(1L);
+
         Questao questao = new Questao();
         questao.setId(1L);
+        questao.setConcurso(concurso);
 
         ConcursoCargo concursoCargo = new ConcursoCargo();
         concursoCargo.setId(2L);
+        concursoCargo.setConcurso(concurso);
 
         QuestaoCargo questaoCargo = new QuestaoCargo();
         questaoCargo.setId(5L);
@@ -270,6 +276,42 @@ class QuestaoServiceTest {
 
         verify(questaoCargoRepository, times(1)).findByQuestaoIdAndConcursoCargoId(1L, 2L);
         verify(questaoCargoRepository, never()).save(any(QuestaoCargo.class)); // Should not save if already exists
+    }
+
+    @Test
+    void testAddCargoToQuestao_ConcursoMismatch() {
+        // Arrange: questao and concursoCargo have different concursos
+        QuestaoCargoDto questaoCargoDto = new QuestaoCargoDto();
+        questaoCargoDto.setQuestaoId(1L);
+        questaoCargoDto.setConcursoCargoId(2L);
+
+        Concurso concurso1 = new Concurso();
+        concurso1.setId(1L);
+
+        Concurso concurso2 = new Concurso();
+        concurso2.setId(2L);
+
+        Questao questao = new Questao();
+        questao.setId(1L);
+        questao.setConcurso(concurso1);
+
+        ConcursoCargo concursoCargo = new ConcursoCargo();
+        concursoCargo.setId(2L);
+        concursoCargo.setConcurso(concurso2);  // Different concurso
+
+        when(questaoRepository.findById(1L)).thenReturn(Optional.of(questao));
+        when(concursoCargoRepository.findById(2L)).thenReturn(Optional.of(concursoCargo));
+
+        // Act & Assert
+        com.studora.exception.ValidationException exception = assertThrows(com.studora.exception.ValidationException.class, () -> {
+            questaoService.addCargoToQuestao(questaoCargoDto);
+        });
+
+        assertEquals("O concurso do cargo não corresponde ao concurso da questão", exception.getMessage());
+
+        verify(questaoRepository, times(1)).findById(1L);
+        verify(concursoCargoRepository, times(1)).findById(2L);
+        verify(questaoCargoRepository, never()).save(any(QuestaoCargo.class)); // Should not save due to validation error
     }
 
     @Test

@@ -151,13 +151,15 @@ public class QuestaoService {
             throw new ValidationException("Uma questão deve ter pelo menos 2 alternativas");
         }
 
-        // Validate that exactly one alternative is correct
-        long correctCount = questaoDto.getAlternativas().stream()
-            .map(com.studora.dto.AlternativaDto::getCorreta)
-            .filter(Boolean.TRUE::equals)
-            .count();
-        if (correctCount != 1) {
-            throw new ValidationException("Uma questão deve ter exatamente uma alternativa correta");
+        // Validate that exactly one alternative is correct, unless the question is annulled
+        if (!Boolean.TRUE.equals(questaoDto.getAnulada())) {
+            long correctCount = questaoDto.getAlternativas().stream()
+                .map(com.studora.dto.AlternativaDto::getCorreta)
+                .filter(Boolean.TRUE::equals)
+                .count();
+            if (correctCount != 1) {
+                throw new ValidationException("Uma questão deve ter exatamente uma alternativa correta");
+            }
         }
 
         Questao questao = convertToEntity(questaoDto);
@@ -193,6 +195,12 @@ public class QuestaoService {
                 .orElseThrow(() ->
                     new ResourceNotFoundException("ConcursoCargo", "ID", ccId)
                 );
+
+            // Validate that the concurso in the concursoCargo matches the concurso in the questao
+            if (!cc.getConcurso().getId().equals(questao.getConcurso().getId())) {
+                throw new ValidationException("O concurso do cargo não corresponde ao concurso da questão");
+            }
+
             QuestaoCargo qc = new QuestaoCargo();
             qc.setQuestao(savedQuestao);
             qc.setConcursoCargo(cc);
@@ -214,13 +222,15 @@ public class QuestaoService {
                 throw new ValidationException("Uma questão deve ter pelo menos 2 alternativas");
             }
 
-            // Validate that exactly one alternative is correct
-            long correctCount = questaoDto.getAlternativas().stream()
-                .map(com.studora.dto.AlternativaDto::getCorreta)
-                .filter(Boolean.TRUE::equals)
-                .count();
-            if (correctCount != 1) {
-                throw new ValidationException("Uma questão deve ter exatamente uma alternativa correta");
+            // Validate that exactly one alternative is correct, unless the question is annulled
+            if (!Boolean.TRUE.equals(questaoDto.getAnulada())) {
+                long correctCount = questaoDto.getAlternativas().stream()
+                    .map(com.studora.dto.AlternativaDto::getCorreta)
+                    .filter(Boolean.TRUE::equals)
+                    .count();
+                if (correctCount != 1) {
+                    throw new ValidationException("Uma questão deve ter exatamente uma alternativa correta");
+                }
             }
         }
 
@@ -388,6 +398,11 @@ public class QuestaoService {
 
         ConcursoCargo concursoCargo = concursoCargoRepository.findById(questaoCargoDto.getConcursoCargoId())
                 .orElseThrow(() -> new ResourceNotFoundException("ConcursoCargo", "ID", questaoCargoDto.getConcursoCargoId()));
+
+        // Validate that the concurso in the concursoCargo matches the concurso in the questao
+        if (!concursoCargo.getConcurso().getId().equals(questao.getConcurso().getId())) {
+            throw new ValidationException("O concurso do cargo não corresponde ao concurso da questão");
+        }
 
         QuestaoCargo questaoCargo = new QuestaoCargo();
         questaoCargo.setQuestao(questao);
