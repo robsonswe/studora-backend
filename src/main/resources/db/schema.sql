@@ -80,7 +80,7 @@ CREATE INDEX idx_concurso_cargo_cargo
 -- =========================
 CREATE TABLE disciplina (
     id      INTEGER PRIMARY KEY,
-    nome    TEXT NOT NULL UNIQUE
+    nome    TEXT COLLATE NOCASE NOT NULL UNIQUE
 );
 
 -- =========================

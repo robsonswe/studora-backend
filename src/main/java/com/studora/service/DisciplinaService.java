@@ -35,7 +35,7 @@ public class DisciplinaService {
     
     public DisciplinaDto createDisciplina(DisciplinaDto disciplinaDto) {
         // Check for duplicate disciplina name
-        Optional<Disciplina> existingDisciplina = disciplinaRepository.findByNome(disciplinaDto.getNome());
+        Optional<Disciplina> existingDisciplina = disciplinaRepository.findByNomeIgnoreCase(disciplinaDto.getNome());
         if (existingDisciplina.isPresent()) {
             throw new ConflictException("Já existe uma disciplina com o nome '" + disciplinaDto.getNome() + "'");
         }
@@ -50,7 +50,7 @@ public class DisciplinaService {
                 .orElseThrow(() -> new ResourceNotFoundException("Disciplina", "ID", id));
 
         // Check for duplicate disciplina name (excluding current disciplina)
-        Optional<Disciplina> duplicateDisciplina = disciplinaRepository.findByNome(disciplinaDto.getNome());
+        Optional<Disciplina> duplicateDisciplina = disciplinaRepository.findByNomeIgnoreCase(disciplinaDto.getNome());
         if (duplicateDisciplina.isPresent() && !duplicateDisciplina.get().getId().equals(id)) {
             throw new ConflictException("Já existe uma disciplina com o nome '" + disciplinaDto.getNome() + "'");
         }

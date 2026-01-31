@@ -87,6 +87,26 @@ class DisciplinaServiceTest {
     }
 
     @Test
+    void testCreateDisciplina_DuplicateCaseInsensitive() {
+        // Arrange
+        DisciplinaDto dto = new DisciplinaDto();
+        dto.setNome("direto"); // lowercase
+
+        Disciplina existing = new Disciplina();
+        existing.setId(2L);
+        existing.setNome("DIREITO"); // uppercase
+
+        when(disciplinaRepository.findByNomeIgnoreCase("direto")).thenReturn(Optional.of(existing));
+
+        // Act & Assert
+        assertThrows(com.studora.exception.ConflictException.class, () -> {
+            disciplinaService.createDisciplina(dto);
+        });
+
+        verify(disciplinaRepository, never()).save(any(Disciplina.class));
+    }
+
+    @Test
     void testDeleteDisciplina_Success() {
         Long id = 1L;
         when(disciplinaRepository.existsById(id)).thenReturn(true);
