@@ -243,26 +243,53 @@ public class QuestaoService {
             );
         }
 
+        // Clear responses on ANY update, as per the philosophy that any change makes responses outdated
+        if (existingQuestao.getRespostas() != null) {
+            existingQuestao.getRespostas().clear();
+        }
+
         Questao updatedQuestao = questaoRepository.save(existingQuestao);
 
-        // Handle Alternativas - delete existing and create new ones
+        // Handle Alternativas - managed update strategy
         if (questaoDto.getAlternativas() != null) {
-            // Delete existing alternatives (this will cascade delete related respostas)
-            List<com.studora.entity.Alternativa> existingAlternativas = existingQuestao.getAlternativas();
-            if (existingAlternativas != null) {
-                alternativaRepository.deleteAll(existingAlternativas);
-            }
+            // Fetch current alternatives from DB to be absolutely sure we have the latest state
+            List<com.studora.entity.Alternativa> currentAlts = alternativaRepository.findByQuestaoIdOrderByOrdemAsc(id);
+            java.util.Map<Integer, com.studora.entity.Alternativa> existingMap = currentAlts.stream()
+                .collect(java.util.stream.Collectors.toMap(com.studora.entity.Alternativa::getOrdem, a -> a));
 
-            // Create new alternatives
-            for (com.studora.dto.AlternativaDto altDto : questaoDto.getAlternativas()) {
-                com.studora.entity.Alternativa alternativa = new com.studora.entity.Alternativa();
-                alternativa.setQuestao(updatedQuestao);
-                alternativa.setOrdem(altDto.getOrdem());
-                alternativa.setTexto(altDto.getTexto());
-                alternativa.setCorreta(altDto.getCorreta());
-                alternativa.setJustificativa(altDto.getJustificativa());
-                alternativaRepository.save(alternativa);
+            java.util.Set<Integer> newOrders = questaoDto.getAlternativas().stream()
+                .map(com.studora.dto.AlternativaDto::getOrdem)
+                .collect(java.util.stream.Collectors.toSet());
+
+            // 1. Remove alternatives that are not in the new list
+            for (com.studora.entity.Alternativa alt : currentAlts) {
+                if (!newOrders.contains(alt.getOrdem())) {
+                    alternativaRepository.delete(alt);
+                }
             }
+            alternativaRepository.flush();
+
+            // 2. Update existing or add new ones
+            for (com.studora.dto.AlternativaDto altDto : questaoDto.getAlternativas()) {
+                com.studora.entity.Alternativa existingAlt = existingMap.get(altDto.getOrdem());
+                if (existingAlt != null) {
+                    // Update existing alternative (same order, so no conflict)
+                    existingAlt.setTexto(altDto.getTexto());
+                    existingAlt.setCorreta(altDto.getCorreta());
+                    existingAlt.setJustificativa(altDto.getJustificativa());
+                    alternativaRepository.save(existingAlt);
+                } else {
+                    // Create new alternative
+                    com.studora.entity.Alternativa newAlt = new com.studora.entity.Alternativa();
+                    newAlt.setQuestao(updatedQuestao);
+                    newAlt.setOrdem(altDto.getOrdem());
+                    newAlt.setTexto(altDto.getTexto());
+                    newAlt.setCorreta(altDto.getCorreta());
+                    newAlt.setJustificativa(altDto.getJustificativa());
+                    alternativaRepository.save(newAlt);
+                }
+            }
+            alternativaRepository.flush();
         }
 
         // Validate that the question still has at least one cargo association after update
@@ -288,92 +315,6 @@ public class QuestaoService {
         questaoRepository.deleteById(id);
     }
 
-    // Methods for managing alternatives
-    @Transactional
-    public AlternativaDto addAlternativaToQuestao(Long questaoId, AlternativaDto alternativaDto) {
-        Questao questao = questaoRepository
-            .findById(questaoId)
-            .orElseThrow(() -> new ResourceNotFoundException("Questão", "ID", questaoId));
-
-        // Delete all existing respostas for this question since alternatives are changing
-        deleteRespostasByQuestaoId(questaoId);
-
-        // Create new alternative
-        com.studora.entity.Alternativa alternativa = new com.studora.entity.Alternativa();
-        alternativa.setQuestao(questao);
-        alternativa.setOrdem(alternativaDto.getOrdem());
-        alternativa.setTexto(alternativaDto.getTexto());
-        alternativa.setCorreta(alternativaDto.getCorreta());
-        alternativa.setJustificativa(alternativaDto.getJustificativa());
-
-        com.studora.entity.Alternativa savedAlternativa = alternativaRepository.save(alternativa);
-        return convertAlternativaToDto(savedAlternativa);
-    }
-
-    @Transactional
-    public AlternativaDto updateAlternativaFromQuestao(Long questaoId, Long alternativaId, AlternativaDto alternativaDto) {
-        Questao questao = questaoRepository
-            .findById(questaoId)
-            .orElseThrow(() -> new ResourceNotFoundException("Questão", "ID", questaoId));
-
-        com.studora.entity.Alternativa alternativa = alternativaRepository
-            .findById(alternativaId)
-            .orElseThrow(() -> new ResourceNotFoundException("Alternativa", "ID", alternativaId));
-
-        // Verify that the alternative belongs to the specified question
-        if (!alternativa.getQuestao().getId().equals(questaoId)) {
-            throw new ValidationException("A alternativa não pertence à questão especificada");
-        }
-
-        // Delete all existing respostas for this question since alternatives are changing
-        deleteRespostasByQuestaoId(questaoId);
-
-        // Update alternative
-        alternativa.setOrdem(alternativaDto.getOrdem());
-        alternativa.setTexto(alternativaDto.getTexto());
-        alternativa.setCorreta(alternativaDto.getCorreta());
-        alternativa.setJustificativa(alternativaDto.getJustificativa());
-
-        com.studora.entity.Alternativa updatedAlternativa = alternativaRepository.save(alternativa);
-        return convertAlternativaToDto(updatedAlternativa);
-    }
-
-    @Transactional
-    public void removeAlternativaFromQuestao(Long questaoId, Long alternativaId) {
-        Questao questao = questaoRepository
-            .findById(questaoId)
-            .orElseThrow(() -> new ResourceNotFoundException("Questão", "ID", questaoId));
-
-        com.studora.entity.Alternativa alternativa = alternativaRepository
-            .findById(alternativaId)
-            .orElseThrow(() -> new ResourceNotFoundException("Alternativa", "ID", alternativaId));
-
-        // Verify that the alternative belongs to the specified question
-        if (!alternativa.getQuestao().getId().equals(questaoId)) {
-            throw new ValidationException("A alternativa não pertence à questão especificada");
-        }
-
-        // Delete all existing respostas for this question since alternatives are changing
-        deleteRespostasByQuestaoId(questaoId);
-
-        alternativaRepository.delete(alternativa);
-    }
-
-    private void deleteRespostasByQuestaoId(Long questaoId) {
-        // Delete all respostas for the question since alternatives are changing
-        respostaRepository.deleteByQuestaoId(questaoId);
-    }
-
-    private AlternativaDto convertAlternativaToDto(com.studora.entity.Alternativa alternativa) {
-        AlternativaDto dto = new AlternativaDto();
-        dto.setId(alternativa.getId());
-        dto.setQuestaoId(alternativa.getQuestao().getId());
-        dto.setOrdem(alternativa.getOrdem());
-        dto.setTexto(alternativa.getTexto());
-        // Don't set correta to hide it in responses
-        dto.setJustificativa(alternativa.getJustificativa());
-        return dto;
-    }
 
     // Methods for managing cargo associations
     public List<QuestaoCargoDto> getCargosByQuestaoId(Long questaoId) {
@@ -458,7 +399,7 @@ public class QuestaoService {
             );
         }
 
-        if (questao.getAlternativas() != null) {
+        if (questao.getAlternativas() != null && !questao.getAlternativas().isEmpty()) {
             List<com.studora.dto.AlternativaDto> alternativaDtos = questao
                 .getAlternativas()
                 .stream()
@@ -468,11 +409,32 @@ public class QuestaoService {
                     altDto.setOrdem(alt.getOrdem());
                     altDto.setTexto(alt.getTexto());
                     altDto.setJustificativa(alt.getJustificativa());
-                    // Do not set correta field to hide it from GET responses
+                    altDto.setCorreta(alt.getCorreta());
                     return altDto;
                 })
                 .collect(Collectors.toList());
             dto.setAlternativas(alternativaDtos);
+        } else if (questao.getId() != null) {
+            // Try to load from repository if list is null or empty (useful in some test scenarios)
+            List<com.studora.entity.Alternativa> alts = alternativaRepository.findByQuestaoIdOrderByOrdemAsc(questao.getId());
+            if (!alts.isEmpty()) {
+                List<com.studora.dto.AlternativaDto> alternativaDtos = alts.stream()
+                    .map(alt -> {
+                        com.studora.dto.AlternativaDto altDto = new com.studora.dto.AlternativaDto();
+                        altDto.setId(alt.getId());
+                        altDto.setOrdem(alt.getOrdem());
+                        altDto.setTexto(alt.getTexto());
+                        altDto.setJustificativa(alt.getJustificativa());
+                        altDto.setCorreta(alt.getCorreta());
+                        return altDto;
+                    })
+                    .collect(Collectors.toList());
+                dto.setAlternativas(alternativaDtos);
+            } else {
+                dto.setAlternativas(new ArrayList<>());
+            }
+        } else {
+            dto.setAlternativas(new ArrayList<>());
         }
 
         return dto;

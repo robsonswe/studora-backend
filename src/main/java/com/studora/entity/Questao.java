@@ -40,18 +40,20 @@ public class Questao {
     @OneToMany(
         mappedBy = "questao",
         cascade = CascadeType.ALL,
+        orphanRemoval = true,
         fetch = FetchType.LAZY
     )
     @Schema(description = "Alternativas associadas à questão")
-    private List<Alternativa> alternativas;
+    private List<Alternativa> alternativas = new java.util.ArrayList<>();
 
     @OneToMany(
         mappedBy = "questao",
         cascade = CascadeType.ALL,
+        orphanRemoval = true,
         fetch = FetchType.LAZY
     )
     @Schema(description = "Respostas associadas à questão")
-    private List<Resposta> respostas;
+    private List<Resposta> respostas = new java.util.ArrayList<>();
 
     @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JoinTable(
@@ -66,7 +68,7 @@ public class Questao {
         }
     )
     @Schema(description = "Subtemas associados à questão")
-    private List<Subtema> subtemas;
+    private List<Subtema> subtemas = new java.util.ArrayList<>();
 
 
     @OneToMany(
@@ -75,7 +77,7 @@ public class Questao {
         fetch = FetchType.LAZY
     )
     @Schema(description = "Associações entre a questão e cargos do concurso")
-    private List<QuestaoCargo> questaoCargos;
+    private List<QuestaoCargo> questaoCargos = new java.util.ArrayList<>();
 
     // Constructors
     public Questao() {}

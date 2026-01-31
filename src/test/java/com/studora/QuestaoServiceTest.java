@@ -361,6 +361,260 @@ class QuestaoServiceTest {
     }
 
     @Test
+    void testCreateQuestao_RequiresAtLeastTwoAlternatives() {
+        // Arrange
+        QuestaoDto questaoDto = new QuestaoDto();
+        questaoDto.setEnunciado("Qual a capital da França?");
+        questaoDto.setConcursoId(1L);
+        questaoDto.setImageUrl("https://exemplo.com/imagem.jpg");
+        questaoDto.setConcursoCargoIds(Arrays.asList(1L)); // Add cargo association
+
+        // Add only ONE alternative (should fail validation)
+        AlternativaDto alt1 = new AlternativaDto();
+        alt1.setOrdem(1);
+        alt1.setTexto("Only Alternative");
+        alt1.setCorreta(true);
+        alt1.setJustificativa("Justification");
+
+        questaoDto.setAlternativas(Arrays.asList(alt1)); // Only one alternative
+
+        // Mock concurso repository to prevent ResourceNotFoundException
+        com.studora.entity.Instituicao instituicao = new com.studora.entity.Instituicao();
+        instituicao.setId(1L);
+        instituicao.setNome("Instituição");
+
+        com.studora.entity.Banca banca = new com.studora.entity.Banca();
+        banca.setId(1L);
+        banca.setNome("Banca");
+
+        Concurso concurso = new Concurso(instituicao, banca, 2023);
+        concurso.setId(1L);
+
+        when(concursoRepository.findById(1L)).thenReturn(Optional.of(concurso));
+
+        // Act & Assert
+        com.studora.exception.ValidationException exception = assertThrows(
+            com.studora.exception.ValidationException.class,
+            () -> questaoService.createQuestao(questaoDto)
+        );
+
+        assertEquals("Uma questão deve ter pelo menos 2 alternativas", exception.getMessage());
+        verify(questaoRepository, never()).save(any(Questao.class)); // Should not save
+    }
+
+    @Test
+    void testCreateQuestao_WithZeroCorrectAlternatives_FailsValidation() {
+        // Arrange
+        QuestaoDto questaoDto = new QuestaoDto();
+        questaoDto.setEnunciado("Qual a capital da França?");
+        questaoDto.setConcursoId(1L);
+        questaoDto.setAnulada(false); // Not anulada, so validation applies
+        questaoDto.setConcursoCargoIds(Arrays.asList(1L)); // Add cargo association
+
+        // Add 2 alternatives, but none are correct (should fail validation)
+        AlternativaDto alt1 = new AlternativaDto();
+        alt1.setOrdem(1);
+        alt1.setTexto("Paris");
+        alt1.setCorreta(false); // Not correct
+        alt1.setJustificativa("Not the correct answer");
+
+        AlternativaDto alt2 = new AlternativaDto();
+        alt2.setOrdem(2);
+        alt2.setTexto("London");
+        alt2.setCorreta(false); // Not correct
+        alt2.setJustificativa("Not the correct answer");
+
+        questaoDto.setAlternativas(Arrays.asList(alt1, alt2));
+
+        // Mock concurso repository to prevent ResourceNotFoundException
+        com.studora.entity.Instituicao instituicao = new com.studora.entity.Instituicao();
+        instituicao.setId(1L);
+        instituicao.setNome("Instituição");
+
+        com.studora.entity.Banca banca = new com.studora.entity.Banca();
+        banca.setId(1L);
+        banca.setNome("Banca");
+
+        Concurso concurso = new Concurso(instituicao, banca, 2023);
+        concurso.setId(1L);
+
+        when(concursoRepository.findById(1L)).thenReturn(Optional.of(concurso));
+
+        // Act & Assert
+        com.studora.exception.ValidationException exception = assertThrows(
+            com.studora.exception.ValidationException.class,
+            () -> questaoService.createQuestao(questaoDto)
+        );
+
+        assertEquals("Uma questão deve ter exatamente uma alternativa correta", exception.getMessage());
+        verify(questaoRepository, never()).save(any(Questao.class)); // Should not save
+    }
+
+    @Test
+    void testCreateQuestao_WithMultipleCorrectAlternatives_FailsValidation() {
+        // Arrange
+        QuestaoDto questaoDto = new QuestaoDto();
+        questaoDto.setEnunciado("Qual a capital da França?");
+        questaoDto.setConcursoId(1L);
+        questaoDto.setAnulada(false); // Not anulada, so validation applies
+        questaoDto.setConcursoCargoIds(Arrays.asList(1L)); // Add cargo association
+
+        // Add 2 alternatives, but both are correct (should fail validation)
+        AlternativaDto alt1 = new AlternativaDto();
+        alt1.setOrdem(1);
+        alt1.setTexto("Paris");
+        alt1.setCorreta(true); // Correct
+        alt1.setJustificativa("Correct answer");
+
+        AlternativaDto alt2 = new AlternativaDto();
+        alt2.setOrdem(2);
+        alt2.setTexto("London");
+        alt2.setCorreta(true); // Also correct (invalid)
+        alt2.setJustificativa("Also correct (but invalid)");
+
+        questaoDto.setAlternativas(Arrays.asList(alt1, alt2));
+
+        // Mock concurso repository to prevent ResourceNotFoundException
+        com.studora.entity.Instituicao instituicao = new com.studora.entity.Instituicao();
+        instituicao.setId(1L);
+        instituicao.setNome("Instituição");
+
+        com.studora.entity.Banca banca = new com.studora.entity.Banca();
+        banca.setId(1L);
+        banca.setNome("Banca");
+
+        Concurso concurso = new Concurso(instituicao, banca, 2023);
+        concurso.setId(1L);
+
+        when(concursoRepository.findById(1L)).thenReturn(Optional.of(concurso));
+
+        // Act & Assert
+        com.studora.exception.ValidationException exception = assertThrows(
+            com.studora.exception.ValidationException.class,
+            () -> questaoService.createQuestao(questaoDto)
+        );
+
+        assertEquals("Uma questão deve ter exatamente uma alternativa correta", exception.getMessage());
+        verify(questaoRepository, never()).save(any(Questao.class)); // Should not save
+    }
+
+    @Test
+    void testCreateQuestao_WithExactlyOneCorrectAlternative_Succeeds() {
+        // Arrange
+        QuestaoDto questaoDto = new QuestaoDto();
+        questaoDto.setEnunciado("Qual a capital da França?");
+        questaoDto.setConcursoId(1L);
+        questaoDto.setAnulada(false); // Not anulada, so validation applies
+        questaoDto.setConcursoCargoIds(Arrays.asList(1L)); // Add cargo association
+
+        // Add exactly 2 alternatives with exactly one correct (valid)
+        AlternativaDto alt1 = new AlternativaDto();
+        alt1.setOrdem(1);
+        alt1.setTexto("Paris");
+        alt1.setCorreta(true); // Correct
+        alt1.setJustificativa("Correct answer");
+
+        AlternativaDto alt2 = new AlternativaDto();
+        alt2.setOrdem(2);
+        alt2.setTexto("London");
+        alt2.setCorreta(false); // Not correct
+        alt2.setJustificativa("Incorrect answer");
+
+        questaoDto.setAlternativas(Arrays.asList(alt1, alt2));
+
+        com.studora.entity.Instituicao instituicao = new com.studora.entity.Instituicao();
+        instituicao.setId(1L);
+        instituicao.setNome("Instituição");
+
+        com.studora.entity.Banca banca = new com.studora.entity.Banca();
+        banca.setId(1L);
+        banca.setNome("Banca");
+
+        Concurso concurso = new Concurso(instituicao, banca, 2023);
+        concurso.setId(1L);
+
+        ConcursoCargo concursoCargo = new ConcursoCargo();
+        concursoCargo.setId(1L);
+        concursoCargo.setConcurso(concurso);
+
+        Questao savedQuestao = new Questao();
+        savedQuestao.setId(1L);
+        savedQuestao.setEnunciado(questaoDto.getEnunciado());
+        savedQuestao.setConcurso(concurso);
+
+        when(concursoRepository.findById(1L)).thenReturn(Optional.of(concurso));
+        when(concursoCargoRepository.findById(1L)).thenReturn(Optional.of(concursoCargo));
+        when(questaoRepository.save(any(Questao.class))).thenReturn(savedQuestao);
+
+        // Act
+        QuestaoDto result = questaoService.createQuestao(questaoDto);
+
+        // Assert
+        assertNotNull(result);
+        verify(concursoRepository, times(1)).findById(1L);
+        verify(questaoRepository, times(1)).save(any(Questao.class));
+        verify(alternativaRepository, times(2)).save(any(com.studora.entity.Alternativa.class)); // Should save 2 alternatives
+    }
+
+    @Test
+    void testCreateQuestao_WithExactlyOneCorrectAlternative_AnuladaQuestion_Succeeds() {
+        // Arrange
+        QuestaoDto questaoDto = new QuestaoDto();
+        questaoDto.setEnunciado("Qual a capital da França?");
+        questaoDto.setConcursoId(1L);
+        questaoDto.setAnulada(true); // Anulada, so correct alternative validation does not apply
+        questaoDto.setConcursoCargoIds(Arrays.asList(1L)); // Add cargo association
+
+        // Add 2 alternatives, but both are correct (should be allowed for anulada questions)
+        AlternativaDto alt1 = new AlternativaDto();
+        alt1.setOrdem(1);
+        alt1.setTexto("Paris");
+        alt1.setCorreta(true); // Correct
+        alt1.setJustificativa("Correct answer");
+
+        AlternativaDto alt2 = new AlternativaDto();
+        alt2.setOrdem(2);
+        alt2.setTexto("London");
+        alt2.setCorreta(true); // Also correct (allowed for anulada questions)
+        alt2.setJustificativa("Also correct (allowed for anulada questions)");
+
+        questaoDto.setAlternativas(Arrays.asList(alt1, alt2));
+
+        com.studora.entity.Instituicao instituicao = new com.studora.entity.Instituicao();
+        instituicao.setId(1L);
+        instituicao.setNome("Instituição");
+
+        com.studora.entity.Banca banca = new com.studora.entity.Banca();
+        banca.setId(1L);
+        banca.setNome("Banca");
+
+        Concurso concurso = new Concurso(instituicao, banca, 2023);
+        concurso.setId(1L);
+
+        ConcursoCargo concursoCargo = new ConcursoCargo();
+        concursoCargo.setId(1L);
+        concursoCargo.setConcurso(concurso);
+
+        Questao savedQuestao = new Questao();
+        savedQuestao.setId(1L);
+        savedQuestao.setEnunciado(questaoDto.getEnunciado());
+        savedQuestao.setConcurso(concurso);
+
+        when(concursoRepository.findById(1L)).thenReturn(Optional.of(concurso));
+        when(concursoCargoRepository.findById(1L)).thenReturn(Optional.of(concursoCargo));
+        when(questaoRepository.save(any(Questao.class))).thenReturn(savedQuestao);
+
+        // Act
+        QuestaoDto result = questaoService.createQuestao(questaoDto);
+
+        // Assert
+        assertNotNull(result);
+        verify(concursoRepository, times(1)).findById(1L);
+        verify(questaoRepository, times(1)).save(any(Questao.class));
+        verify(alternativaRepository, times(2)).save(any(com.studora.entity.Alternativa.class)); // Should save 2 alternatives
+    }
+
+    @Test
     void testCreateQuestaoWithoutCargo_Association() {
         // Arrange
         QuestaoDto questaoDto = new QuestaoDto();
@@ -577,5 +831,526 @@ class QuestaoServiceTest {
         assertEquals(1, result.size());
         verify(disciplinaRepository, times(1)).findById(disciplinaId);
         verify(questaoRepository, times(1)).findBySubtemasTemaDisciplinaId(disciplinaId);
+    }
+
+    @Test
+    void testUpdateQuestao_RequiresAtLeastTwoAlternatives() {
+        // Arrange
+        Long questaoId = 1L;
+
+        // Original question with alternatives
+        Concurso concurso = new Concurso();
+        concurso.setId(1L);
+
+        Questao existingQuestao = new Questao();
+        existingQuestao.setId(questaoId);
+        existingQuestao.setEnunciado("Original question");
+        existingQuestao.setConcurso(concurso);
+
+        // Create DTO for update with only ONE alternative (should fail validation)
+        QuestaoDto updateDto = new QuestaoDto();
+        updateDto.setEnunciado("Updated question");
+        updateDto.setConcursoId(1L);
+        updateDto.setAnulada(false);
+        updateDto.setConcursoCargoIds(Arrays.asList(1L)); // Maintain cargo association
+
+        // Only ONE alternative (should fail validation)
+        AlternativaDto newAlt1 = new AlternativaDto();
+        newAlt1.setOrdem(1);
+        newAlt1.setTexto("New Alternative 1");
+        newAlt1.setCorreta(true);
+        newAlt1.setJustificativa("Justification 1");
+
+        updateDto.setAlternativas(Arrays.asList(newAlt1)); // Only one alternative
+
+        // Mock repository calls
+        when(questaoRepository.findById(questaoId)).thenReturn(Optional.of(existingQuestao));
+
+        // Act & Assert
+        com.studora.exception.ValidationException exception = assertThrows(
+            com.studora.exception.ValidationException.class,
+            () -> questaoService.updateQuestao(questaoId, updateDto)
+        );
+
+        assertEquals("Uma questão deve ter pelo menos 2 alternativas", exception.getMessage());
+        verify(questaoRepository, times(1)).findById(questaoId);
+        verify(alternativaRepository, never()).deleteAll(anyList()); // Should not delete alternatives
+        verify(alternativaRepository, never()).save(any(com.studora.entity.Alternativa.class)); // Should not save alternatives
+    }
+
+    @Test
+    void testUpdateQuestao_WithZeroCorrectAlternatives_FailsValidation() {
+        // Arrange
+        Long questaoId = 1L;
+
+        // Original question with alternatives
+        Concurso concurso = new Concurso();
+        concurso.setId(1L);
+
+        Questao existingQuestao = new Questao();
+        existingQuestao.setId(questaoId);
+        existingQuestao.setEnunciado("Original question");
+        existingQuestao.setConcurso(concurso);
+
+        // Create DTO for update with no correct alternatives (should fail validation)
+        QuestaoDto updateDto = new QuestaoDto();
+        updateDto.setEnunciado("Updated question");
+        updateDto.setConcursoId(1L);
+        updateDto.setAnulada(false); // Not anulada, so validation applies
+        updateDto.setConcursoCargoIds(Arrays.asList(1L)); // Maintain cargo association
+
+        // Two alternatives, but neither is correct (should fail validation)
+        AlternativaDto newAlt1 = new AlternativaDto();
+        newAlt1.setOrdem(1);
+        newAlt1.setTexto("New Alternative 1");
+        newAlt1.setCorreta(false); // Not correct
+        newAlt1.setJustificativa("Justification 1");
+
+        AlternativaDto newAlt2 = new AlternativaDto();
+        newAlt2.setOrdem(2);
+        newAlt2.setTexto("New Alternative 2");
+        newAlt2.setCorreta(false); // Not correct
+        newAlt2.setJustificativa("Justification 2");
+
+        updateDto.setAlternativas(Arrays.asList(newAlt1, newAlt2));
+
+        // Mock repository calls
+        when(questaoRepository.findById(questaoId)).thenReturn(Optional.of(existingQuestao));
+
+        // Act & Assert
+        com.studora.exception.ValidationException exception = assertThrows(
+            com.studora.exception.ValidationException.class,
+            () -> questaoService.updateQuestao(questaoId, updateDto)
+        );
+
+        assertEquals("Uma questão deve ter exatamente uma alternativa correta", exception.getMessage());
+        verify(questaoRepository, times(1)).findById(questaoId);
+        verify(alternativaRepository, never()).deleteAll(anyList()); // Should not delete alternatives
+        verify(alternativaRepository, never()).save(any(com.studora.entity.Alternativa.class)); // Should not save alternatives
+    }
+
+    @Test
+    void testUpdateQuestao_WithMultipleCorrectAlternatives_FailsValidation() {
+        // Arrange
+        Long questaoId = 1L;
+
+        // Original question with alternatives
+        Concurso concurso = new Concurso();
+        concurso.setId(1L);
+
+        Questao existingQuestao = new Questao();
+        existingQuestao.setId(questaoId);
+        existingQuestao.setEnunciado("Original question");
+        existingQuestao.setConcurso(concurso);
+
+        // Create DTO for update with multiple correct alternatives (should fail validation)
+        QuestaoDto updateDto = new QuestaoDto();
+        updateDto.setEnunciado("Updated question");
+        updateDto.setConcursoId(1L);
+        updateDto.setAnulada(false); // Not anulada, so validation applies
+        updateDto.setConcursoCargoIds(Arrays.asList(1L)); // Maintain cargo association
+
+        // Two alternatives, both correct (should fail validation)
+        AlternativaDto newAlt1 = new AlternativaDto();
+        newAlt1.setOrdem(1);
+        newAlt1.setTexto("New Alternative 1");
+        newAlt1.setCorreta(true); // Correct
+        newAlt1.setJustificativa("Justification 1");
+
+        AlternativaDto newAlt2 = new AlternativaDto();
+        newAlt2.setOrdem(2);
+        newAlt2.setTexto("New Alternative 2");
+        newAlt2.setCorreta(true); // Also correct
+        newAlt2.setJustificativa("Justification 2");
+
+        updateDto.setAlternativas(Arrays.asList(newAlt1, newAlt2));
+
+        // Mock repository calls
+        when(questaoRepository.findById(questaoId)).thenReturn(Optional.of(existingQuestao));
+
+        // Act & Assert
+        com.studora.exception.ValidationException exception = assertThrows(
+            com.studora.exception.ValidationException.class,
+            () -> questaoService.updateQuestao(questaoId, updateDto)
+        );
+
+        assertEquals("Uma questão deve ter exatamente uma alternativa correta", exception.getMessage());
+        verify(questaoRepository, times(1)).findById(questaoId);
+        verify(alternativaRepository, never()).deleteAll(anyList()); // Should not delete alternatives
+        verify(alternativaRepository, never()).save(any(com.studora.entity.Alternativa.class)); // Should not save alternatives
+    }
+
+    @Test
+    void testUpdateQuestao_WithExactlyOneCorrectAlternative_Succeeds() {
+        // Arrange
+        Long questaoId = 1L;
+
+        // Original question with alternatives
+        Concurso concurso = new Concurso();
+        concurso.setId(1L);
+
+        Questao existingQuestao = mock(Questao.class);
+        when(existingQuestao.getId()).thenReturn(questaoId);
+        when(existingQuestao.getEnunciado()).thenReturn("Original question");
+        when(existingQuestao.getConcurso()).thenReturn(concurso);
+
+        // Create alternatives for the existing question
+        com.studora.entity.Alternativa existingAlt1 = new com.studora.entity.Alternativa();
+        existingAlt1.setId(100L);
+        existingAlt1.setQuestao(existingQuestao);
+        com.studora.entity.Alternativa existingAlt2 = new com.studora.entity.Alternativa();
+        existingAlt2.setId(101L);
+        existingAlt2.setQuestao(existingQuestao);
+        List<com.studora.entity.Alternativa> existingAlternativas = Arrays.asList(existingAlt1, existingAlt2);
+
+        // Set up the existing question to return its alternatives
+        when(existingQuestao.getAlternativas()).thenReturn(existingAlternativas);
+
+        // Create DTO for update with exactly one correct alternative (should succeed)
+        QuestaoDto updateDto = new QuestaoDto();
+        updateDto.setEnunciado("Updated question");
+        updateDto.setConcursoId(1L);
+        updateDto.setAnulada(false); // Not anulada, so validation applies
+        updateDto.setConcursoCargoIds(Arrays.asList(1L)); // Maintain cargo association
+
+        // Two alternatives, exactly one correct (should succeed)
+        AlternativaDto newAlt1 = new AlternativaDto();
+        newAlt1.setOrdem(1);
+        newAlt1.setTexto("New Alternative 1");
+        newAlt1.setCorreta(true); // Correct
+        newAlt1.setJustificativa("Justification 1");
+
+        AlternativaDto newAlt2 = new AlternativaDto();
+        newAlt2.setOrdem(2);
+        newAlt2.setTexto("New Alternative 2");
+        newAlt2.setCorreta(false); // Not correct
+        newAlt2.setJustificativa("Justification 2");
+
+        updateDto.setAlternativas(Arrays.asList(newAlt1, newAlt2));
+
+        // Mock repository calls
+        when(questaoRepository.findById(questaoId)).thenReturn(Optional.of(existingQuestao));
+        when(concursoCargoRepository.findById(1L)).thenReturn(Optional.of(new ConcursoCargo()));
+        when(questaoCargoRepository.findByQuestaoId(questaoId)).thenReturn(Arrays.asList(new QuestaoCargo()));
+
+        // Create a new mock for the updated question to return the updated values
+        Questao updatedQuestao = mock(Questao.class);
+        when(updatedQuestao.getId()).thenReturn(questaoId);
+        when(updatedQuestao.getEnunciado()).thenReturn(updateDto.getEnunciado());
+        when(updatedQuestao.getConcurso()).thenReturn(concurso);
+        when(updatedQuestao.getAnulada()).thenReturn(updateDto.getAnulada());
+
+        when(questaoRepository.save(any(Questao.class))).thenReturn(updatedQuestao);
+
+        // Act
+        QuestaoDto result = questaoService.updateQuestao(questaoId, updateDto);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("Updated question", result.getEnunciado());
+        verify(questaoRepository, times(1)).findById(questaoId);
+        // New strategy uses individual deletes and saves
+        verify(alternativaRepository, atLeastOnce()).findByQuestaoIdOrderByOrdemAsc(questaoId);
+        verify(alternativaRepository, times(2)).save(any(com.studora.entity.Alternativa.class));
+        verify(alternativaRepository, atLeastOnce()).flush();
+    }
+
+    @Test
+    void testUpdateQuestao_WithMultipleCorrectAlternatives_AnuladaQuestion_Succeeds() {
+        // Arrange
+        Long questaoId = 1L;
+
+        // Original question with alternatives
+        Concurso concurso = new Concurso();
+        concurso.setId(1L);
+
+        Questao existingQuestao = mock(Questao.class);
+        when(existingQuestao.getId()).thenReturn(questaoId);
+        when(existingQuestao.getEnunciado()).thenReturn("Original question");
+        when(existingQuestao.getConcurso()).thenReturn(concurso);
+
+        // Create alternatives for the existing question
+        com.studora.entity.Alternativa existingAlt1 = new com.studora.entity.Alternativa();
+        existingAlt1.setId(100L);
+        existingAlt1.setQuestao(existingQuestao);
+        com.studora.entity.Alternativa existingAlt2 = new com.studora.entity.Alternativa();
+        existingAlt2.setId(101L);
+        existingAlt2.setQuestao(existingQuestao);
+        List<com.studora.entity.Alternativa> existingAlternativas = Arrays.asList(existingAlt1, existingAlt2);
+
+        // Set up the existing question to return its alternatives
+        when(existingQuestao.getAlternativas()).thenReturn(existingAlternativas);
+
+        // Create DTO for update with multiple correct alternatives but anulada question (should succeed)
+        QuestaoDto updateDto = new QuestaoDto();
+        updateDto.setEnunciado("Updated question");
+        updateDto.setConcursoId(1L);
+        updateDto.setAnulada(true); // Anulada, so correct alternative validation does not apply
+        updateDto.setConcursoCargoIds(Arrays.asList(1L)); // Maintain cargo association
+
+        // Two alternatives, both correct (should be allowed for anulada questions)
+        AlternativaDto newAlt1 = new AlternativaDto();
+        newAlt1.setOrdem(1);
+        newAlt1.setTexto("New Alternative 1");
+        newAlt1.setCorreta(true); // Correct
+        newAlt1.setJustificativa("Justification 1");
+
+        AlternativaDto newAlt2 = new AlternativaDto();
+        newAlt2.setOrdem(2);
+        newAlt2.setTexto("New Alternative 2");
+        newAlt2.setCorreta(true); // Also correct (allowed for anulada questions)
+        newAlt2.setJustificativa("Justification 2");
+
+        updateDto.setAlternativas(Arrays.asList(newAlt1, newAlt2));
+
+        // Mock repository calls
+        when(questaoRepository.findById(questaoId)).thenReturn(Optional.of(existingQuestao));
+        when(concursoCargoRepository.findById(1L)).thenReturn(Optional.of(new ConcursoCargo()));
+        when(questaoCargoRepository.findByQuestaoId(questaoId)).thenReturn(Arrays.asList(new QuestaoCargo()));
+
+        // Create a new mock for the updated question to return the updated values
+        Questao updatedQuestao = mock(Questao.class);
+        when(updatedQuestao.getId()).thenReturn(questaoId);
+        when(updatedQuestao.getEnunciado()).thenReturn(updateDto.getEnunciado());
+        when(updatedQuestao.getConcurso()).thenReturn(concurso);
+        when(updatedQuestao.getAnulada()).thenReturn(updateDto.getAnulada());
+
+        when(questaoRepository.save(any(Questao.class))).thenReturn(updatedQuestao);
+
+        // Act
+        QuestaoDto result = questaoService.updateQuestao(questaoId, updateDto);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("Updated question", result.getEnunciado());
+        verify(questaoRepository, times(1)).findById(questaoId);
+        // New strategy uses individual deletes and saves
+        verify(alternativaRepository, atLeastOnce()).findByQuestaoIdOrderByOrdemAsc(questaoId);
+        verify(alternativaRepository, times(2)).save(any(com.studora.entity.Alternativa.class));
+        verify(alternativaRepository, atLeastOnce()).flush();
+    }
+
+    @Test
+    void testUpdateQuestao_WithAlternativesReplacement() {
+        // Arrange
+        Long questaoId = 1L;
+
+        // Original question with alternatives
+        Concurso concurso = new Concurso();
+        concurso.setId(1L);
+
+        Questao existingQuestao = mock(Questao.class);
+        when(existingQuestao.getId()).thenReturn(questaoId);
+        when(existingQuestao.getEnunciado()).thenReturn("Original question");
+        when(existingQuestao.getConcurso()).thenReturn(concurso);
+
+        // Create alternatives for the existing question
+        com.studora.entity.Alternativa existingAlt1 = new com.studora.entity.Alternativa();
+        existingAlt1.setId(100L);
+        existingAlt1.setQuestao(existingQuestao);
+        com.studora.entity.Alternativa existingAlt2 = new com.studora.entity.Alternativa();
+        existingAlt2.setId(101L);
+        existingAlt2.setQuestao(existingQuestao);
+        List<com.studora.entity.Alternativa> existingAlternativas = Arrays.asList(existingAlt1, existingAlt2);
+
+        // Set up the existing question to return its alternatives
+        when(existingQuestao.getAlternativas()).thenReturn(existingAlternativas);
+
+        // Create DTO for update with new alternatives
+        QuestaoDto updateDto = new QuestaoDto();
+        updateDto.setEnunciado("Updated question");
+        updateDto.setConcursoId(1L);
+        updateDto.setAnulada(false);
+        updateDto.setConcursoCargoIds(Arrays.asList(1L)); // Maintain cargo association
+
+        // New alternatives for the update
+        AlternativaDto newAlt1 = new AlternativaDto();
+        newAlt1.setOrdem(1);
+        newAlt1.setTexto("New Alternative 1");
+        newAlt1.setCorreta(true);
+        newAlt1.setJustificativa("Justification 1");
+
+        AlternativaDto newAlt2 = new AlternativaDto();
+        newAlt2.setOrdem(2);
+        newAlt2.setTexto("New Alternative 2");
+        newAlt2.setCorreta(false);
+        newAlt2.setJustificativa("Justification 2");
+
+        updateDto.setAlternativas(Arrays.asList(newAlt1, newAlt2));
+
+        // Mock repository calls
+        when(questaoRepository.findById(questaoId)).thenReturn(Optional.of(existingQuestao));
+        when(concursoCargoRepository.findById(1L)).thenReturn(Optional.of(new ConcursoCargo()));
+        when(questaoCargoRepository.findByQuestaoId(questaoId)).thenReturn(Arrays.asList(new QuestaoCargo()));
+
+        // Create a new mock for the updated question to return the updated values
+        Questao updatedQuestao = mock(Questao.class);
+        when(updatedQuestao.getId()).thenReturn(questaoId);
+        when(updatedQuestao.getEnunciado()).thenReturn(updateDto.getEnunciado());
+        when(updatedQuestao.getConcurso()).thenReturn(concurso);
+        when(updatedQuestao.getAnulada()).thenReturn(updateDto.getAnulada());
+
+        when(questaoRepository.save(any(Questao.class))).thenReturn(updatedQuestao);
+
+        // Act
+        QuestaoDto result = questaoService.updateQuestao(questaoId, updateDto);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("Updated question", result.getEnunciado());
+        verify(questaoRepository, times(1)).findById(questaoId);
+        // New strategy uses individual deletes and saves
+        verify(alternativaRepository, atLeastOnce()).findByQuestaoIdOrderByOrdemAsc(questaoId);
+        verify(alternativaRepository, times(2)).save(any(com.studora.entity.Alternativa.class));
+        verify(alternativaRepository, atLeastOnce()).flush();
+    }
+
+    @Test
+    void testDeleteQuestao_AlsoDeletesAlternativesAndResponses() {
+        // Arrange
+        Long questaoId = 1L;
+
+        Questao questaoToDelete = mock(Questao.class);
+        when(questaoToDelete.getId()).thenReturn(questaoId);
+        when(questaoToDelete.getEnunciado()).thenReturn("Question to delete");
+
+        // Mock that the question exists
+        when(questaoRepository.existsById(questaoId)).thenReturn(true);
+        when(questaoRepository.findById(questaoId)).thenReturn(Optional.of(questaoToDelete));
+
+        // Create mock alternatives for this question
+        com.studora.entity.Alternativa alt1 = new com.studora.entity.Alternativa();
+        alt1.setId(10L);
+        alt1.setQuestao(questaoToDelete);
+        com.studora.entity.Alternativa alt2 = new com.studora.entity.Alternativa();
+        alt2.setId(11L);
+        alt2.setQuestao(questaoToDelete);
+        List<com.studora.entity.Alternativa> alternatives = Arrays.asList(alt1, alt2);
+
+        // Mock the alternatives relationship - the question should have alternatives when loaded
+        when(questaoRepository.findById(questaoId)).thenReturn(Optional.of(questaoToDelete));
+        when(questaoToDelete.getAlternativas()).thenReturn(alternatives); // Return the alternatives from the entity
+
+        // Mock the questaoCargo relationship to ensure at least one exists for validation
+        QuestaoCargo qc = new QuestaoCargo();
+        qc.setQuestao(questaoToDelete);
+        when(questaoCargoRepository.findByQuestaoId(questaoId)).thenReturn(Arrays.asList(qc));
+
+        // Act
+        questaoService.deleteQuestao(questaoId);
+
+        // Assert
+        verify(questaoRepository, times(1)).existsById(questaoId);
+        verify(questaoCargoRepository, times(1)).findByQuestaoId(questaoId);
+        verify(questaoCargoRepository, times(1)).deleteAll(anyList()); // Should delete cargo associations
+        verify(questaoRepository, times(1)).deleteById(questaoId); // Should delete the question
+        // Note: Alternatives are deleted via cascade, not explicit calls in deleteQuestao method
+        // The deleteQuestao method doesn't explicitly fetch alternatives, it relies on cascade
+    }
+
+    @Test
+    void testCreateQuestao_ConcursoMismatch_FailsValidation() {
+        // Arrange
+        QuestaoDto questaoDto = new QuestaoDto();
+        questaoDto.setEnunciado("Q");
+        questaoDto.setConcursoId(1L);
+        questaoDto.setConcursoCargoIds(Arrays.asList(2L));
+        
+        // Add valid alternatives to pass early validations
+        AlternativaDto alt1 = new AlternativaDto(); alt1.setCorreta(true);
+        AlternativaDto alt2 = new AlternativaDto(); alt2.setCorreta(false);
+        questaoDto.setAlternativas(Arrays.asList(alt1, alt2));
+
+        Concurso concurso1 = new Concurso(); 
+        concurso1.setId(1L);
+        
+        Concurso concurso2 = new Concurso(); 
+        concurso2.setId(2L); // Different ID
+        
+        ConcursoCargo cc = new ConcursoCargo();
+        cc.setId(2L);
+        cc.setConcurso(concurso2); // Mismatch!
+        
+        when(concursoRepository.findById(1L)).thenReturn(Optional.of(concurso1));
+        when(concursoCargoRepository.findById(2L)).thenReturn(Optional.of(cc));
+        
+        // Act & Assert
+        assertThrows(com.studora.exception.ValidationException.class, () -> questaoService.createQuestao(questaoDto));
+    }
+
+    @Test
+    void testRemoveCargoFromQuestao_Success() {
+        // Arrange
+        Long questaoId = 1L;
+        Long concursoCargoId = 2L;
+
+        QuestaoCargo associationToRemove = new QuestaoCargo();
+        associationToRemove.setId(10L);
+        
+        QuestaoCargo otherAssociation = new QuestaoCargo();
+        otherAssociation.setId(11L);
+
+        // Mock finding the association to remove
+        when(questaoCargoRepository.findByQuestaoIdAndConcursoCargoId(questaoId, concursoCargoId))
+            .thenReturn(Arrays.asList(associationToRemove));
+            
+        // Mock finding all associations (must return > 1)
+        when(questaoCargoRepository.findByQuestaoId(questaoId))
+            .thenReturn(Arrays.asList(associationToRemove, otherAssociation));
+
+        // Act
+        questaoService.removeCargoFromQuestao(questaoId, concursoCargoId);
+
+        // Assert
+        verify(questaoCargoRepository, times(1)).deleteAll(Arrays.asList(associationToRemove));
+    }
+
+    @Test
+    void testRemoveCargoFromQuestao_NotFound() {
+        // Arrange
+        Long questaoId = 1L;
+        Long concursoCargoId = 2L;
+
+        when(questaoCargoRepository.findByQuestaoIdAndConcursoCargoId(questaoId, concursoCargoId))
+            .thenReturn(List.of());
+
+        // Act & Assert
+        assertThrows(com.studora.exception.ResourceNotFoundException.class, 
+            () -> questaoService.removeCargoFromQuestao(questaoId, concursoCargoId));
+    }
+
+    @Test
+    void testGetQuestoesBySubtemaId_NotFound() {
+        when(subtemaRepository.findById(1L)).thenReturn(Optional.empty());
+        assertThrows(com.studora.exception.ResourceNotFoundException.class, 
+            () -> questaoService.getQuestoesBySubtemaId(1L));
+    }
+
+    @Test
+    void testGetQuestoesByTemaId_NotFound() {
+        when(temaRepository.findById(1L)).thenReturn(Optional.empty());
+        assertThrows(com.studora.exception.ResourceNotFoundException.class, 
+            () -> questaoService.getQuestoesByTemaId(1L));
+    }
+
+    @Test
+    void testGetQuestoesByDisciplinaId_NotFound() {
+        when(disciplinaRepository.findById(1L)).thenReturn(Optional.empty());
+        assertThrows(com.studora.exception.ResourceNotFoundException.class, 
+            () -> questaoService.getQuestoesByDisciplinaId(1L));
+    }
+
+    @Test
+    void testGetQuestoesByCargoId_Empty() {
+        // Arrange
+        when(questaoCargoRepository.findByConcursoCargoId(1L)).thenReturn(List.of());
+
+        // Act
+        List<QuestaoDto> result = questaoService.getQuestoesByCargoId(1L);
+
+        // Assert
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+        verify(questaoRepository, never()).findAllById(any());
     }
 }

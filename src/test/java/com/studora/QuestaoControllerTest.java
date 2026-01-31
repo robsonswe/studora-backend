@@ -145,12 +145,30 @@ class QuestaoControllerTest {
         questao.setConcurso(concurso);
         questao = questaoRepository.save(questao);
 
+        // Add some alternatives to the question
+        com.studora.entity.Alternativa alt1 = new com.studora.entity.Alternativa();
+        alt1.setQuestao(questao);
+        alt1.setOrdem(1);
+        alt1.setTexto("Brasília");
+        alt1.setCorreta(true);
+        alt1.setJustificativa("Capital do Brasil");
+        alternativaRepository.save(alt1);
+
+        com.studora.entity.Alternativa alt2 = new com.studora.entity.Alternativa();
+        alt2.setQuestao(questao);
+        alt2.setOrdem(2);
+        alt2.setTexto("São Paulo");
+        alt2.setCorreta(false);
+        alt2.setJustificativa("Maior cidade do Brasil");
+        alternativaRepository.save(alt2);
+
         mockMvc
             .perform(get("/api/questoes/{id}", questao.getId()))
             .andExpect(status().isOk())
-            .andExpect(
-                jsonPath("$.enunciado").value("Qual a capital do Brasil?")
-            );
+            .andExpect(jsonPath("$.enunciado").value("Qual a capital do Brasil?"))
+            .andExpect(jsonPath("$.alternativas.length()").value(2))
+            .andExpect(jsonPath("$.alternativas[0].texto").value("Brasília"))
+            .andExpect(jsonPath("$.alternativas[1].texto").value("São Paulo"));
     }
 
     @Test
@@ -260,12 +278,36 @@ class QuestaoControllerTest {
             )
             .andExpect(status().isCreated());
 
+        // Create alternativas for the update request
+        com.studora.dto.AlternativaDto alt1 = new com.studora.dto.AlternativaDto();
+        alt1.setOrdem(1);
+        alt1.setTexto("Updated Alternative 1");
+        alt1.setCorreta(true);
+        alt1.setJustificativa("Updated justification 1");
+
+        com.studora.dto.AlternativaDto alt2 = new com.studora.dto.AlternativaDto();
+        alt2.setOrdem(2);
+        alt2.setTexto("Updated Alternative 2");
+        alt2.setCorreta(false);
+        alt2.setJustificativa("Updated justification 2");
+
         QuestaoUpdateRequest updatedRequest = new QuestaoUpdateRequest();
         updatedRequest.setEnunciado("New Enunciado");
         updatedRequest.setConcursoId(concurso.getId());
         updatedRequest.setAnulada(true);
         // Maintain the cargo association
         updatedRequest.setConcursoCargoIds(Collections.singletonList(concursoCargo.getId()));
+        // Add new alternatives for the update
+        updatedRequest.setAlternativas(Arrays.asList(alt1, alt2));
+
+        // Add some initial alternatives to the question
+        com.studora.entity.Alternativa initialAlt = new com.studora.entity.Alternativa();
+        initialAlt.setQuestao(questao);
+        initialAlt.setOrdem(1);
+        initialAlt.setTexto("Initial Alternative");
+        initialAlt.setCorreta(false);
+        initialAlt.setJustificativa("Initial justification");
+        initialAlt = alternativaRepository.save(initialAlt);
 
         mockMvc
             .perform(
@@ -275,7 +317,8 @@ class QuestaoControllerTest {
             )
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.enunciado").value("New Enunciado"))
-            .andExpect(jsonPath("$.anulada").value(true));
+            .andExpect(jsonPath("$.anulada").value(true))
+            .andExpect(jsonPath("$.alternativas.length()").value(2));
     }
 
     @Test
@@ -284,6 +327,30 @@ class QuestaoControllerTest {
         questao.setEnunciado("Questao to Delete");
         questao.setConcurso(concurso);
         questao = questaoRepository.save(questao);
+
+        // Add some alternatives to the question
+        com.studora.entity.Alternativa alt1 = new com.studora.entity.Alternativa();
+        alt1.setQuestao(questao);
+        alt1.setOrdem(1);
+        alt1.setTexto("Alternative to Delete 1");
+        alt1.setCorreta(false);
+        alt1.setJustificativa("Justification 1");
+        alternativaRepository.save(alt1);
+
+        com.studora.entity.Alternativa alt2 = new com.studora.entity.Alternativa();
+        alt2.setQuestao(questao);
+        alt2.setOrdem(2);
+        alt2.setTexto("Alternative to Delete 2");
+        alt2.setCorreta(true);
+        alt2.setJustificativa("Justification 2");
+        alternativaRepository.save(alt2);
+
+        // Verify the question and alternatives exist before deletion
+        mockMvc
+            .perform(get("/api/questoes/{id}", questao.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.enunciado").value("Questao to Delete"))
+            .andExpect(jsonPath("$.alternativas.length()").value(2));
 
         mockMvc
             .perform(delete("/api/questoes/{id}", questao.getId()))
@@ -294,79 +361,6 @@ class QuestaoControllerTest {
             .andExpect(status().isNotFound());
     }
 
-    @Test
-    void testAddAlternativaToQuestao() throws Exception {
-        // First create a question
-        Questao questao = new Questao();
-        questao.setEnunciado("Questão para alternativas");
-        questao.setConcurso(concurso);
-        questao = questaoRepository.save(questao);
-
-        // Create a QuestaoCargo association to ensure the question has at least one cargo
-        QuestaoCargo questaoCargo = new QuestaoCargo();
-        questaoCargo.setQuestao(questao);
-        questaoCargo.setConcursoCargo(concursoCargo);
-        questaoCargo = questaoCargoRepository.save(questaoCargo);
-
-        // Create alternativa request
-        com.studora.dto.request.AlternativaCreateRequest alternativaRequest = new com.studora.dto.request.AlternativaCreateRequest();
-        alternativaRequest.setOrdem(1);
-        alternativaRequest.setTexto("Nova alternativa");
-        alternativaRequest.setCorreta(false);
-        alternativaRequest.setJustificativa("Justificativa da nova alternativa");
-
-        mockMvc
-            .perform(
-                post("/api/questoes/{id}/alternativas", questao.getId())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(alternativaRequest))
-            )
-            .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.texto").value("Nova alternativa"))
-            .andExpect(jsonPath("$.ordem").value(1));
-    }
-
-    @Test
-    void testUpdateAlternativaFromQuestao() throws Exception {
-        // First create a question
-        Questao questao = new Questao();
-        questao.setEnunciado("Questão para alternativas");
-        questao.setConcurso(concurso);
-        questao = questaoRepository.save(questao);
-
-        // Create a QuestaoCargo association
-        QuestaoCargo questaoCargo = new QuestaoCargo();
-        questaoCargo.setQuestao(questao);
-        questaoCargo.setConcursoCargo(concursoCargo);
-        questaoCargo = questaoCargoRepository.save(questaoCargo);
-
-        // Create an alternative
-        com.studora.entity.Alternativa alternativa = new com.studora.entity.Alternativa();
-        alternativa.setQuestao(questao);
-        alternativa.setOrdem(1);
-        alternativa.setTexto("Texto antigo");
-        alternativa.setCorreta(false);
-        alternativa.setJustificativa("Justificativa antiga");
-        alternativa = alternativaRepository.save(alternativa);
-
-        // Create alternativa update request
-        com.studora.dto.request.AlternativaUpdateRequest alternativaUpdateRequest = new com.studora.dto.request.AlternativaUpdateRequest();
-        alternativaUpdateRequest.setOrdem(2); // Change order
-        alternativaUpdateRequest.setTexto("Texto novo"); // Change text
-        alternativaUpdateRequest.setCorreta(true); // Change correctness
-        alternativaUpdateRequest.setJustificativa("Justificativa nova"); // Change justification
-
-        mockMvc
-            .perform(
-                put("/api/questoes/{questaoId}/alternativas/{alternativaId}", questao.getId(), alternativa.getId())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(alternativaUpdateRequest))
-            )
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.texto").value("Texto novo"))
-            .andExpect(jsonPath("$.ordem").value(2));
-            // Note: correta field is intentionally not returned in responses to hide the correct answer
-    }
 
     @Test
     void testAddCargoToQuestao() throws Exception {
