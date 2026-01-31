@@ -6,6 +6,7 @@ import static org.mockito.Mockito.*;
 
 import com.studora.dto.BancaDto;
 import com.studora.entity.Banca;
+import com.studora.exception.ConflictException;
 import com.studora.repository.BancaRepository;
 import com.studora.service.BancaService;
 import java.util.Optional;
@@ -54,5 +55,25 @@ class BancaServiceTest {
 
         BancaDto result = bancaService.save(dto);
         assertEquals(1L, result.getId());
+    }
+
+    @Test
+    void testSave_CaseInsensitiveDuplicate() {
+        // Test that case-insensitive duplicates are caught
+        BancaDto dto = new BancaDto();
+        dto.setId(1L);
+        dto.setNome("cespe"); // lowercase
+
+        Banca existingBanca = new Banca();
+        existingBanca.setId(2L);
+        existingBanca.setNome("CESPE"); // uppercase
+
+        when(bancaRepository.findByNomeIgnoreCase("cespe")).thenReturn(Optional.of(existingBanca));
+
+        ConflictException exception = assertThrows(ConflictException.class, () -> {
+            bancaService.save(dto);
+        });
+
+        assertTrue(exception.getMessage().contains("Já existe uma banca com o nome 'cespe'"));
     }
 }

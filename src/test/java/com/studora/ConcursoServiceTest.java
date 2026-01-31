@@ -378,6 +378,52 @@ class ConcursoServiceTest {
     }
 
     @Test
+    void testAddCargoToConcurso_NonExistentConcurso() {
+        // Arrange
+        ConcursoCargoDto concursoCargoDto = new ConcursoCargoDto();
+        concursoCargoDto.setConcursoId(999L); // Non-existent concurso ID
+        concursoCargoDto.setCargoId(2L);
+
+        when(concursoCargoRepository.findByConcursoIdAndCargoId(999L, 2L)).thenReturn(List.of()); // No existing association
+        when(concursoRepository.findById(999L)).thenReturn(Optional.empty()); // Concurso does not exist
+
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> {
+            concursoService.addCargoToConcurso(concursoCargoDto);
+        });
+
+        verify(concursoCargoRepository, times(1)).findByConcursoIdAndCargoId(999L, 2L);
+        verify(concursoRepository, times(1)).findById(999L);
+        verify(cargoRepository, never()).findById(anyLong()); // Should not check cargo if concurso doesn't exist
+        verify(concursoCargoRepository, never()).save(any(ConcursoCargo.class)); // Should not save
+    }
+
+    @Test
+    void testAddCargoToConcurso_NonExistentCargo() {
+        // Arrange
+        ConcursoCargoDto concursoCargoDto = new ConcursoCargoDto();
+        concursoCargoDto.setConcursoId(1L);
+        concursoCargoDto.setCargoId(999L); // Non-existent cargo ID
+
+        Concurso concurso = new Concurso();
+        concurso.setId(1L);
+
+        when(concursoCargoRepository.findByConcursoIdAndCargoId(1L, 999L)).thenReturn(List.of()); // No existing association
+        when(concursoRepository.findById(1L)).thenReturn(Optional.of(concurso)); // Concurso exists
+        when(cargoRepository.findById(999L)).thenReturn(Optional.empty()); // Cargo does not exist
+
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> {
+            concursoService.addCargoToConcurso(concursoCargoDto);
+        });
+
+        verify(concursoCargoRepository, times(1)).findByConcursoIdAndCargoId(1L, 999L);
+        verify(concursoRepository, times(1)).findById(1L);
+        verify(cargoRepository, times(1)).findById(999L);
+        verify(concursoCargoRepository, never()).save(any(ConcursoCargo.class)); // Should not save
+    }
+
+    @Test
     void testRemoveLastCargoFromConcurso_FailsValidation() {
         // Arrange
         Long concursoId = 1L;

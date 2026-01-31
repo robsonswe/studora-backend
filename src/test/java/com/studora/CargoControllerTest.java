@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.studora.dto.CargoDto;
 import com.studora.dto.request.CargoCreateRequest;
 import com.studora.entity.Cargo;
+import com.studora.entity.NivelCargo;
 import com.studora.repository.CargoRepository;
 import com.studora.util.TestUtil;
 import org.junit.jupiter.api.Test;
@@ -34,7 +35,7 @@ class CargoControllerTest {
         // Create
         CargoCreateRequest request = new CargoCreateRequest();
         request.setNome("Analista");
-        request.setNivel("Superior");
+        request.setNivel(NivelCargo.SUPERIOR);
         request.setArea("TI");
 
         mockMvc
@@ -57,6 +58,7 @@ class CargoControllerTest {
     void testGetById() throws Exception {
         Cargo cargo = new Cargo();
         cargo.setNome("Tecnico");
+        cargo.setNivel(NivelCargo.MEDIO);
         cargo = cargoRepository.save(cargo);
 
         mockMvc
@@ -69,6 +71,7 @@ class CargoControllerTest {
     void testDelete() throws Exception {
         Cargo cargo = new Cargo();
         cargo.setNome("DeleteMe");
+        cargo.setNivel(NivelCargo.FUNDAMENTAL);
         cargo = cargoRepository.save(cargo);
 
         mockMvc
@@ -81,14 +84,14 @@ class CargoControllerTest {
         // Create first cargo
         Cargo cargo1 = new Cargo();
         cargo1.setNome("Analista");
-        cargo1.setNivel("Superior");
+        cargo1.setNivel(NivelCargo.SUPERIOR);
         cargo1.setArea("TI");
         cargoRepository.save(cargo1);
 
         // Try to create another cargo with the same name, nivel, and area
         CargoCreateRequest request = new CargoCreateRequest();
         request.setNome("Analista");
-        request.setNivel("Superior");
+        request.setNivel(NivelCargo.SUPERIOR);
         request.setArea("TI");
 
         mockMvc
@@ -101,6 +104,34 @@ class CargoControllerTest {
             .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
             .andExpect(jsonPath("$.title").value("Conflito"))
             .andExpect(jsonPath("$.status").value(409))
-            .andExpect(jsonPath("$.detail").value("Já existe um cargo com o nome 'Analista', nível 'Superior' e área 'TI'"));
+            .andExpect(jsonPath("$.detail").value("Já existe um cargo com o nome 'Analista', nível 'SUPERIOR' e área 'TI'"));
+    }
+
+    @Test
+    void testCreateCargo_Conflict_CaseInsensitiveDuplicate() throws Exception {
+        // Create first cargo with uppercase values
+        Cargo cargo1 = new Cargo();
+        cargo1.setNome("ANALISTA DE SISTEMAS");
+        cargo1.setNivel(NivelCargo.SUPERIOR);
+        cargo1.setArea("TECNOLOGIA DA INFORMACAO");
+        cargoRepository.save(cargo1);
+
+        // Try to create another cargo with the same values in lowercase (should be detected as duplicate)
+        CargoCreateRequest request = new CargoCreateRequest();
+        request.setNome("analista de sistemas");
+        request.setNivel(NivelCargo.SUPERIOR);
+        request.setArea("tecnologia da informacao");
+
+        mockMvc
+            .perform(
+                post("/api/cargos")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(request))
+            )
+            .andExpect(status().isConflict())
+            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.title").value("Conflito"))
+            .andExpect(jsonPath("$.status").value(409))
+            .andExpect(jsonPath("$.detail").value("Já existe um cargo com o nome 'analista de sistemas', nível 'SUPERIOR' e área 'tecnologia da informacao'"));
     }
 }

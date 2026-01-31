@@ -122,4 +122,28 @@ class BancaControllerTest {
             .andExpect(jsonPath("$.status").value(409))
             .andExpect(jsonPath("$.detail").value("Já existe uma banca com o nome 'CESPE'"));
     }
+
+    @Test
+    void testCreateBanca_Conflict_CaseInsensitiveDuplicate() throws Exception {
+        // Create first banca with uppercase name
+        Banca banca1 = new Banca();
+        banca1.setNome("CESPE");
+        bancaRepository.save(banca1);
+
+        // Try to create another banca with the same name in lowercase (should be detected as duplicate)
+        BancaCreateRequest request = new BancaCreateRequest();
+        request.setNome("cespe");
+
+        mockMvc
+            .perform(
+                post("/api/bancas")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(request))
+            )
+            .andExpect(status().isConflict())
+            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.title").value("Conflito"))
+            .andExpect(jsonPath("$.status").value(409))
+            .andExpect(jsonPath("$.detail").value("Já existe uma banca com o nome 'cespe'"));
+    }
 }

@@ -273,6 +273,52 @@ class QuestaoServiceTest {
     }
 
     @Test
+    void testAddCargoToQuestao_NonExistentQuestao() {
+        // Arrange
+        QuestaoCargoDto questaoCargoDto = new QuestaoCargoDto();
+        questaoCargoDto.setQuestaoId(999L); // Non-existent questao ID
+        questaoCargoDto.setConcursoCargoId(2L);
+
+        when(questaoCargoRepository.findByQuestaoIdAndConcursoCargoId(999L, 2L)).thenReturn(List.of()); // No existing association
+        when(questaoRepository.findById(999L)).thenReturn(Optional.empty()); // Questao does not exist
+
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> {
+            questaoService.addCargoToQuestao(questaoCargoDto);
+        });
+
+        verify(questaoCargoRepository, times(1)).findByQuestaoIdAndConcursoCargoId(999L, 2L);
+        verify(questaoRepository, times(1)).findById(999L);
+        verify(concursoCargoRepository, never()).findById(anyLong()); // Should not check concursoCargo if questao doesn't exist
+        verify(questaoCargoRepository, never()).save(any(QuestaoCargo.class)); // Should not save
+    }
+
+    @Test
+    void testAddCargoToQuestao_NonExistentConcursoCargo() {
+        // Arrange
+        QuestaoCargoDto questaoCargoDto = new QuestaoCargoDto();
+        questaoCargoDto.setQuestaoId(1L);
+        questaoCargoDto.setConcursoCargoId(999L); // Non-existent concursoCargo ID
+
+        Questao questao = new Questao();
+        questao.setId(1L);
+
+        when(questaoCargoRepository.findByQuestaoIdAndConcursoCargoId(1L, 999L)).thenReturn(List.of()); // No existing association
+        when(questaoRepository.findById(1L)).thenReturn(Optional.of(questao)); // Questao exists
+        when(concursoCargoRepository.findById(999L)).thenReturn(Optional.empty()); // ConcursoCargo does not exist
+
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> {
+            questaoService.addCargoToQuestao(questaoCargoDto);
+        });
+
+        verify(questaoCargoRepository, times(1)).findByQuestaoIdAndConcursoCargoId(1L, 999L);
+        verify(questaoRepository, times(1)).findById(1L);
+        verify(concursoCargoRepository, times(1)).findById(999L);
+        verify(questaoCargoRepository, never()).save(any(QuestaoCargo.class)); // Should not save
+    }
+
+    @Test
     void testCreateQuestaoWithoutCargo_Association() {
         // Arrange
         QuestaoDto questaoDto = new QuestaoDto();

@@ -203,6 +203,65 @@ class ConcursoControllerTest {
     }
 
     @Test
+    void testAddCargoToConcurso_NonExistentConcurso() throws Exception {
+        // Create cargo
+        Cargo cargo = new Cargo();
+        cargo.setNome("Cargo Test");
+        cargo.setNivel(com.studora.entity.NivelCargo.SUPERIOR);
+        cargo.setArea("TI");
+        cargo = cargoRepository.save(cargo);
+
+        // Prepare request
+        com.studora.dto.request.ConcursoCargoCreateRequest request = new com.studora.dto.request.ConcursoCargoCreateRequest();
+        request.setCargoId(cargo.getId());
+
+        // Try to add cargo to non-existent concurso
+        mockMvc
+            .perform(
+                post("/api/concursos/{id}/cargos", 99999L)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(request))
+            )
+            .andExpect(status().isNotFound())
+            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.title").value("Recurso não encontrado"))
+            .andExpect(jsonPath("$.status").value(404))
+            .andExpect(jsonPath("$.detail").value("Não foi possível encontrar Concurso com ID: '99999'"));
+    }
+
+    @Test
+    void testAddCargoToConcurso_NonExistentCargo() throws Exception {
+        // Create concurso
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Instituição Test");
+        instituicao = instituicaoRepository.save(instituicao);
+
+        Banca banca = new Banca();
+        banca.setNome("Banca Test");
+        banca = bancaRepository.save(banca);
+
+        Concurso concurso = new Concurso(instituicao, banca, 2023);
+        concurso = concursoRepository.save(concurso);
+
+        // Prepare request with non-existent cargo ID
+        com.studora.dto.request.ConcursoCargoCreateRequest request = new com.studora.dto.request.ConcursoCargoCreateRequest();
+        request.setCargoId(99999L);
+
+        // Try to add non-existent cargo to concurso
+        mockMvc
+            .perform(
+                post("/api/concursos/{id}/cargos", concurso.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(request))
+            )
+            .andExpect(status().isNotFound())
+            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.title").value("Recurso não encontrado"))
+            .andExpect(jsonPath("$.status").value(404))
+            .andExpect(jsonPath("$.detail").value("Não foi possível encontrar Cargo com ID: '99999'"));
+    }
+
+    @Test
     void testRemoveCargoFromConcurso_UnprocessableEntity_NoRemainingCargo() throws Exception {
         // Create instituicao and banca
         Instituicao instituicao = new Instituicao();
@@ -220,6 +279,8 @@ class ConcursoControllerTest {
         // Create cargo
         Cargo cargo = new Cargo();
         cargo.setNome("Cargo Test");
+        cargo.setNivel(com.studora.entity.NivelCargo.SUPERIOR);
+        cargo.setArea("TI");
         cargo = cargoRepository.save(cargo);
 
         // Create concurso-cargo association

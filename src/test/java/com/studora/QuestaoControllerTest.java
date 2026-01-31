@@ -7,6 +7,7 @@ import com.studora.dto.QuestaoDto;
 import com.studora.dto.request.QuestaoCreateRequest;
 import com.studora.dto.request.QuestaoUpdateRequest;
 import com.studora.entity.*;
+import com.studora.entity.NivelCargo;
 import com.studora.repository.*;
 import com.studora.util.TestUtil;
 import java.util.Arrays;
@@ -91,7 +92,7 @@ class QuestaoControllerTest {
         // Create a cargo and associate it with the concurso
         Cargo cargo = new Cargo();
         cargo.setNome("Cargo Test");
-        cargo.setNivel("Nível Test");
+        cargo.setNivel(NivelCargo.SUPERIOR);
         cargo.setArea("Área Test");
         cargo = cargoRepository.save(cargo);
 
@@ -388,5 +389,49 @@ class QuestaoControllerTest {
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.concursoCargoId").value(concursoCargo.getId()))
             .andExpect(jsonPath("$.questaoId").value(questao.getId()));
+    }
+
+    @Test
+    void testAddCargoToQuestao_NonExistentQuestao() throws Exception {
+        // Create cargo association request
+        com.studora.dto.request.QuestaoCargoCreateRequest cargoRequest = new com.studora.dto.request.QuestaoCargoCreateRequest();
+        cargoRequest.setConcursoCargoId(concursoCargo.getId());
+
+        mockMvc
+            .perform(
+                post("/api/questoes/{id}/cargos", 99999L) // Non-existent questao ID
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(cargoRequest))
+            )
+            .andExpect(status().isNotFound())
+            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.title").value("Recurso não encontrado"))
+            .andExpect(jsonPath("$.status").value(404))
+            .andExpect(jsonPath("$.detail").value("Não foi possível encontrar Questão com ID: '99999'"));
+    }
+
+    @Test
+    void testAddCargoToQuestao_NonExistentConcursoCargo() throws Exception {
+        // First create a question
+        Questao questao = new Questao();
+        questao.setEnunciado("Questão para cargo");
+        questao.setConcurso(concurso);
+        questao = questaoRepository.save(questao);
+
+        // Create cargo association request with non-existent concursoCargo ID
+        com.studora.dto.request.QuestaoCargoCreateRequest cargoRequest = new com.studora.dto.request.QuestaoCargoCreateRequest();
+        cargoRequest.setConcursoCargoId(99999L); // Non-existent concursoCargo ID
+
+        mockMvc
+            .perform(
+                post("/api/questoes/{id}/cargos", questao.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(cargoRequest))
+            )
+            .andExpect(status().isNotFound())
+            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.title").value("Recurso não encontrado"))
+            .andExpect(jsonPath("$.status").value(404))
+            .andExpect(jsonPath("$.detail").value("Não foi possível encontrar ConcursoCargo com ID: '99999'"));
     }
 }
