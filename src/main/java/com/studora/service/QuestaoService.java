@@ -141,6 +141,9 @@ public class QuestaoService {
             .findById(questaoDto.getConcursoId())
             .orElseThrow(() -> new ResourceNotFoundException("Concurso", "ID", questaoDto.getConcursoId()));
 
+        // Normalize orders before validation and processing
+        normalizeAlternativaOrders(questaoDto.getAlternativas());
+
         // Validate that the question has at least one cargo association
         if (questaoDto.getConcursoCargoIds() == null || questaoDto.getConcursoCargoIds().isEmpty()) {
             throw new ValidationException("Uma questão deve estar associada a pelo menos um cargo");
@@ -215,6 +218,9 @@ public class QuestaoService {
         Questao existingQuestao = questaoRepository
             .findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Questão", "ID", id));
+
+        // Normalize orders before validation and processing
+        normalizeAlternativaOrders(questaoDto.getAlternativas());
 
         // Validate that the question has at least 2 alternatives
         if (questaoDto.getAlternativas() != null) {
@@ -446,6 +452,18 @@ public class QuestaoService {
         dto.setQuestaoId(questaoCargo.getQuestao().getId());
         dto.setConcursoCargoId(questaoCargo.getConcursoCargo().getId());
         return dto;
+    }
+
+    private void normalizeAlternativaOrders(List<AlternativaDto> alternativas) {
+        if (alternativas == null || alternativas.isEmpty()) {
+            return;
+        }
+
+        // Sort by current order (nulls treated as 0) and reassign from 1 to N
+        alternativas.sort(java.util.Comparator.comparing(a -> a.getOrdem() == null ? 0 : a.getOrdem()));
+        for (int i = 0; i < alternativas.size(); i++) {
+            alternativas.get(i).setOrdem(i + 1);
+        }
     }
 
     private Questao convertToEntity(QuestaoDto dto) {

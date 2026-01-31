@@ -105,7 +105,7 @@ public class Alternativa {
     }
 
     public void setJustificativa(String justificativa) {
-        this.justificativa = justificativa;
+        this.justificativa = (justificativa != null && !justificativa.trim().isEmpty()) ? justificativa : null;
     }
 
     public List<Resposta> getRespostas() {

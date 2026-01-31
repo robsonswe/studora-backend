@@ -1257,8 +1257,8 @@ class QuestaoServiceTest {
         questaoDto.setConcursoCargoIds(Arrays.asList(2L));
         
         // Add valid alternatives to pass early validations
-        AlternativaDto alt1 = new AlternativaDto(); alt1.setCorreta(true);
-        AlternativaDto alt2 = new AlternativaDto(); alt2.setCorreta(false);
+        AlternativaDto alt1 = new AlternativaDto(); alt1.setCorreta(true); alt1.setOrdem(1);
+        AlternativaDto alt2 = new AlternativaDto(); alt2.setCorreta(false); alt2.setOrdem(2);
         questaoDto.setAlternativas(Arrays.asList(alt1, alt2));
 
         Concurso concurso1 = new Concurso(); 
@@ -1352,5 +1352,66 @@ class QuestaoServiceTest {
         assertNotNull(result);
         assertTrue(result.isEmpty());
         verify(questaoRepository, never()).findAllById(any());
+    }
+
+    @Test
+    void testNormalizeAlternativaOrders() {
+        // Arrange
+        AlternativaDto alt1 = new AlternativaDto();
+        alt1.setOrdem(10);
+        alt1.setTexto("Alt 10");
+
+        AlternativaDto alt2 = new AlternativaDto();
+        alt2.setOrdem(5);
+        alt2.setTexto("Alt 5");
+
+        AlternativaDto alt3 = new AlternativaDto();
+        alt3.setOrdem(0);
+        alt3.setTexto("Alt 0");
+
+        List<AlternativaDto> alternativas = new java.util.ArrayList<>(Arrays.asList(alt1, alt2, alt3));
+
+        // Act
+        // Use reflection to access private method or just call create/update which uses it
+        // Given QuestaoService has the method, we can test it through a successful create scenario
+        // but since I want to test the logic directly and it's a private method, I'll rely on
+        // the fact that it's called in createQuestao.
+        
+        // Actually, let's just test it through createQuestao since we already have the mock setup.
+        
+        QuestaoDto questaoDto = new QuestaoDto();
+        questaoDto.setEnunciado("Q");
+        questaoDto.setConcursoId(1L);
+        questaoDto.setConcursoCargoIds(Arrays.asList(1L));
+        questaoDto.setAlternativas(alternativas);
+
+        Concurso concurso = new Concurso();
+        concurso.setId(1L);
+        when(concursoRepository.findById(1L)).thenReturn(Optional.of(concurso));
+        
+        ConcursoCargo cc = new ConcursoCargo();
+        cc.setConcurso(concurso);
+        when(concursoCargoRepository.findById(1L)).thenReturn(Optional.of(cc));
+        
+        Questao savedQuestao = new Questao();
+        savedQuestao.setId(1L);
+        savedQuestao.setEnunciado("Q");
+        savedQuestao.setConcurso(concurso);
+        when(questaoRepository.save(any())).thenReturn(savedQuestao);
+
+        // We need to mark one as correct to pass validation
+        alt2.setCorreta(true);
+        alt1.setCorreta(false);
+        alt3.setCorreta(false);
+
+        // Act
+        questaoService.createQuestao(questaoDto);
+
+        // Assert
+        // The list should be sorted: alt3 (0) -> alt2 (5) -> alt1 (10)
+        // And orders reassigned: 1, 2, 3
+        assertEquals(1, alt3.getOrdem());
+        assertEquals(2, alt2.getOrdem());
+        assertEquals(3, alt1.getOrdem());
     }
 }
