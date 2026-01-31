@@ -119,9 +119,22 @@ class RespostaControllerTest {
         resposta1.setAlternativaEscolhida(alternativa);
         respostaRepository.save(resposta1);
 
+        // Create a second question to avoid unique constraint violation on questao_id
+        Questao questao2 = new Questao();
+        questao2.setEnunciado("Enunciado 2");
+        questao2.setConcurso(questao.getConcurso());
+        questao2 = questaoRepository.save(questao2);
+
+        Alternativa alt2 = new Alternativa();
+        alt2.setOrdem(1);
+        alt2.setCorreta(true);
+        alt2.setTexto("Alt 2");
+        alt2.setQuestao(questao2);
+        alt2 = alternativaRepository.save(alt2);
+
         Resposta resposta2 = new Resposta();
-        resposta2.setQuestao(questao);
-        resposta2.setAlternativaEscolhida(alternativa);
+        resposta2.setQuestao(questao2);
+        resposta2.setAlternativaEscolhida(alt2);
         respostaRepository.save(resposta2);
 
         mockMvc

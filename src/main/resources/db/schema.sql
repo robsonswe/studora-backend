@@ -195,7 +195,7 @@ CREATE INDEX idx_alternativa_correta
 -- =========================
 CREATE TABLE resposta (
     id              INTEGER PRIMARY KEY,
-    questao_id      INTEGER NOT NULL,
+    questao_id      INTEGER NOT NULL UNIQUE,
     alternativa_id  INTEGER NOT NULL,
     respondida_em   TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

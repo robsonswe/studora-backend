@@ -25,7 +25,7 @@ public class Resposta {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "questao_id", nullable = false)
+    @JoinColumn(name = "questao_id", nullable = false, unique = true)
     @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
     @Schema(description = "Questão respondida")
     private Questao questao;
