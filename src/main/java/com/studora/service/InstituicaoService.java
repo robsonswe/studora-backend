@@ -5,6 +5,7 @@ import com.studora.entity.Instituicao;
 import com.studora.exception.ConflictException;
 import com.studora.exception.ResourceNotFoundException;
 import com.studora.repository.InstituicaoRepository;
+import com.studora.util.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

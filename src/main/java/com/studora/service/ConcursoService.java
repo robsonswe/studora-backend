@@ -14,6 +14,7 @@ import com.studora.repository.CargoRepository;
 import com.studora.repository.ConcursoCargoRepository;
 import com.studora.repository.ConcursoRepository;
 import com.studora.repository.InstituicaoRepository;
+import com.studora.util.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

@@ -6,6 +6,7 @@ import com.studora.entity.NivelCargo;
 import com.studora.exception.ConflictException;
 import com.studora.exception.ResourceNotFoundException;
 import com.studora.repository.CargoRepository;
+import com.studora.util.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
