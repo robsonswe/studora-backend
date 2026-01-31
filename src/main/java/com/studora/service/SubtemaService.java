@@ -48,8 +48,8 @@ public class SubtemaService {
         Tema tema = temaRepository.findById(subtemaDto.getTemaId())
                 .orElseThrow(() -> new ResourceNotFoundException("Tema", "ID", subtemaDto.getTemaId()));
 
-        // Check for duplicate subtema name within the same tema
-        Optional<Subtema> existingSubtema = subtemaRepository.findByTemaIdAndNome(subtemaDto.getTemaId(), subtemaDto.getNome());
+        // Check for duplicate subtema name within the same tema (case-insensitive)
+        Optional<Subtema> existingSubtema = subtemaRepository.findByTemaIdAndNomeIgnoreCase(subtemaDto.getTemaId(), subtemaDto.getNome());
         if (existingSubtema.isPresent()) {
             throw new ConflictException("Já existe um subtema com o nome '" + subtemaDto.getNome() + "' no tema com ID: " + subtemaDto.getTemaId());
         }
@@ -68,8 +68,8 @@ public class SubtemaService {
         Tema tema = temaRepository.findById(subtemaDto.getTemaId())
                 .orElseThrow(() -> new ResourceNotFoundException("Tema", "ID", subtemaDto.getTemaId()));
 
-        // Check for duplicate subtema name within the same tema (excluding current subtema)
-        Optional<Subtema> duplicateSubtema = subtemaRepository.findByTemaIdAndNomeAndIdNot(tema.getId(), subtemaDto.getNome(), id);
+        // Check for duplicate subtema name within the same tema (excluding current subtema, case-insensitive)
+        Optional<Subtema> duplicateSubtema = subtemaRepository.findByTemaIdAndNomeIgnoreCaseAndIdNot(tema.getId(), subtemaDto.getNome(), id);
         if (duplicateSubtema.isPresent()) {
             throw new ConflictException("Já existe um subtema com o nome '" + subtemaDto.getNome() + "' no tema com ID: " + tema.getId());
         }

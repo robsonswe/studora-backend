@@ -90,7 +90,7 @@ CREATE TABLE disciplina (
 CREATE TABLE tema (
     id              INTEGER PRIMARY KEY,
     disciplina_id   INTEGER NOT NULL,
-    nome            TEXT NOT NULL,
+    nome            TEXT COLLATE NOCASE NOT NULL,
 
     FOREIGN KEY (disciplina_id) REFERENCES disciplina(id),
     UNIQUE (disciplina_id, nome)
@@ -105,7 +105,7 @@ CREATE INDEX idx_tema_disciplina
 CREATE TABLE subtema (
     id          INTEGER PRIMARY KEY,
     tema_id     INTEGER NOT NULL,
-    nome        TEXT NOT NULL,
+    nome        TEXT COLLATE NOCASE NOT NULL,
 
     FOREIGN KEY (tema_id) REFERENCES tema(id),
     UNIQUE (tema_id, nome)

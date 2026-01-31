@@ -148,4 +148,27 @@ class SubtemaControllerTest {
             .perform(get("/api/subtemas/{id}", subtema.getId()))
             .andExpect(status().isNotFound());
     }
+
+    @Test
+    void testCreateSubtema_Conflict_DuplicateName_CaseInsensitive() throws Exception {
+        // Create first subtema
+        Subtema sub1 = new Subtema();
+        sub1.setNome("Controle Prévio");
+        sub1.setTema(tema);
+        subtemaRepository.save(sub1);
+
+        // Try to create another subtema with the same name but different case
+        SubtemaCreateRequest request = new SubtemaCreateRequest();
+        request.setNome("controle prévio");
+        request.setTemaId(tema.getId());
+
+        mockMvc
+            .perform(
+                post("/api/subtemas")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(request))
+            )
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.detail").value("Já existe um subtema com o nome 'controle prévio' no tema com ID: " + tema.getId()));
+    }
 }
