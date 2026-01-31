@@ -15,4 +15,6 @@ public interface QuestaoCargoRepository extends JpaRepository<QuestaoCargo, Long
     List<QuestaoCargo> findByQuestaoIdAndConcursoCargoId(@Param("questaoId") Long questaoId, @Param("concursoCargoId") Long concursoCargoId);
 
     List<QuestaoCargo> findByConcursoCargoId(Long concursoCargoId);
+
+    long countByQuestaoId(Long questaoId);
 }

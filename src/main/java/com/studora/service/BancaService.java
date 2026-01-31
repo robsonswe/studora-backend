@@ -18,6 +18,9 @@ public class BancaService {
     @Autowired
     private BancaRepository bancaRepository;
 
+    @Autowired
+    private com.studora.repository.ConcursoRepository concursoRepository;
+
     public List<BancaDto> findAll() {
         return bancaRepository.findAll().stream()
                 .map(this::convertToDto)
@@ -51,6 +54,9 @@ public class BancaService {
     public void deleteById(Long id) {
         if (!bancaRepository.existsById(id)) {
             throw new ResourceNotFoundException("Banca", "ID", id);
+        }
+        if (concursoRepository.existsByBancaId(id)) {
+            throw new com.studora.exception.ConflictException("Não é possível excluir a banca pois existem concursos associados a ela.");
         }
         bancaRepository.deleteById(id);
     }

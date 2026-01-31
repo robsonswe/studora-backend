@@ -39,6 +39,9 @@ public class ConcursoService {
     @Autowired
     private ConcursoCargoRepository concursoCargoRepository;
 
+    @Autowired
+    private com.studora.repository.QuestaoCargoRepository questaoCargoRepository;
+
     public List<ConcursoDto> findAll() {
         return concursoRepository.findAll().stream()
                 .map(this::convertToDto)
@@ -137,10 +140,21 @@ public class ConcursoService {
             throw new ResourceNotFoundException("Associação entre concurso e cargo não encontrada");
         }
 
+        // Validate if any question depends solely on this ConcursoCargo
+        for (ConcursoCargo cc : concursoCargos) {
+            List<com.studora.entity.QuestaoCargo> questaoCargos = questaoCargoRepository.findByConcursoCargoId(cc.getId());
+            for (com.studora.entity.QuestaoCargo qc : questaoCargos) {
+                long count = questaoCargoRepository.countByQuestaoId(qc.getQuestao().getId());
+                if (count <= 1) {
+                    throw new ValidationException("Não é possível remover o cargo do concurso pois ele é a única associação para a questão ID: " + qc.getQuestao().getId());
+                }
+            }
+        }
+
         // Check if removing this association would leave the concurso with no cargo associations
         List<ConcursoCargo> currentAssociations = concursoCargoRepository.findByConcursoId(concursoId);
-        if (currentAssociations.size() <= 1) {
-            throw new ValidationException("Um concurso deve estar associado a pelo menos um cargo");
+        if (currentAssociations.size() <= concursoCargos.size()) {
+             throw new ValidationException("Um concurso deve estar associado a pelo menos um cargo");
         }
 
         // Delete the association

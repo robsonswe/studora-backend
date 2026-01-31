@@ -46,6 +46,7 @@ public class Concurso {
     @OneToMany(
         mappedBy = "concurso",
         cascade = CascadeType.ALL,
+        orphanRemoval = true,
         fetch = FetchType.LAZY
     )
     @Schema(description = "Questões associadas ao concurso")
@@ -54,6 +55,7 @@ public class Concurso {
     @OneToMany(
         mappedBy = "concurso",
         cascade = CascadeType.ALL,
+        orphanRemoval = true,
         fetch = FetchType.LAZY
     )
     @Schema(description = "Associações entre o concurso e cargos")

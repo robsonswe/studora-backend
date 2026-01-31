@@ -18,6 +18,9 @@ public class InstituicaoService {
     @Autowired
     private InstituicaoRepository instituicaoRepository;
 
+    @Autowired
+    private com.studora.repository.ConcursoRepository concursoRepository;
+
     public List<InstituicaoDto> findAll() {
         return instituicaoRepository.findAll().stream()
                 .map(this::convertToDto)
@@ -51,6 +54,9 @@ public class InstituicaoService {
     public void deleteById(Long id) {
         if (!instituicaoRepository.existsById(id)) {
             throw new ResourceNotFoundException("Instituição", "ID", id);
+        }
+        if (concursoRepository.existsByInstituicaoId(id)) {
+            throw new com.studora.exception.ConflictException("Não é possível excluir a instituição pois existem concursos associados a ela.");
         }
         instituicaoRepository.deleteById(id);
     }

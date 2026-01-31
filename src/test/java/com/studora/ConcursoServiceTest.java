@@ -45,6 +45,9 @@ class ConcursoServiceTest {
     @Mock
     private ConcursoCargoRepository concursoCargoRepository;
 
+    @Mock
+    private com.studora.repository.QuestaoCargoRepository questaoCargoRepository;
+
     @InjectMocks
     private ConcursoService concursoService;
 
@@ -439,6 +442,8 @@ class ConcursoServiceTest {
             .thenReturn(Arrays.asList(existingAssociation));
         when(concursoCargoRepository.findByConcursoId(concursoId))
             .thenReturn(Arrays.asList(existingAssociation)); // Only one association exists
+        // Mock new validation to pass (no affected questions)
+        when(questaoCargoRepository.findByConcursoCargoId(anyLong())).thenReturn(Collections.emptyList());
 
         // Act & Assert
         assertThrows(RuntimeException.class, () -> {

@@ -19,6 +19,9 @@ public class CargoService {
     @Autowired
     private CargoRepository cargoRepository;
 
+    @Autowired
+    private com.studora.repository.ConcursoCargoRepository concursoCargoRepository;
+
     public List<CargoDto> findAll() {
         return cargoRepository.findAll().stream()
                 .map(this::convertToDto)
@@ -54,6 +57,9 @@ public class CargoService {
     public void deleteById(Long id) {
         if (!cargoRepository.existsById(id)) {
             throw new ResourceNotFoundException("Cargo", "ID", id);
+        }
+        if (concursoCargoRepository.existsByCargoId(id)) {
+            throw new com.studora.exception.ConflictException("Não é possível excluir o cargo pois existem concursos associados a ele.");
         }
         cargoRepository.deleteById(id);
     }

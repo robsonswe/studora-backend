@@ -6,5 +6,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ConcursoRepository extends JpaRepository<Concurso, Long> {
-    // Custom queries can be added here if needed
+    boolean existsByInstituicaoId(Long instituicaoId);
+    boolean existsByBancaId(Long bancaId);
 }
