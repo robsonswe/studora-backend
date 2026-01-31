@@ -128,12 +128,14 @@ public class ConcursoController {
     )
     @PostMapping
     public ResponseEntity<ConcursoDto> createConcurso(
-            @RequestBody ConcursoCreateRequest concursoCreateRequest) {
+            @jakarta.validation.Valid @RequestBody ConcursoCreateRequest concursoCreateRequest) {
         // Convert the request DTO to the regular DTO for processing
         ConcursoDto concursoDto = new ConcursoDto();
         concursoDto.setInstituicaoId(concursoCreateRequest.getInstituicaoId());
         concursoDto.setBancaId(concursoCreateRequest.getBancaId());
         concursoDto.setAno(concursoCreateRequest.getAno());
+        concursoDto.setMes(concursoCreateRequest.getMes());
+        concursoDto.setEdital(concursoCreateRequest.getEdital());
 
         ConcursoDto createdConcurso = concursoService.save(concursoDto);
         return new ResponseEntity<>(createdConcurso, HttpStatus.CREATED);
@@ -187,13 +189,15 @@ public class ConcursoController {
     @PutMapping("/{id}")
     public ResponseEntity<ConcursoDto> updateConcurso(
             @Parameter(description = "ID do concurso a ser atualizado", required = true) @PathVariable Long id,
-            @RequestBody ConcursoUpdateRequest concursoUpdateRequest) {
+            @jakarta.validation.Valid @RequestBody ConcursoUpdateRequest concursoUpdateRequest) {
         // Convert the request DTO to the regular DTO for processing
         ConcursoDto concursoDto = new ConcursoDto();
         concursoDto.setId(id); // Set the ID from the path parameter
         concursoDto.setInstituicaoId(concursoUpdateRequest.getInstituicaoId());
         concursoDto.setBancaId(concursoUpdateRequest.getBancaId());
         concursoDto.setAno(concursoUpdateRequest.getAno());
+        concursoDto.setMes(concursoUpdateRequest.getMes());
+        concursoDto.setEdital(concursoUpdateRequest.getEdital());
 
         ConcursoDto updatedConcurso = concursoService.save(concursoDto);
         return ResponseEntity.ok(updatedConcurso);

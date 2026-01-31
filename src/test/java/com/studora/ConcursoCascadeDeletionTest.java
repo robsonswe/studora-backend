@@ -78,7 +78,7 @@ class ConcursoCascadeDeletionTest {
         cargo = cargoRepository.save(cargo);
 
         // 2. Create Concurso
-        Concurso concurso = new Concurso(inst, banca, 2023);
+        Concurso concurso = new Concurso(inst, banca, 2023, 6);
         concurso = concursoRepository.save(concurso);
         Long concursoId = concurso.getId();
 

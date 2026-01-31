@@ -9,7 +9,7 @@ import java.util.List;
     name = "concurso",
     uniqueConstraints = {
         @UniqueConstraint(
-            columnNames = { "instituicao_id", "banca_id", "ano" }
+            columnNames = { "instituicao_id", "banca_id", "ano", "mes" }
         ),
     },
     indexes = {
@@ -19,6 +19,7 @@ import java.util.List;
         ),
         @Index(name = "idx_concurso_banca", columnList = "banca_id"),
         @Index(name = "idx_concurso_ano", columnList = "ano"),
+        @Index(name = "idx_concurso_mes", columnList = "mes"),
     }
 )
 @Schema(description = "Entidade que representa um concurso")
@@ -29,12 +30,12 @@ public class Concurso {
     @Schema(description = "ID único do concurso", example = "1")
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "instituicao_id", nullable = false)
     @Schema(description = "Instituição organizadora do concurso")
     private Instituicao instituicao;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "banca_id", nullable = false)
     @Schema(description = "Banca organizadora do concurso")
     private Banca banca;
@@ -42,6 +43,14 @@ public class Concurso {
     @Column(nullable = false)
     @Schema(description = "Ano em que o concurso foi realizado", example = "2023")
     private Integer ano;
+
+    @Column(nullable = false)
+    @Schema(description = "Mês em que o concurso foi realizado", example = "6")
+    private Integer mes;
+
+    @Column(columnDefinition = "TEXT")
+    @Schema(description = "Identificação do edital do concurso", example = "Edital 01/2023")
+    private String edital;
 
     @OneToMany(
         mappedBy = "concurso",
@@ -63,10 +72,11 @@ public class Concurso {
 
     public Concurso() {}
 
-    public Concurso(Instituicao instituicao, Banca banca, Integer ano) {
+    public Concurso(Instituicao instituicao, Banca banca, Integer ano, Integer mes) {
         this.instituicao = instituicao;
         this.banca = banca;
         this.ano = ano;
+        this.mes = mes;
     }
 
     // Getters and Setters
@@ -100,6 +110,22 @@ public class Concurso {
 
     public void setAno(Integer ano) {
         this.ano = ano;
+    }
+
+    public Integer getMes() {
+        return mes;
+    }
+
+    public void setMes(Integer mes) {
+        this.mes = mes;
+    }
+
+    public String getEdital() {
+        return edital;
+    }
+
+    public void setEdital(String edital) {
+        this.edital = edital;
     }
 
     public List<Questao> getQuestoes() {

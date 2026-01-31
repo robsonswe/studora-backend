@@ -70,6 +70,7 @@ class ConcursoControllerTest {
         concursoCreateRequest.setInstituicaoId(instituicao.getId());
         concursoCreateRequest.setBancaId(banca.getId());
         concursoCreateRequest.setAno(2023);
+        concursoCreateRequest.setMes(1);
 
         mockMvc
             .perform(
@@ -80,7 +81,40 @@ class ConcursoControllerTest {
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.instituicaoId").value(instituicao.getId()))
             .andExpect(jsonPath("$.bancaId").value(banca.getId()))
-            .andExpect(jsonPath("$.ano").value(2023));
+            .andExpect(jsonPath("$.ano").value(2023))
+            .andExpect(jsonPath("$.mes").value(1));
+    }
+
+    @Test
+    void testCreateConcurso_Duplicate_Conflict() throws Exception {
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Instituição Conflict Test");
+        instituicao = instituicaoRepository.save(instituicao);
+
+        Banca banca = new Banca();
+        banca.setNome("Banca Conflict Test");
+        banca = bancaRepository.save(banca);
+
+        // Create the first concurso
+        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
+        concursoRepository.save(concurso);
+
+        // Try to create an identical one
+        ConcursoCreateRequest request = new ConcursoCreateRequest();
+        request.setInstituicaoId(instituicao.getId());
+        request.setBancaId(banca.getId());
+        request.setAno(2023);
+        request.setMes(1);
+
+        mockMvc
+            .perform(
+                post("/api/concursos")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(request))
+            )
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.title").value("Conflito"))
+            .andExpect(jsonPath("$.detail").value("Já existe um concurso cadastrado para esta instituição, banca, ano e mês."));
     }
 
     @Test
@@ -93,7 +127,7 @@ class ConcursoControllerTest {
         banca.setNome("Banca Get Test");
         banca = bancaRepository.save(banca);
 
-        Concurso concurso = new Concurso(instituicao, banca, 2023);
+        Concurso concurso = new Concurso(instituicao, banca, 2023, 6);
         concurso = concursoRepository.save(concurso);
 
         mockMvc
@@ -101,7 +135,8 @@ class ConcursoControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.instituicaoId").value(instituicao.getId()))
             .andExpect(jsonPath("$.bancaId").value(banca.getId()))
-            .andExpect(jsonPath("$.ano").value(2023));
+            .andExpect(jsonPath("$.ano").value(2023))
+            .andExpect(jsonPath("$.mes").value(6));
     }
 
     @Test
@@ -129,8 +164,8 @@ class ConcursoControllerTest {
         banca2.setNome("Banca All 2");
         banca2 = bancaRepository.save(banca2);
 
-        concursoRepository.save(new Concurso(instituicao1, banca1, 2023));
-        concursoRepository.save(new Concurso(instituicao2, banca2, 2024));
+        concursoRepository.save(new Concurso(instituicao1, banca1, 2023, 1));
+        concursoRepository.save(new Concurso(instituicao2, banca2, 2024, 2));
 
         mockMvc
             .perform(get("/api/concursos"))
@@ -160,13 +195,14 @@ class ConcursoControllerTest {
         banca2.setNome("Banca Upd 2");
         banca2 = bancaRepository.save(banca2);
 
-        Concurso concurso = new Concurso(instituicao1, banca1, 2022);
+        Concurso concurso = new Concurso(instituicao1, banca1, 2022, 12);
         concurso = concursoRepository.save(concurso);
 
         ConcursoUpdateRequest concursoUpdateRequest = new ConcursoUpdateRequest();
         concursoUpdateRequest.setInstituicaoId(instituicao2.getId());
         concursoUpdateRequest.setBancaId(banca2.getId());
         concursoUpdateRequest.setAno(2023);
+        concursoUpdateRequest.setMes(6);
 
         mockMvc
             .perform(
@@ -177,7 +213,8 @@ class ConcursoControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.instituicaoId").value(instituicao2.getId()))
             .andExpect(jsonPath("$.bancaId").value(banca2.getId()))
-            .andExpect(jsonPath("$.ano").value(2023));
+            .andExpect(jsonPath("$.ano").value(2023))
+            .andExpect(jsonPath("$.mes").value(6));
     }
 
     @Test
@@ -190,7 +227,7 @@ class ConcursoControllerTest {
         banca.setNome("Banca Del Test");
         banca = bancaRepository.save(banca);
 
-        Concurso concurso = new Concurso(instituicao, banca, 2023);
+        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
         concurso = concursoRepository.save(concurso);
 
         mockMvc
@@ -240,7 +277,7 @@ class ConcursoControllerTest {
         banca.setNome("Banca Test");
         banca = bancaRepository.save(banca);
 
-        Concurso concurso = new Concurso(instituicao, banca, 2023);
+        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
         concurso = concursoRepository.save(concurso);
 
         // Prepare request with non-existent cargo ID
@@ -273,7 +310,7 @@ class ConcursoControllerTest {
         banca = bancaRepository.save(banca);
 
         // Create concurso
-        Concurso concurso = new Concurso(instituicao, banca, 2023);
+        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
         concurso = concursoRepository.save(concurso);
 
         // Create cargo

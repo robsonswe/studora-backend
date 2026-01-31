@@ -8,4 +8,5 @@ import org.springframework.stereotype.Repository;
 public interface ConcursoRepository extends JpaRepository<Concurso, Long> {
     boolean existsByInstituicaoId(Long instituicaoId);
     boolean existsByBancaId(Long bancaId);
+    boolean existsByInstituicaoIdAndBancaIdAndAnoAndMes(Long instituicaoId, Long bancaId, Integer ano, Integer mes);
 }

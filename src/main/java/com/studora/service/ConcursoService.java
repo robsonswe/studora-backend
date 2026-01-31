@@ -59,6 +59,30 @@ public class ConcursoService {
             throw new IllegalArgumentException("ConcursoDto não pode ser nulo.");
         }
 
+        // Check for duplicate combination (excluding the record being updated)
+        if (concursoDto.getId() == null) {
+            // New record: simple exists check
+            if (concursoRepository.existsByInstituicaoIdAndBancaIdAndAnoAndMes(
+                    concursoDto.getInstituicaoId(), concursoDto.getBancaId(), concursoDto.getAno(), concursoDto.getMes())) {
+                throw new com.studora.exception.ConflictException("Já existe um concurso cadastrado para esta instituição, banca, ano e mês.");
+            }
+        } else {
+            // Update: check if changes create a conflict with ANOTHER record
+            Concurso existing = concursoRepository.findById(concursoDto.getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Concurso", "ID", concursoDto.getId()));
+            
+            // If any of the identifying fields changed, check if the new combination already exists elsewhere
+            boolean changed = !existing.getInstituicao().getId().equals(concursoDto.getInstituicaoId()) ||
+                              !existing.getBanca().getId().equals(concursoDto.getBancaId()) ||
+                              !existing.getAno().equals(concursoDto.getAno()) ||
+                              !existing.getMes().equals(concursoDto.getMes());
+            
+            if (changed && concursoRepository.existsByInstituicaoIdAndBancaIdAndAnoAndMes(
+                    concursoDto.getInstituicaoId(), concursoDto.getBancaId(), concursoDto.getAno(), concursoDto.getMes())) {
+                throw new com.studora.exception.ConflictException("As alterações entram em conflito com outro concurso já cadastrado para esta mesma instituição, banca, ano e mês.");
+            }
+        }
+
         Concurso concurso;
         if (concursoDto.getId() != null) {
             // Update existing concurso
@@ -74,6 +98,8 @@ public class ConcursoService {
             existingConcurso.setInstituicao(instituicao);
             existingConcurso.setBanca(banca);
             existingConcurso.setAno(concursoDto.getAno());
+            existingConcurso.setMes(concursoDto.getMes());
+            existingConcurso.setEdital(concursoDto.getEdital());
 
             concurso = existingConcurso;
         } else {
@@ -163,6 +189,8 @@ public class ConcursoService {
         dto.setInstituicaoId(concurso.getInstituicao().getId());
         dto.setBancaId(concurso.getBanca().getId());
         dto.setAno(concurso.getAno());
+        dto.setMes(concurso.getMes());
+        dto.setEdital(concurso.getEdital());
         return dto;
     }
 
@@ -186,6 +214,8 @@ public class ConcursoService {
         concurso.setInstituicao(instituicao);
         concurso.setBanca(banca);
         concurso.setAno(dto.getAno());
+        concurso.setMes(dto.getMes());
+        concurso.setEdital(dto.getEdital());
 
         return concurso;
     }

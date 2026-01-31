@@ -76,7 +76,7 @@ class QuestaoServiceTest {
         banca.setId(1L);
         banca.setNome("Banca");
 
-        Concurso concurso = new Concurso(instituicao, banca, 2023);
+        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
         concurso.setId(1L);
         questao.setConcurso(concurso);
 
@@ -143,7 +143,7 @@ class QuestaoServiceTest {
         banca.setId(1L);
         banca.setNome("Banca");
 
-        Concurso concurso = new Concurso(instituicao, banca, 2023);
+        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
         concurso.setId(1L);
 
         ConcursoCargo concursoCargo = new ConcursoCargo();
@@ -387,7 +387,7 @@ class QuestaoServiceTest {
         banca.setId(1L);
         banca.setNome("Banca");
 
-        Concurso concurso = new Concurso(instituicao, banca, 2023);
+        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
         concurso.setId(1L);
 
         when(concursoRepository.findById(1L)).thenReturn(Optional.of(concurso));
@@ -435,7 +435,7 @@ class QuestaoServiceTest {
         banca.setId(1L);
         banca.setNome("Banca");
 
-        Concurso concurso = new Concurso(instituicao, banca, 2023);
+        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
         concurso.setId(1L);
 
         when(concursoRepository.findById(1L)).thenReturn(Optional.of(concurso));
@@ -483,7 +483,7 @@ class QuestaoServiceTest {
         banca.setId(1L);
         banca.setNome("Banca");
 
-        Concurso concurso = new Concurso(instituicao, banca, 2023);
+        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
         concurso.setId(1L);
 
         when(concursoRepository.findById(1L)).thenReturn(Optional.of(concurso));
@@ -530,7 +530,7 @@ class QuestaoServiceTest {
         banca.setId(1L);
         banca.setNome("Banca");
 
-        Concurso concurso = new Concurso(instituicao, banca, 2023);
+        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
         concurso.setId(1L);
 
         ConcursoCargo concursoCargo = new ConcursoCargo();
@@ -588,7 +588,7 @@ class QuestaoServiceTest {
         banca.setId(1L);
         banca.setNome("Banca");
 
-        Concurso concurso = new Concurso(instituicao, banca, 2023);
+        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
         concurso.setId(1L);
 
         ConcursoCargo concursoCargo = new ConcursoCargo();
@@ -647,7 +647,7 @@ class QuestaoServiceTest {
         banca.setId(1L);
         banca.setNome("Banca");
 
-        Concurso concurso = new Concurso(instituicao, banca, 2023);
+        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
         concurso.setId(1L);
 
         when(concursoRepository.findById(1L)).thenReturn(Optional.of(concurso));

@@ -3,7 +3,7 @@
 -- =========================
 CREATE TABLE instituicao (
     id      INTEGER PRIMARY KEY,
-    nome    TEXT NOT NULL UNIQUE
+    nome    TEXT COLLATE NOCASE NOT NULL UNIQUE
 );
 
 -- =========================
@@ -22,11 +22,13 @@ CREATE TABLE concurso (
     instituicao_id  INTEGER NOT NULL,
     banca_id        INTEGER NOT NULL,
     ano             INTEGER NOT NULL,
+    mes             INTEGER NOT NULL,
+    edital          TEXT COLLATE NOCASE,
 
     FOREIGN KEY (instituicao_id) REFERENCES instituicao(id),
     FOREIGN KEY (banca_id) REFERENCES banca(id),
 
-    UNIQUE (instituicao_id, banca_id, ano)
+    UNIQUE (instituicao_id, banca_id, ano, mes)
 );
 
 CREATE INDEX idx_concurso_instituicao
@@ -37,6 +39,9 @@ CREATE INDEX idx_concurso_banca
 
 CREATE INDEX idx_concurso_ano
     ON concurso (ano);
+
+CREATE INDEX idx_concurso_mes
+    ON concurso (mes);
 
 -- =========================
 -- CARGO

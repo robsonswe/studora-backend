@@ -67,7 +67,7 @@ class ConcursoServiceTest {
         banca1.setId(1L);
         banca1.setNome("Banca 1");
 
-        Concurso concurso1 = new Concurso(instituicao1, banca1, 2023);
+        Concurso concurso1 = new Concurso(instituicao1, banca1, 2023, 1);
         concurso1.setId(1L);
 
         Instituicao instituicao2 = new Instituicao();
@@ -78,7 +78,7 @@ class ConcursoServiceTest {
         banca2.setId(2L);
         banca2.setNome("Banca 2");
 
-        Concurso concurso2 = new Concurso(instituicao2, banca2, 2024);
+        Concurso concurso2 = new Concurso(instituicao2, banca2, 2024, 2);
         concurso2.setId(2L);
 
         when(concursoRepository.findAll()).thenReturn(Arrays.asList(concurso1, concurso2));
@@ -91,9 +91,11 @@ class ConcursoServiceTest {
         assertEquals(1L, result.get(0).getInstituicaoId());
         assertEquals(1L, result.get(0).getBancaId());
         assertEquals(2023, result.get(0).getAno());
+        assertEquals(1, result.get(0).getMes());
         assertEquals(2L, result.get(1).getInstituicaoId());
         assertEquals(2L, result.get(1).getBancaId());
         assertEquals(2024, result.get(1).getAno());
+        assertEquals(2, result.get(1).getMes());
 
         verify(concursoRepository, times(1)).findAll();
     }
@@ -122,7 +124,7 @@ class ConcursoServiceTest {
         banca.setId(1L);
         banca.setNome("Banca 1");
 
-        Concurso concurso = new Concurso(instituicao, banca, 2023);
+        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
         concurso.setId(1L);
 
         when(concursoRepository.findById(1L)).thenReturn(Optional.of(concurso));
@@ -135,6 +137,7 @@ class ConcursoServiceTest {
         assertEquals(1L, result.getInstituicaoId());
         assertEquals(1L, result.getBancaId());
         assertEquals(2023, result.getAno());
+        assertEquals(1, result.getMes());
         verify(concursoRepository, times(1)).findById(1L);
     }
 
@@ -158,6 +161,7 @@ class ConcursoServiceTest {
         concursoDto.setInstituicaoId(1L);
         concursoDto.setBancaId(1L);
         concursoDto.setAno(2023);
+        concursoDto.setMes(1);
 
         Instituicao instituicao = new Instituicao();
         instituicao.setId(1L);
@@ -170,8 +174,9 @@ class ConcursoServiceTest {
         // Mock the repository calls that happen inside the service
         when(instituicaoRepository.findById(1L)).thenReturn(Optional.of(instituicao));
         when(bancaRepository.findById(1L)).thenReturn(Optional.of(banca));
+        when(concursoRepository.existsByInstituicaoIdAndBancaIdAndAnoAndMes(anyLong(), anyLong(), anyInt(), anyInt())).thenReturn(false);
 
-        Concurso savedConcurso = new Concurso(instituicao, banca, 2023);
+        Concurso savedConcurso = new Concurso(instituicao, banca, 2023, 1);
         savedConcurso.setId(1L);
 
         when(concursoRepository.save(any(Concurso.class))).thenReturn(savedConcurso);
@@ -184,6 +189,7 @@ class ConcursoServiceTest {
         assertEquals(1L, result.getInstituicaoId());
         assertEquals(1L, result.getBancaId());
         assertEquals(2023, result.getAno());
+        assertEquals(1, result.getMes());
         verify(concursoRepository, times(1)).save(any(Concurso.class));
         verify(instituicaoRepository, times(1)).findById(1L);
         verify(bancaRepository, times(1)).findById(1L);
@@ -198,6 +204,26 @@ class ConcursoServiceTest {
     }
 
     @Test
+    void testCreateConcurso_DuplicateConflict() {
+        // Arrange
+        ConcursoDto dto = new ConcursoDto();
+        dto.setInstituicaoId(1L);
+        dto.setBancaId(1L);
+        dto.setAno(2023);
+        dto.setMes(1);
+
+        when(concursoRepository.existsByInstituicaoIdAndBancaIdAndAnoAndMes(1L, 1L, 2023, 1)).thenReturn(true);
+
+        // Act & Assert
+        com.studora.exception.ConflictException exception = assertThrows(com.studora.exception.ConflictException.class, () -> {
+            concursoService.save(dto);
+        });
+
+        assertTrue(exception.getMessage().contains("Já existe um concurso cadastrado"));
+        verify(concursoRepository, never()).save(any(Concurso.class));
+    }
+
+    @Test
     void testUpdateConcurso_Success() {
         // Arrange
         Long concursoId = 1L;
@@ -207,6 +233,7 @@ class ConcursoServiceTest {
         concursoDto.setInstituicaoId(2L);
         concursoDto.setBancaId(2L);
         concursoDto.setAno(2024);
+        concursoDto.setMes(2);
 
         Instituicao instituicao = new Instituicao();
         instituicao.setId(1L);
@@ -216,7 +243,7 @@ class ConcursoServiceTest {
         banca.setId(1L);
         banca.setNome("Banca 1");
 
-        Concurso existingConcurso = new Concurso(instituicao, banca, 2023);
+        Concurso existingConcurso = new Concurso(instituicao, banca, 2023, 1);
         existingConcurso.setId(concursoId);
 
         // Mock the repository calls that happen inside the service
@@ -232,6 +259,7 @@ class ConcursoServiceTest {
         when(bancaRepository.findById(2L)).thenReturn(Optional.of(updatedBanca));
 
         when(concursoRepository.findById(concursoId)).thenReturn(Optional.of(existingConcurso));
+        when(concursoRepository.existsByInstituicaoIdAndBancaIdAndAnoAndMes(anyLong(), anyLong(), anyInt(), anyInt())).thenReturn(false);
         when(concursoRepository.save(any(Concurso.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act
@@ -242,8 +270,9 @@ class ConcursoServiceTest {
         assertEquals(concursoDto.getInstituicaoId(), updatedDto.getInstituicaoId());
         assertEquals(concursoDto.getBancaId(), updatedDto.getBancaId());
         assertEquals(concursoDto.getAno(), updatedDto.getAno());
+        assertEquals(concursoDto.getMes(), updatedDto.getMes());
 
-        verify(concursoRepository, times(1)).findById(concursoId);
+        verify(concursoRepository, atLeastOnce()).findById(concursoId);
         verify(concursoRepository, times(1)).save(any(Concurso.class));
     }
 
@@ -323,6 +352,7 @@ class ConcursoServiceTest {
 
         Concurso concurso = new Concurso();
         concurso.setId(1L);
+        concurso.setMes(1);
 
         Cargo cargo = new Cargo();
         cargo.setId(2L);
@@ -360,6 +390,7 @@ class ConcursoServiceTest {
 
         Concurso concurso = new Concurso();
         concurso.setId(1L);
+        concurso.setMes(1);
 
         Cargo cargo = new Cargo();
         cargo.setId(2L);

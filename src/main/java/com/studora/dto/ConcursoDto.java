@@ -21,16 +21,23 @@ public class ConcursoDto {
     private Long bancaId;
 
     @NotNull(message = "Ano é obrigatório")
-    @Positive(message = "Ano deve ser um número positivo")
     @Schema(description = "Ano em que o concurso foi realizado", example = "2023", required = true)
     private Integer ano;
+
+    @NotNull(message = "Mês é obrigatório")
+    @Schema(description = "Mês em que o concurso foi realizado", example = "6", required = true)
+    private Integer mes;
+
+    @Schema(description = "Identificação do edital do concurso", example = "Edital 01/2023")
+    private String edital;
 
     // Constructors
     public ConcursoDto() {}
 
-    public ConcursoDto(Long instituicaoId, Long bancaId, Integer ano) {
+    public ConcursoDto(Long instituicaoId, Long bancaId, Integer ano, Integer mes) {
         this.instituicaoId = instituicaoId;
         this.bancaId = bancaId;
         this.ano = ano;
+        this.mes = mes;
     }
 }

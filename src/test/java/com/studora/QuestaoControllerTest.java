@@ -80,7 +80,7 @@ class QuestaoControllerTest {
         banca = bancaRepository.save(banca);
 
         concurso = concursoRepository.save(
-            new Concurso(instituicao, banca, 2023)
+            new Concurso(instituicao, banca, 2023, 1)
         );
 
         Disciplina disciplina = disciplinaRepository.save(

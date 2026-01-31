@@ -60,7 +60,7 @@ class RespostaControllerTest {
         banca = bancaRepository.save(banca);
 
         Concurso concurso = concursoRepository.save(
-            new Concurso(instituicao, banca, 2023)
+            new Concurso(instituicao, banca, 2023, 1)
         );
         Questao newQuestao = new Questao();
         newQuestao.setEnunciado("Enunciado da Questão Resposta");
