@@ -7,4 +7,5 @@ import java.util.Optional;
 
 public interface BancaRepository extends JpaRepository<Banca, Long> {
     Optional<Banca> findByNome(String nome);
+    Optional<Banca> findByNomeIgnoreCase(String nome);
 }

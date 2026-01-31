@@ -19,6 +19,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.RequestBody;
 
+import jakarta.validation.Valid;
+
 import java.util.List;
 
 @RestController
@@ -127,7 +129,7 @@ public class BancaController {
     )
     @PostMapping
     public ResponseEntity<BancaDto> createBanca(
-            @RequestBody BancaCreateRequest bancaCreateRequest) {
+            @Valid @RequestBody BancaCreateRequest bancaCreateRequest) {
         // Convert the request DTO to the regular DTO for processing
         BancaDto bancaDto = new BancaDto();
         bancaDto.setNome(bancaCreateRequest.getNome());
@@ -184,7 +186,7 @@ public class BancaController {
     @PutMapping("/{id}")
     public ResponseEntity<BancaDto> updateBanca(
             @Parameter(description = "ID da banca a ser atualizada", required = true) @PathVariable Long id,
-            @RequestBody BancaUpdateRequest bancaUpdateRequest) {
+            @Valid @RequestBody BancaUpdateRequest bancaUpdateRequest) {
         BancaDto existingBanca = bancaService.findById(id);
         existingBanca.setNome(bancaUpdateRequest.getNome());
         BancaDto updatedBanca = bancaService.save(existingBanca);

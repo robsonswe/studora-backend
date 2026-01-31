@@ -32,7 +32,7 @@ public class BancaService {
 
     public BancaDto save(BancaDto bancaDto) {
         // Check for duplicate banca name (excluding current banca if updating)
-        Optional<Banca> existingBanca = bancaRepository.findByNome(bancaDto.getNome());
+        Optional<Banca> existingBanca = bancaRepository.findByNomeIgnoreCase(bancaDto.getNome());
         if (existingBanca.isPresent() && !existingBanca.get().getId().equals(bancaDto.getId())) {
             throw new ConflictException("Já existe uma banca com o nome '" + bancaDto.getNome() + "'");
         }
@@ -41,7 +41,7 @@ public class BancaService {
         if (bancaDto.getId() != null) {
             banca = bancaRepository.findById(bancaDto.getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Banca", "ID", bancaDto.getId()));
-            banca.setNome(bancaDto.getNome());
+            banca.setNome(bancaDto.getNome()); // Keep original case for display purposes
         } else {
             banca = convertToEntity(bancaDto);
         }

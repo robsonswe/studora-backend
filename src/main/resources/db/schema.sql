@@ -11,7 +11,7 @@ CREATE TABLE instituicao (
 -- =========================
 CREATE TABLE banca (
     id      INTEGER PRIMARY KEY,
-    nome    TEXT NOT NULL UNIQUE
+    nome    TEXT COLLATE NOCASE NOT NULL UNIQUE
 );
 
 -- =========================
