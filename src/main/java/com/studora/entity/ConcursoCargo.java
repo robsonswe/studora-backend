@@ -29,6 +29,7 @@ public class ConcursoCargo {
 
     @ManyToOne
     @JoinColumn(name = "concurso_id", nullable = false)
+    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
     @Schema(description = "Concurso associado")
     private Concurso concurso;
 

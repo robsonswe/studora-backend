@@ -22,6 +22,7 @@ public class Questao {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "concurso_id", nullable = false)
+    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
     @Schema(description = "Concurso ao qual a questão pertence")
     private Concurso concurso;
 

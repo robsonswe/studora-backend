@@ -28,6 +28,7 @@ public class Alternativa {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "questao_id", nullable = false)
+    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
     @Schema(description = "Questão à qual a alternativa pertence")
     private Questao questao;
 

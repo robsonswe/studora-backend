@@ -28,11 +28,13 @@ public class QuestaoCargo {
 
     @ManyToOne
     @JoinColumn(name = "questao_id", nullable = false)
+    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
     @Schema(description = "Questão associada")
     private Questao questao;
 
     @ManyToOne
     @JoinColumn(name = "concurso_cargo_id", nullable = false)
+    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
     @Schema(description = "Associação concurso-cargo associada")
     private ConcursoCargo concursoCargo;
 }

@@ -15,5 +15,6 @@ public interface QuestaoRepository extends JpaRepository<Questao, Long> {
     List<Questao> findBySubtemasTemaDisciplinaId(Long disciplinaId);
     List<Questao> findByAnuladaTrue(); // Find annulled questions
 
+    boolean existsByConcursoId(Long concursoId);
     boolean existsBySubtemasId(Long subtemaId);
 }

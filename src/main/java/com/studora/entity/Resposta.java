@@ -26,11 +26,13 @@ public class Resposta {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "questao_id", nullable = false)
+    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
     @Schema(description = "Questão respondida")
     private Questao questao;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "alternativa_id", nullable = false)
+    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
     @Schema(description = "Alternativa escolhida como resposta")
     private Alternativa alternativaEscolhida;
 

@@ -152,7 +152,7 @@ CREATE TABLE questao_cargo (
     concurso_cargo_id   INTEGER NOT NULL,
 
     FOREIGN KEY (questao_id) REFERENCES questao(id) ON DELETE CASCADE,
-    FOREIGN KEY (concurso_cargo_id) REFERENCES concurso_cargo(id),
+    FOREIGN KEY (concurso_cargo_id) REFERENCES concurso_cargo(id) ON DELETE CASCADE,
     
     UNIQUE (questao_id, concurso_cargo_id) -- Move the uniqueness here
 );
@@ -194,7 +194,7 @@ CREATE TABLE resposta (
     respondida_em   TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY (questao_id) REFERENCES questao(id) ON DELETE CASCADE,
-    FOREIGN KEY (alternativa_id) REFERENCES alternativa(id)
+    FOREIGN KEY (alternativa_id) REFERENCES alternativa(id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_resposta_questao
