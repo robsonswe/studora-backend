@@ -5,6 +5,7 @@ import com.studora.dto.PageResponse;
 import com.studora.dto.request.DisciplinaCreateRequest;
 import com.studora.dto.request.DisciplinaUpdateRequest;
 import com.studora.service.DisciplinaService;
+import com.studora.util.PaginationUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import jakarta.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/disciplinas")
@@ -70,21 +72,11 @@ public class DisciplinaController {
             @RequestParam(defaultValue = "nome") String sort,
             @RequestParam(defaultValue = "ASC") String direction) {
         
-        Sort.Direction dir = Sort.Direction.fromString(direction.toUpperCase());
-        List<Sort.Order> orders = new ArrayList<>();
-        
-        // Primary sort chosen by user
-        orders.add(new Sort.Order(dir, sort));
-        
-        // Default tie-breaker: nome ASC (if not already primary)
-        if (!sort.equalsIgnoreCase("nome")) {
-            orders.add(Sort.Order.asc("nome"));
-        }
-        
-        // Final tie-breaker: ID descending
-        orders.add(Sort.Order.desc("id"));
-        
-        Pageable finalPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(orders));
+        List<Sort.Order> tieBreakers = List.of(
+            Sort.Order.asc("nome")
+        );
+
+        Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, Map.of(), tieBreakers);
         Page<DisciplinaDto> disciplinas = disciplinaService.findAll(finalPageable);
         return ResponseEntity.ok(new PageResponse<>(disciplinas));
     }

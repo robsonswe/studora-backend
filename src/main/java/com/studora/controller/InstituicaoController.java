@@ -5,6 +5,7 @@ import com.studora.dto.PageResponse;
 import com.studora.dto.request.InstituicaoCreateRequest;
 import com.studora.dto.request.InstituicaoUpdateRequest;
 import com.studora.service.InstituicaoService;
+import com.studora.util.PaginationUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/instituicoes")
@@ -69,20 +71,12 @@ public class InstituicaoController {
             @RequestParam(defaultValue = "nome") String sort,
             @RequestParam(defaultValue = "ASC") String direction) {
         
-        Sort.Direction dir = Sort.Direction.fromString(direction.toUpperCase());
-        List<Sort.Order> orders = new ArrayList<>();
-        
-        // Primary sort chosen by user
-        orders.add(new Sort.Order(dir, sort));
-        
-        // Default tie-breakers: nome ASC -> area ASC
-        if (!sort.equalsIgnoreCase("nome")) orders.add(Sort.Order.asc("nome"));
-        if (!sort.equalsIgnoreCase("area")) orders.add(Sort.Order.asc("area"));
-        
-        // Final tie-breaker: ID descending
-        orders.add(Sort.Order.desc("id"));
-        
-        Pageable finalPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(orders));
+        List<Sort.Order> tieBreakers = List.of(
+            Sort.Order.asc("nome"),
+            Sort.Order.asc("area")
+        );
+
+        Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, Map.of(), tieBreakers);
         Page<InstituicaoDto> instituicoes = instituicaoService.findAll(finalPageable);
         return ResponseEntity.ok(new PageResponse<>(instituicoes));
     }

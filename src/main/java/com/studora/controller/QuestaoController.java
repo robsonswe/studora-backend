@@ -11,6 +11,7 @@ import com.studora.dto.request.AlternativaCreateRequest;
 import com.studora.dto.request.AlternativaUpdateRequest;
 import com.studora.dto.request.QuestaoCargoCreateRequest;
 import com.studora.service.QuestaoService;
+import com.studora.util.PaginationUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -34,6 +35,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/questoes")
@@ -77,18 +79,7 @@ public class QuestaoController {
             @RequestParam(defaultValue = "id") String sort,
             @RequestParam(defaultValue = "DESC") String direction) {
         
-        Sort.Direction dir = Sort.Direction.fromString(direction.toUpperCase());
-        List<Sort.Order> orders = new ArrayList<>();
-        
-        // Primary sort chosen by user
-        orders.add(new Sort.Order(dir, sort));
-        
-        // Default tie-breaker: ID descending (if not already primary)
-        if (!sort.equalsIgnoreCase("id")) {
-            orders.add(Sort.Order.desc("id"));
-        }
-        
-        Pageable finalPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(orders));
+        Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, Map.of(), List.of());
         Page<QuestaoDto> questoes = questaoService.search(filter, finalPageable);
         return ResponseEntity.ok(new PageResponse<>(questoes));
     }

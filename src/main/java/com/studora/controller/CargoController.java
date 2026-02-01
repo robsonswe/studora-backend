@@ -7,6 +7,7 @@ import com.studora.dto.request.CargoCreateRequest;
 import com.studora.dto.request.CargoUpdateRequest;
 import com.studora.service.CargoService;
 import com.studora.service.QuestaoService;
+import com.studora.util.PaginationUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import jakarta.validation.Valid;
 
@@ -75,22 +77,13 @@ public class CargoController {
             @RequestParam(defaultValue = "nome") String sort,
             @RequestParam(defaultValue = "ASC") String direction) {
         
-        Sort.Direction dir = Sort.Direction.fromString(direction.toUpperCase());
-        List<Sort.Order> orders = new ArrayList<>();
-        
-        // Primary sort chosen by user
-        orders.add(new Sort.Order(dir, sort));
-        
-        // Default tie-breakers in order: nome -> area -> nivel
-        // Skip the user-selected property if it's already first
-        if (!sort.equalsIgnoreCase("nome")) orders.add(Sort.Order.asc("nome"));
-        if (!sort.equalsIgnoreCase("area")) orders.add(Sort.Order.asc("area"));
-        if (!sort.equalsIgnoreCase("nivel")) orders.add(Sort.Order.asc("nivel"));
-        
-        // Final tie-breaker: ID descending
-        orders.add(Sort.Order.desc("id"));
-        
-        Pageable finalPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(orders));
+        List<Sort.Order> tieBreakers = List.of(
+            Sort.Order.asc("nome"),
+            Sort.Order.asc("area"),
+            Sort.Order.asc("nivel")
+        );
+
+        Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, Map.of(), tieBreakers);
         Page<CargoDto> cargos = cargoService.findAll(finalPageable);
         return ResponseEntity.ok(new PageResponse<>(cargos));
     }

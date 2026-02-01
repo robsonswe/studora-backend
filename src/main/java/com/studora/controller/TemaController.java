@@ -5,6 +5,7 @@ import com.studora.dto.TemaDto;
 import com.studora.dto.request.TemaCreateRequest;
 import com.studora.dto.request.TemaUpdateRequest;
 import com.studora.service.TemaService;
+import com.studora.util.PaginationUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/temas")
@@ -70,24 +72,14 @@ public class TemaController {
             @RequestParam(defaultValue = "nome") String sort,
             @RequestParam(defaultValue = "ASC") String direction) {
         
-        Sort.Direction dir = Sort.Direction.fromString(direction.toUpperCase());
-        List<Sort.Order> orders = new ArrayList<>();
-        
-        // Map Swagger parameter names to internal property names
-        String sortProperty = sort;
-        if (sort.equalsIgnoreCase("disciplinaId")) sortProperty = "disciplina.id";
+        Map<String, String> mapping = Map.of("disciplinaId", "disciplina.id");
 
-        // Primary sort chosen by user
-        orders.add(new Sort.Order(dir, sortProperty));
-        
-        // Default tie-breakers: nome ASC -> disciplina.id ASC
-        if (!sortProperty.equals("nome")) orders.add(Sort.Order.asc("nome"));
-        if (!sortProperty.equals("disciplina.id")) orders.add(Sort.Order.asc("disciplina.id"));
-        
-        // Final tie-breaker: ID descending
-        orders.add(Sort.Order.desc("id"));
-        
-        Pageable finalPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(orders));
+        List<Sort.Order> tieBreakers = List.of(
+            Sort.Order.asc("nome"),
+            Sort.Order.asc("disciplina.id")
+        );
+
+        Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, mapping, tieBreakers);
         Page<TemaDto> temas = temaService.getAllTemas(finalPageable);
         return ResponseEntity.ok(new PageResponse<>(temas));
     }

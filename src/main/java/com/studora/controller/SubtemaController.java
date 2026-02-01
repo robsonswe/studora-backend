@@ -1,10 +1,11 @@
 package com.studora.controller;
 
-import com.studora.dto.PageResponse;
 import com.studora.dto.SubtemaDto;
+import com.studora.dto.PageResponse;
 import com.studora.dto.request.SubtemaCreateRequest;
 import com.studora.dto.request.SubtemaUpdateRequest;
 import com.studora.service.SubtemaService;
+import com.studora.util.PaginationUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/subtemas")
@@ -70,24 +72,14 @@ public class SubtemaController {
             @RequestParam(defaultValue = "nome") String sort,
             @RequestParam(defaultValue = "ASC") String direction) {
         
-        Sort.Direction dir = Sort.Direction.fromString(direction.toUpperCase());
-        List<Sort.Order> orders = new ArrayList<>();
-        
-        // Map Swagger parameter names to internal property names
-        String sortProperty = sort;
-        if (sort.equalsIgnoreCase("temaId")) sortProperty = "tema.id";
+        Map<String, String> mapping = Map.of("temaId", "tema.id");
 
-        // Primary sort chosen by user
-        orders.add(new Sort.Order(dir, sortProperty));
-        
-        // Default tie-breakers: nome ASC -> tema.id ASC
-        if (!sortProperty.equals("nome")) orders.add(Sort.Order.asc("nome"));
-        if (!sortProperty.equals("tema.id")) orders.add(Sort.Order.asc("tema.id"));
-        
-        // Final tie-breaker: ID descending
-        orders.add(Sort.Order.desc("id"));
-        
-        Pageable finalPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(orders));
+        List<Sort.Order> tieBreakers = List.of(
+            Sort.Order.asc("nome"),
+            Sort.Order.asc("tema.id")
+        );
+
+        Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, mapping, tieBreakers);
         Page<SubtemaDto> subtemas = subtemaService.getAllSubtemas(finalPageable);
         return ResponseEntity.ok(new PageResponse<>(subtemas));
     }

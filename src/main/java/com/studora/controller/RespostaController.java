@@ -6,6 +6,7 @@ import com.studora.dto.RespostaComAlternativasDto;
 import com.studora.dto.request.RespostaCreateRequest;
 import com.studora.dto.request.RespostaUpdateRequest;
 import com.studora.service.RespostaService;
+import com.studora.util.PaginationUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/respostas")
@@ -71,21 +73,11 @@ public class RespostaController {
             @RequestParam(defaultValue = "respondidaEm") String sort,
             @RequestParam(defaultValue = "DESC") String direction) {
         
-        Sort.Direction dir = Sort.Direction.fromString(direction.toUpperCase());
-        List<Sort.Order> orders = new ArrayList<>();
-        
-        // Primary sort chosen by user
-        orders.add(new Sort.Order(dir, sort));
-        
-        // Default tie-breaker: respondidaEm DESC (if not already primary)
-        if (!sort.equalsIgnoreCase("respondidaEm")) {
-            orders.add(Sort.Order.desc("respondidaEm"));
-        }
-        
-        // Final tie-breaker: ID descending
-        orders.add(Sort.Order.desc("id"));
-        
-        Pageable finalPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(orders));
+        List<Sort.Order> tieBreakers = List.of(
+            Sort.Order.desc("respondidaEm")
+        );
+
+        Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, Map.of(), tieBreakers);
         Page<RespostaDto> respostas = respostaService.findAll(finalPageable);
         return ResponseEntity.ok(new PageResponse<>(respostas));
     }

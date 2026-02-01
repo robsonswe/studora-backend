@@ -3,10 +3,11 @@ package com.studora.controller;
 import com.studora.dto.ConcursoCargoDto;
 import com.studora.dto.ConcursoDto;
 import com.studora.dto.PageResponse;
+import com.studora.dto.request.ConcursoCargoCreateRequest;
 import com.studora.dto.request.ConcursoCreateRequest;
 import com.studora.dto.request.ConcursoUpdateRequest;
-import com.studora.dto.request.ConcursoCargoCreateRequest;
 import com.studora.service.ConcursoService;
+import com.studora.util.PaginationUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -30,6 +31,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/concursos")
@@ -71,27 +73,19 @@ public class ConcursoController {
             @RequestParam(defaultValue = "ano") String sort,
             @RequestParam(defaultValue = "DESC") String direction) {
         
-        Sort.Direction dir = Sort.Direction.fromString(direction.toUpperCase());
-        List<Sort.Order> orders = new ArrayList<>();
-        
-        // Map Swagger parameter names to internal property names if necessary
-        String sortProperty = sort;
-        if (sort.equalsIgnoreCase("instituicao")) sortProperty = "instituicao.nome";
-        if (sort.equalsIgnoreCase("banca")) sortProperty = "banca.nome";
+        Map<String, String> mapping = Map.of(
+            "instituicao", "instituicao.nome",
+            "banca", "banca.nome"
+        );
 
-        // Primary sort chosen by user
-        orders.add(new Sort.Order(dir, sortProperty));
-        
-        // Default tie-breakers: ano DESC -> mes DESC -> instituicao.nome ASC -> banca.nome ASC -> id DESC
-        if (!sortProperty.equals("ano")) orders.add(Sort.Order.desc("ano"));
-        if (!sortProperty.equals("mes")) orders.add(Sort.Order.desc("mes"));
-        if (!sortProperty.equals("instituicao.nome")) orders.add(Sort.Order.asc("instituicao.nome"));
-        if (!sortProperty.equals("banca.nome")) orders.add(Sort.Order.asc("banca.nome"));
-        
-        // Final tie-breaker: ID descending
-        orders.add(Sort.Order.desc("id"));
-        
-        Pageable finalPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(orders));
+        List<Sort.Order> tieBreakers = List.of(
+            Sort.Order.desc("ano"),
+            Sort.Order.desc("mes"),
+            Sort.Order.asc("instituicao.nome"),
+            Sort.Order.asc("banca.nome")
+        );
+
+        Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, mapping, tieBreakers);
         Page<ConcursoDto> concursos = concursoService.findAll(finalPageable);
         return ResponseEntity.ok(new PageResponse<>(concursos));
     }
