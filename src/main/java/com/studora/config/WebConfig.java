@@ -1,17 +1,14 @@
 package com.studora.config;
 
 import com.studora.util.StringUtils;
-import org.springframework.beans.PropertyEditorRegistrar;
-import org.springframework.beans.PropertyEditorRegistry;
-import org.springframework.beans.propertyeditors.StringTrimmerEditor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.InitBinder;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.beans.PropertyEditorSupport;
 
+@Configuration
 @ControllerAdvice
 public class WebConfig {
 

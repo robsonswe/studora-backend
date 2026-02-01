@@ -1,6 +1,7 @@
 package com.studora.controller;
 
 import com.studora.dto.DisciplinaDto;
+import com.studora.dto.PageResponse;
 import com.studora.dto.request.DisciplinaCreateRequest;
 import com.studora.dto.request.DisciplinaUpdateRequest;
 import com.studora.service.DisciplinaService;
@@ -40,9 +41,9 @@ public class DisciplinaController {
             @ApiResponse(responseCode = "200", description = "Página de disciplinas retornada com sucesso",
                 content = @Content(
                     mediaType = "application/json",
-                    schema = @Schema(implementation = Page.class),
+                    schema = @Schema(implementation = PageResponse.class),
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Direito Constitucional\"}], \"pageable\": {\"pageNumber\": 0, \"pageSize\": 20}, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Direito Constitucional\"}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -54,10 +55,10 @@ public class DisciplinaController {
         }
     )
     @GetMapping
-    public ResponseEntity<Page<DisciplinaDto>> getAllDisciplinas(
+    public ResponseEntity<PageResponse<DisciplinaDto>> getAllDisciplinas(
             @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
         Page<DisciplinaDto> disciplinas = disciplinaService.findAll(pageable);
-        return ResponseEntity.ok(disciplinas);
+        return ResponseEntity.ok(new PageResponse<>(disciplinas));
     }
 
     @Operation(

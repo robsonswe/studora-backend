@@ -1,6 +1,7 @@
 package com.studora.controller;
 
 import com.studora.dto.AlternativaDto;
+import com.studora.dto.PageResponse;
 import com.studora.dto.QuestaoCargoDto;
 import com.studora.dto.QuestaoDto;
 import com.studora.dto.QuestaoFilter;
@@ -47,9 +48,9 @@ public class QuestaoController {
             @ApiResponse(responseCode = "200", description = "Página de questões retornada com sucesso",
                 content = @Content(
                     mediaType = "application/json",
-                    schema = @Schema(implementation = Page.class),
+                    schema = @Schema(implementation = PageResponse.class),
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\", \"correta\": true}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\", \"correta\": false}]}], \"pageable\": {\"pageNumber\": 0, \"pageSize\": 20}, \"totalElements\": 1, \"totalPages\": 1, \"last\": true, \"size\": 20, \"number\": 0, \"sort\": {\"empty\": true, \"sorted\": false, \"unsorted\": true}, \"numberOfElements\": 1, \"first\": true, \"empty\": false}"
+                        value = "{\"content\": [{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\", \"correta\": true}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\", \"correta\": false}]}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -61,11 +62,11 @@ public class QuestaoController {
         }
     )
     @GetMapping
-    public ResponseEntity<Page<QuestaoDto>> getQuestoes(
+    public ResponseEntity<PageResponse<QuestaoDto>> getQuestoes(
             @ParameterObject @Valid QuestaoFilter filter,
             @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
         Page<QuestaoDto> questoes = questaoService.search(filter, pageable);
-        return ResponseEntity.ok(questoes);
+        return ResponseEntity.ok(new PageResponse<>(questoes));
     }
 
     @Operation(

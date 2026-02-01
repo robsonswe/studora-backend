@@ -1,5 +1,6 @@
 package com.studora.controller;
 
+import com.studora.dto.PageResponse;
 import com.studora.dto.TemaDto;
 import com.studora.dto.request.TemaCreateRequest;
 import com.studora.dto.request.TemaUpdateRequest;
@@ -41,9 +42,9 @@ public class TemaController {
             @ApiResponse(responseCode = "200", description = "Página de temas retornada com sucesso",
                 content = @Content(
                     mediaType = "application/json",
-                    schema = @Schema(implementation = Page.class),
+                    schema = @Schema(implementation = PageResponse.class),
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1}], \"pageable\": {\"pageNumber\": 0, \"pageSize\": 20}, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -55,10 +56,10 @@ public class TemaController {
         }
     )
     @GetMapping
-    public ResponseEntity<Page<TemaDto>> getAllTemas(
+    public ResponseEntity<PageResponse<TemaDto>> getAllTemas(
             @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
         Page<TemaDto> temas = temaService.getAllTemas(pageable);
-        return ResponseEntity.ok(temas);
+        return ResponseEntity.ok(new PageResponse<>(temas));
     }
 
     @Operation(
@@ -100,9 +101,9 @@ public class TemaController {
             @ApiResponse(responseCode = "200", description = "Página de temas retornada com sucesso",
                 content = @Content(
                     mediaType = "application/json",
-                    schema = @Schema(implementation = Page.class),
+                    schema = @Schema(implementation = PageResponse.class),
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1}], \"pageable\": {\"pageNumber\": 0, \"pageSize\": 20}, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "404", description = "Disciplina não encontrada",
@@ -120,11 +121,11 @@ public class TemaController {
         }
     )
     @GetMapping("/disciplina/{disciplinaId}")
-    public ResponseEntity<Page<TemaDto>> getTemasByDisciplinaId(
+    public ResponseEntity<PageResponse<TemaDto>> getTemasByDisciplinaId(
             @Parameter(description = "ID da disciplina para filtrar temas", required = true) @PathVariable Long disciplinaId,
             @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
         Page<TemaDto> temas = temaService.getTemasByDisciplinaId(disciplinaId, pageable);
-        return ResponseEntity.ok(temas);
+        return ResponseEntity.ok(new PageResponse<>(temas));
     }
 
     @Operation(

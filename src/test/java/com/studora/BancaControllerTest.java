@@ -39,7 +39,21 @@ class BancaControllerTest {
         mockMvc
             .perform(get("/api/bancas"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.content[0].nome").value("Vunesp"));
+            .andExpect(jsonPath("$.content[0].nome").value("Vunesp"))
+            .andExpect(jsonPath("$.pageNumber").value(0));
+    }
+
+    @Test
+    void testGetAllBancas_Page1() throws Exception {
+        Banca banca = new Banca();
+        banca.setNome("Vunesp");
+        bancaRepository.save(banca);
+
+        mockMvc
+            .perform(get("/api/bancas").param("page", "0"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].nome").value("Vunesp"))
+            .andExpect(jsonPath("$.pageNumber").value(0));
     }
 
     @Test

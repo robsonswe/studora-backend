@@ -1,6 +1,7 @@
 package com.studora.controller;
 
 import com.studora.dto.CargoDto;
+import com.studora.dto.PageResponse;
 import com.studora.dto.QuestaoDto;
 import com.studora.dto.request.CargoCreateRequest;
 import com.studora.dto.request.CargoUpdateRequest;
@@ -46,9 +47,9 @@ public class CargoController {
             @ApiResponse(responseCode = "200", description = "Página de cargos retornada com sucesso",
                 content = @Content(
                     mediaType = "application/json",
-                    schema = @Schema(implementation = Page.class),
+                    schema = @Schema(implementation = PageResponse.class),
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Analista Judiciário\", \"nivel\": \"Superior\", \"area\": \"Direito\"}, {\"id\": 2, \"nome\": \"Técnico Judiciário\", \"nivel\": \"Médio\", \"area\": \"Administrativa\"}], \"pageable\": {\"pageNumber\": 0, \"pageSize\": 20}, \"totalElements\": 2, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Analista Judiciário\", \"nivel\": \"Superior\", \"area\": \"Direito\"}, {\"id\": 2, \"nome\": \"Técnico Judiciário\", \"nivel\": \"Médio\", \"area\": \"Administrativa\"}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 2, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -60,10 +61,10 @@ public class CargoController {
         }
     )
     @GetMapping
-    public ResponseEntity<Page<CargoDto>> getAllCargos(
+    public ResponseEntity<PageResponse<CargoDto>> getAllCargos(
             @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
         Page<CargoDto> cargos = cargoService.findAll(pageable);
-        return ResponseEntity.ok(cargos);
+        return ResponseEntity.ok(new PageResponse<>(cargos));
     }
 
     @Operation(

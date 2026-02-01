@@ -1,5 +1,6 @@
 package com.studora.controller;
 
+import com.studora.dto.PageResponse;
 import com.studora.dto.RespostaDto;
 import com.studora.dto.RespostaComAlternativasDto;
 import com.studora.dto.request.RespostaCreateRequest;
@@ -42,9 +43,9 @@ public class RespostaController {
             @ApiResponse(responseCode = "200", description = "Página de respostas retornada com sucesso",
                 content = @Content(
                     mediaType = "application/json",
-                    schema = @Schema(implementation = Page.class),
+                    schema = @Schema(implementation = PageResponse.class),
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"respondidaEm\": \"2023-06-15T10:30:00\"}], \"pageable\": {\"pageNumber\": 0, \"pageSize\": 20}, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"respondidaEm\": \"2023-06-15T10:30:00\"}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -56,10 +57,10 @@ public class RespostaController {
         }
     )
     @GetMapping
-    public ResponseEntity<Page<RespostaDto>> getAllRespostas(
+    public ResponseEntity<PageResponse<RespostaDto>> getAllRespostas(
             @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
         Page<RespostaDto> respostas = respostaService.findAll(pageable);
-        return ResponseEntity.ok(respostas);
+        return ResponseEntity.ok(new PageResponse<>(respostas));
     }
 
     @Operation(

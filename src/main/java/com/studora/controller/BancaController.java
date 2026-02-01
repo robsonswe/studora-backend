@@ -1,6 +1,7 @@
 package com.studora.controller;
 
 import com.studora.dto.BancaDto;
+import com.studora.dto.PageResponse;
 import com.studora.dto.request.BancaCreateRequest;
 import com.studora.dto.request.BancaUpdateRequest;
 import com.studora.service.BancaService;
@@ -15,7 +16,9 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -38,13 +41,18 @@ public class BancaController {
     @Operation(
         summary = "Obter todas as bancas",
         description = "Retorna uma página com todas as bancas organizadoras cadastradas. Suporta paginação.",
+        parameters = {
+            @Parameter(name = "page", description = "Número da página (0..N)", schema = @Schema(type = "integer", defaultValue = "0")),
+            @Parameter(name = "size", description = "Tamanho da página", schema = @Schema(type = "integer", defaultValue = "20")),
+            @Parameter(name = "sort", description = "Direção da ordenação (por nome)", schema = @Schema(type = "string", allowableValues = {"ASC", "DESC"}, defaultValue = "ASC"))
+        },
         responses = {
             @ApiResponse(responseCode = "200", description = "Página de bancas retornada com sucesso",
                 content = @Content(
                     mediaType = "application/json",
-                    schema = @Schema(implementation = Page.class),
+                    schema = @Schema(implementation = PageResponse.class),
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Cebraspe (CESPE)\"}, {\"id\": 2, \"nome\": \"FGV\"}], \"pageable\": {\"pageNumber\": 0, \"pageSize\": 20}, \"totalElements\": 2, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Cebraspe (CESPE)\"}, {\"id\": 2, \"nome\": \"FGV\"}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 2, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -56,10 +64,15 @@ public class BancaController {
         }
     )
     @GetMapping
-    public ResponseEntity<Page<BancaDto>> getAllBancas(
-            @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
-        Page<BancaDto> bancas = bancaService.findAll(pageable);
-        return ResponseEntity.ok(bancas);
+    public ResponseEntity<PageResponse<BancaDto>> getAllBancas(
+            @Parameter(hidden = true) @PageableDefault(size = 20) Pageable pageable,
+            @RequestParam(defaultValue = "ASC") String sort) {
+        
+        Sort.Direction direction = Sort.Direction.fromString(sort.toUpperCase());
+        Pageable finalPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(direction, "nome"));
+        
+        Page<BancaDto> bancas = bancaService.findAll(finalPageable);
+        return ResponseEntity.ok(new PageResponse<>(bancas));
     }
 
     @Operation(

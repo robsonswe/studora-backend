@@ -2,6 +2,7 @@ package com.studora.controller;
 
 import com.studora.dto.ConcursoCargoDto;
 import com.studora.dto.ConcursoDto;
+import com.studora.dto.PageResponse;
 import com.studora.dto.request.ConcursoCreateRequest;
 import com.studora.dto.request.ConcursoUpdateRequest;
 import com.studora.dto.request.ConcursoCargoCreateRequest;
@@ -42,9 +43,9 @@ public class ConcursoController {
             @ApiResponse(responseCode = "200", description = "Página de concursos retornada com sucesso",
                 content = @Content(
                     mediaType = "application/json",
-                    schema = @Schema(implementation = Page.class),
+                    schema = @Schema(implementation = PageResponse.class),
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"instituicaoId\": 1, \"bancaId\": 1, \"ano\": 2023, \"mes\": 5, \"edital\": \"https://exemplo.com/edital.pdf\"}], \"pageable\": {\"pageNumber\": 0, \"pageSize\": 20}, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"instituicaoId\": 1, \"bancaId\": 1, \"ano\": 2023, \"mes\": 5, \"edital\": \"https://exemplo.com/edital.pdf\"}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -56,10 +57,10 @@ public class ConcursoController {
         }
     )
     @GetMapping
-    public ResponseEntity<Page<ConcursoDto>> getAllConcursos(
+    public ResponseEntity<PageResponse<ConcursoDto>> getAllConcursos(
             @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
         Page<ConcursoDto> concursos = concursoService.findAll(pageable);
-        return ResponseEntity.ok(concursos);
+        return ResponseEntity.ok(new PageResponse<>(concursos));
     }
 
     @Operation(

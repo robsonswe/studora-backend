@@ -1,5 +1,6 @@
 package com.studora.controller;
 
+import com.studora.dto.PageResponse;
 import com.studora.dto.SubtemaDto;
 import com.studora.dto.request.SubtemaCreateRequest;
 import com.studora.dto.request.SubtemaUpdateRequest;
@@ -41,9 +42,9 @@ public class SubtemaController {
             @ApiResponse(responseCode = "200", description = "Página de subtemas retornada com sucesso",
                 content = @Content(
                     mediaType = "application/json",
-                    schema = @Schema(implementation = Page.class),
+                    schema = @Schema(implementation = PageResponse.class),
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Habeas Corpus\", \"temaId\": 1}], \"pageable\": {\"pageNumber\": 0, \"pageSize\": 20}, \"totalElements\": 2, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Habeas Corpus\", \"temaId\": 1}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 2, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -55,10 +56,10 @@ public class SubtemaController {
         }
     )
     @GetMapping
-    public ResponseEntity<Page<SubtemaDto>> getAllSubtemas(
+    public ResponseEntity<PageResponse<SubtemaDto>> getAllSubtemas(
             @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
         Page<SubtemaDto> subtemas = subtemaService.getAllSubtemas(pageable);
-        return ResponseEntity.ok(subtemas);
+        return ResponseEntity.ok(new PageResponse<>(subtemas));
     }
 
     @Operation(
@@ -100,9 +101,9 @@ public class SubtemaController {
             @ApiResponse(responseCode = "200", description = "Página de subtemas retornada com sucesso",
                 content = @Content(
                     mediaType = "application/json",
-                    schema = @Schema(implementation = Page.class),
+                    schema = @Schema(implementation = PageResponse.class),
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Habeas Corpus\", \"temaId\": 1}], \"pageable\": {\"pageNumber\": 0, \"pageSize\": 20}, \"totalElements\": 2, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Habeas Corpus\", \"temaId\": 1}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 2, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "404", description = "Tema não encontrado",
@@ -120,11 +121,11 @@ public class SubtemaController {
         }
     )
     @GetMapping("/tema/{temaId}")
-    public ResponseEntity<Page<SubtemaDto>> getSubtemasByTemaId(
+    public ResponseEntity<PageResponse<SubtemaDto>> getSubtemasByTemaId(
             @Parameter(description = "ID do tema para filtrar subtemas", required = true) @PathVariable Long temaId,
             @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
         Page<SubtemaDto> subtemas = subtemaService.getSubtemasByTemaId(temaId, pageable);
-        return ResponseEntity.ok(subtemas);
+        return ResponseEntity.ok(new PageResponse<>(subtemas));
     }
 
     @Operation(
