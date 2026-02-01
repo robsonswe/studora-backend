@@ -5,43 +5,40 @@ import com.studora.entity.Subtema;
 import com.studora.entity.Tema;
 import com.studora.exception.ConflictException;
 import com.studora.exception.ResourceNotFoundException;
+import com.studora.mapper.SubtemaMapper;
 import com.studora.repository.SubtemaRepository;
 import com.studora.repository.TemaRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Transactional
+@RequiredArgsConstructor
 public class SubtemaService {
 
-    @Autowired
-    private SubtemaRepository subtemaRepository;
-
-    @Autowired
-    private TemaRepository temaRepository;
-
-    @Autowired
-    private com.studora.repository.QuestaoRepository questaoRepository;
+    private final SubtemaRepository subtemaRepository;
+    private final TemaRepository temaRepository;
+    private final com.studora.repository.QuestaoRepository questaoRepository;
+    private final SubtemaMapper subtemaMapper;
 
     public Page<SubtemaDto> getAllSubtemas(Pageable pageable) {
         return subtemaRepository.findAll(pageable)
-                .map(this::convertToDto);
+                .map(subtemaMapper::toDto);
     }
 
     public SubtemaDto getSubtemaById(Long id) {
         Subtema subtema = subtemaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Subtema", "ID", id));
-        return convertToDto(subtema);
+        return subtemaMapper.toDto(subtema);
     }
 
     public Page<SubtemaDto> getSubtemasByTemaId(Long temaId, Pageable pageable) {
         return subtemaRepository.findByTemaId(temaId, pageable)
-                .map(this::convertToDto);
+                .map(subtemaMapper::toDto);
     }
 
     public SubtemaDto createSubtema(SubtemaDto subtemaDto) {
@@ -54,11 +51,11 @@ public class SubtemaService {
             throw new ConflictException("Já existe um subtema com o nome '" + subtemaDto.getNome() + "' no tema com ID: " + subtemaDto.getTemaId());
         }
 
-        Subtema subtema = convertToEntity(subtemaDto);
+        Subtema subtema = subtemaMapper.toEntity(subtemaDto);
         subtema.setTema(tema);
 
         Subtema savedSubtema = subtemaRepository.save(subtema);
-        return convertToDto(savedSubtema);
+        return subtemaMapper.toDto(savedSubtema);
     }
 
     public SubtemaDto updateSubtema(Long id, SubtemaDto subtemaDto) {
@@ -74,12 +71,11 @@ public class SubtemaService {
             throw new ConflictException("Já existe um subtema com o nome '" + subtemaDto.getNome() + "' no tema com ID: " + tema.getId());
         }
 
-        // Update fields
+        subtemaMapper.updateEntityFromDto(subtemaDto, existingSubtema);
         existingSubtema.setTema(tema);
-        existingSubtema.setNome(subtemaDto.getNome());
 
         Subtema updatedSubtema = subtemaRepository.save(existingSubtema);
-        return convertToDto(updatedSubtema);
+        return subtemaMapper.toDto(updatedSubtema);
     }
 
     public void deleteSubtema(Long id) {
@@ -90,17 +86,5 @@ public class SubtemaService {
             throw new ConflictException("Não é possível excluir o subtema pois existem questões associadas a ele.");
         }
         subtemaRepository.deleteById(id);
-    }
-
-    private SubtemaDto convertToDto(Subtema subtema) {
-        SubtemaDto dto = new SubtemaDto();
-        dto.setId(subtema.getId());
-        dto.setTemaId(subtema.getTema().getId());
-        dto.setNome(subtema.getNome());
-        return dto;
-    }
-
-    private Subtema convertToEntity(SubtemaDto dto) {
-        return new Subtema(null, dto.getNome()); // tema will be set separately
     }
 }

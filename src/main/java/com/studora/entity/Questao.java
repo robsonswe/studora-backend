@@ -2,7 +2,8 @@ package com.studora.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(
@@ -45,7 +46,7 @@ public class Questao extends BaseEntity {
         fetch = FetchType.LAZY
     )
     @Schema(description = "Alternativas associadas à questão")
-    private List<Alternativa> alternativas = new java.util.ArrayList<>();
+    private Set<Alternativa> alternativas = new LinkedHashSet<>();
 
     @OneToMany(
         mappedBy = "questao",
@@ -54,7 +55,7 @@ public class Questao extends BaseEntity {
         fetch = FetchType.LAZY
     )
     @Schema(description = "Respostas associadas à questão")
-    private List<Resposta> respostas = new java.util.ArrayList<>();
+    private Set<Resposta> respostas = new LinkedHashSet<>();
 
     @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JoinTable(
@@ -69,7 +70,7 @@ public class Questao extends BaseEntity {
         }
     )
     @Schema(description = "Subtemas associados à questão")
-    private List<Subtema> subtemas = new java.util.ArrayList<>();
+    private Set<Subtema> subtemas = new LinkedHashSet<>();
 
 
     @OneToMany(
@@ -78,7 +79,7 @@ public class Questao extends BaseEntity {
         fetch = FetchType.LAZY
     )
     @Schema(description = "Associações entre a questão e cargos do concurso")
-    private List<QuestaoCargo> questaoCargos = new java.util.ArrayList<>();
+    private Set<QuestaoCargo> questaoCargos = new LinkedHashSet<>();
 
     // Constructors
     public Questao() {}
@@ -121,27 +122,27 @@ public class Questao extends BaseEntity {
         this.anulada = anulada;
     }
 
-    public List<Alternativa> getAlternativas() {
+    public Set<Alternativa> getAlternativas() {
         return alternativas;
     }
 
-    public void setAlternativas(List<Alternativa> alternativas) {
+    public void setAlternativas(Set<Alternativa> alternativas) {
         this.alternativas = alternativas;
     }
 
-    public List<Resposta> getRespostas() {
+    public Set<Resposta> getRespostas() {
         return respostas;
     }
 
-    public void setRespostas(List<Resposta> respostas) {
+    public void setRespostas(Set<Resposta> respostas) {
         this.respostas = respostas;
     }
 
-    public List<Subtema> getSubtemas() {
+    public Set<Subtema> getSubtemas() {
         return subtemas;
     }
 
-    public void setSubtemas(List<Subtema> subtemas) {
+    public void setSubtemas(Set<Subtema> subtemas) {
         this.subtemas = subtemas;
     }
 
@@ -153,11 +154,11 @@ public class Questao extends BaseEntity {
         this.imageUrl = (imageUrl != null && !imageUrl.trim().isEmpty()) ? imageUrl : null;
     }
 
-    public List<QuestaoCargo> getQuestaoCargos() {
+    public Set<QuestaoCargo> getQuestaoCargos() {
         return questaoCargos;
     }
 
-    public void setQuestaoCargos(List<QuestaoCargo> questaoCargos) {
+    public void setQuestaoCargos(Set<QuestaoCargo> questaoCargos) {
         this.questaoCargos = questaoCargos;
     }
 }

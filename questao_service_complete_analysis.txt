@@ -1,0 +1,860 @@
+# QuestaoService & Tests - Complete Analysis (Updated)
+
+## Executive Summary
+
+After reviewing all files including the Controller, entities, mappers, and configuration, I've identified several **critical bugs**, architectural issues, and important findings. The codebase has good structure but needs immediate fixes.
+
+---
+
+## 🔴 CRITICAL BUGS - MUST FIX IMMEDIATELY
+
+### 1. **RespostaRepository.deleteByQuestaoId() Requires @Transactional**
+
+**Location:** `RespostaRepository.java` (line 9)
+
+**CRITICAL BUG:**
+```java
+void deleteByQuestaoId(Long questaoId);
+```
+
+**Problem:** 
+- This is a **modifying query** but missing `@Modifying` and `@Query` annotations
+- Spring Data JPA won't auto-generate delete methods for `deleteBy*` - it requires explicit annotation
+- **This method will fail at runtime!**
+
+**Fix Required:**
+```java
+@Repository
+public interface RespostaRepository extends JpaRepository<Resposta, Long> {
+    Resposta findByQuestaoId(Long questaoId);
+    
+    @Transactional
+    @Modifying
+    @Query("DELETE FROM Resposta r WHERE r.questao.id = :questaoId")
+    void deleteByQuestaoId(@Param("questaoId") Long questaoId);
+}
+```
+
+**OR** use the service layer approach:
+```java
+// In QuestaoService.updateQuestao()
+Resposta resposta = respostaRepository.findByQuestaoId(id);
+if (resposta != null) {
+    respostaRepository.delete(resposta);
+}
+```
+
+---
+
+### 2. **Resposta Entity Has Wrong Constraint**
+
+**Location:** `Resposta.java` (line 26)
+
+**CRITICAL BUG:**
+```java
+@JoinColumn(name = "questao_id", nullable = false, unique = true)
+```
+
+**Problem:** 
+- `unique = true` means **only ONE response can exist per question globally**
+- But the index is named `idx_resposta_questao` suggesting multiple responses per question should be possible
+- This contradicts the design where users can answer questions multiple times
+
+**Analysis Needed:**
+- Is this a quiz app where each user answers once? → Keep `unique = true`
+- Is this a study app where each user can answer multiple times? → **Remove `unique = true`**
+
+**Likely Fix (if multi-user answers are needed):**
+```java
+@JoinColumn(name = "questao_id", nullable = false)
+```
+
+And add a composite unique constraint with user:
+```java
+@Table(
+    name = "resposta",
+    uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"questao_id", "user_id"})
+    }
+)
+```
+
+---
+
+### 3. **Update Method Ignores concursoCargoIds**
+
+**Location:** `QuestaoService.updateQuestao()` (lines 234-287)
+
+**CRITICAL BUG:**
+```java
+public QuestaoDto updateQuestao(Long id, QuestaoDto questaoDto) {
+    // ... updates alternativas ...
+    
+    // Validate that at least one cargo exists
+    List<QuestaoCargo> currentAssociations = questaoCargoRepository.findByQuestaoId(id);
+    if (currentAssociations.isEmpty()) {
+        throw new ValidationException("Uma questão deve estar associada a pelo menos um cargo");
+    }
+    
+    // ❌ BUT NEVER PROCESSES questaoDto.getConcursoCargoIds()!
+}
+```
+
+**Impact:** 
+- Controller sends `concursoCargoIds` in update request
+- Service completely ignores it
+- Users cannot update cargo associations through PUT endpoint
+
+**See detailed fix in section "Recommended Fixes" below**
+
+---
+
+### 4. **Controller Uses Wrong DTOs**
+
+**Location:** `QuestaoController.java` (lines 141-161, 171-189)
+
+**ARCHITECTURAL ISSUE:**
+
+The controller has separate `QuestaoCreateRequest` and `QuestaoUpdateRequest` DTOs, but the service layer expects `QuestaoDto`. The controller is missing the conversion:
+
+```java
+@PostMapping
+public ResponseEntity<QuestaoDto> createQuestao(@RequestBody QuestaoCreateRequest request) {
+    QuestaoDto questaoDto = convertToDto(request); // ❌ MISSING
+    QuestaoDto created = questaoService.createQuestao(questaoDto);
+    return new ResponseEntity<>(created, HttpStatus.CREATED);
+}
+```
+
+**Current Test Expectation:**
+The test uses `QuestaoCreateRequest` directly:
+```java
+mockMvc.perform(post("/api/questoes")
+    .contentType(MediaType.APPLICATION_JSON)
+    .content(TestUtil.asJsonString(questaoCreateRequest)))
+```
+
+**Issue:** Either:
+1. The controller is missing conversion logic, OR
+2. The DTOs are identical and redundant
+
+**Recommendation:** Check if `QuestaoCreateRequest`, `QuestaoUpdateRequest`, and `QuestaoDto` are actually different. If they're the same, use one DTO. If different, add mapper.
+
+---
+
+### 5. **Response Clearing Won't Work Reliably**
+
+**Location:** `QuestaoService.updateQuestao()` (line 258)
+
+**Problem:**
+```java
+if (existingQuestao.getRespostas() != null) {
+    existingQuestao.getRespostas().clear();
+}
+```
+
+**Why it fails:**
+1. `Questao.respostas` uses `FetchType.LAZY`
+2. Calling `clear()` on uninitialized lazy collection may not trigger cascade
+3. SQLite doesn't support all cascade operations fully
+
+**Better approach:**
+```java
+// Explicitly fetch and delete
+Resposta resposta = respostaRepository.findByQuestaoId(id);
+if (resposta != null) {
+    respostaRepository.delete(resposta);
+}
+```
+
+---
+
+## ⚠️ HIGH PRIORITY ISSUES
+
+### 6. **Validation Happens Too Late**
+
+**Location:** `QuestaoService.createQuestao()` (lines 98-112)
+
+**Problem:** Validates concurso match **after** saving the question entity:
+
+```java
+Questao savedQuestao = questaoRepository.save(questao); // ✅ Saved
+
+// Then validates...
+for (Long ccId : questaoDto.getConcursoCargoIds()) {
+    ConcursoCargo cc = concursoCargoRepository.findById(ccId)
+        .orElseThrow(() -> new ResourceNotFoundException("ConcursoCargo", "ID", ccId));
+    
+    if (!cc.getConcurso().getId().equals(questao.getConcurso().getId())) {
+        throw new ValidationException(...); // ❌ Already created orphan question!
+    }
+}
+```
+
+**Fix:** Validate BEFORE saving:
+```java
+// First, load and validate all ConcursoCargos
+List<ConcursoCargo> concursoCargos = new ArrayList<>();
+for (Long ccId : questaoDto.getConcursoCargoIds()) {
+    ConcursoCargo cc = concursoCargoRepository.findById(ccId)
+        .orElseThrow(() -> new ResourceNotFoundException("ConcursoCargo", "ID", ccId));
+    
+    if (!cc.getConcurso().getId().equals(concurso.getId())) {
+        throw new ValidationException("O concurso do cargo não corresponde ao concurso da questão");
+    }
+    concursoCargos.add(cc);
+}
+
+// Now safe to save
+Questao questao = questaoMapper.toEntity(questaoDto);
+questao.setConcurso(concurso);
+// ... rest of creation
+Questao savedQuestao = questaoRepository.save(questao);
+
+// Create associations
+for (ConcursoCargo cc : concursoCargos) {
+    QuestaoCargo qc = new QuestaoCargo();
+    qc.setQuestao(savedQuestao);
+    qc.setConcursoCargo(cc);
+    questaoCargoRepository.save(qc);
+}
+```
+
+---
+
+### 7. **Missing @Transactional on Delete Method**
+
+**Location:** `QuestaoService.deleteQuestao()` (line 289)
+
+**Issue:**
+```java
+@Transactional // ✅ Has it
+public void deleteQuestao(Long id) {
+    // Deletes cargo associations
+    List<QuestaoCargo> questaoCargos = questaoCargoRepository.findByQuestaoId(id);
+    questaoCargoRepository.deleteAll(questaoCargos);
+    
+    // Then deletes question
+    questaoRepository.deleteById(id);
+}
+```
+
+**Actually OK** - It has `@Transactional`, but there's a better way:
+
+Since `QuestaoCargo` has cascade delete from the entity:
+```java
+@ManyToOne
+@JoinColumn(name = "questao_id", nullable = false)
+@org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
+private Questao questao;
+```
+
+You could simplify:
+```java
+@Transactional
+public void deleteQuestao(Long id) {
+    if (!questaoRepository.existsById(id)) {
+        throw new ResourceNotFoundException("Questão", "ID", id);
+    }
+    questaoRepository.deleteById(id); // Cascade will handle QuestaoCargo
+}
+```
+
+---
+
+### 8. **Alternativa Update Has Potential ID Conflict Bug**
+
+**Location:** `QuestaoService.updateQuestao()` (lines 265-287)
+
+**Scenario:**
+```java
+// DTO contains alternativa with ID=999 (doesn't exist in DB)
+AlternativaDto altDto = new AlternativaDto();
+altDto.setId(999L);
+altDto.setTexto("Fake alternativa");
+
+// Code does:
+if (altDto.getId() != null) {
+    existingAlt = existingMap.get(altDto.getId()); // Returns null
+}
+
+if (existingAlt != null) {
+    // Update
+} else {
+    // Creates NEW alternativa with whatever ID was in DTO
+    com.studora.entity.Alternativa newAlt = alternativaMapper.toEntity(altDto);
+    // mapper might copy the ID=999!
+}
+```
+
+**Risk:** Mapper might copy invalid IDs. Check `AlternativaMapper.toEntity()`:
+
+```java
+@Mapping(target = "id", ignore = true) // ✅ Good - ignores ID
+```
+
+**Status: Actually OK** - Mapper ignores ID on creation. But still worth testing edge case.
+
+---
+
+## 🟡 MEDIUM PRIORITY ISSUES
+
+### 9. **SQLite Limitations**
+
+**Location:** `application.properties` (line 5)
+
+**Issues with SQLite:**
+1. **No native Boolean type** - stored as INTEGER (0/1)
+2. **Limited CASCADE support** - some cascades might not work
+3. **No UUID support** - if you plan to use UUIDs
+4. **Concurrent write limitations** - only one writer at a time
+5. **No stored procedures** - complex operations must be in Java
+
+**Specific Concern for Your Code:**
+```java
+@Column(nullable = false, columnDefinition = "INTEGER")
+private Boolean anulada = false;
+```
+
+The `columnDefinition = "INTEGER"` is correct for SQLite, but make sure your validation handles:
+- Database might return `0` or `1` instead of `true`/`false`
+- Null checks might behave differently
+
+**Recommendation:** 
+- For production, consider PostgreSQL or MySQL
+- For development/testing, SQLite is fine but test edge cases
+
+---
+
+### 10. **Potential N+1 Query Issues**
+
+**Location:** Multiple entity relationships with `FetchType.LAZY`
+
+**Problem Areas:**
+
+1. **QuestaoMapper.toDto()** accessing lazy collections:
+```java
+@Mapping(target = "concursoCargoIds", source = "questaoCargos", qualifiedByName = "questaoCargosToIds")
+QuestaoDto toDto(Questao questao);
+
+default List<Long> questaoCargosToIds(List<QuestaoCargo> questaoCargos) {
+    return questaoCargos.stream()
+        .map(qc -> qc.getConcursoCargo().getId()) // Might trigger N queries
+        .collect(Collectors.toList());
+}
+```
+
+2. **Search queries** might trigger lazy loads when mapping to DTO
+
+**Solution:** Use fetch joins in repository:
+```java
+@Query("SELECT DISTINCT q FROM Questao q " +
+       "LEFT JOIN FETCH q.alternativas " +
+       "LEFT JOIN FETCH q.questaoCargos qc " +
+       "LEFT JOIN FETCH qc.concursoCargo " +
+       "WHERE q.id = :id")
+Optional<Questao> findByIdWithDetails(@Param("id") Long id);
+```
+
+---
+
+### 11. **Missing User Context**
+
+**Observation:** The `Resposta` entity doesn't track **which user** answered:
+
+```java
+@Entity
+public class Resposta {
+    private Long id;
+    private Questao questao;
+    private Alternativa alternativaEscolhida;
+    private LocalDateTime respondidaEm;
+    // ❌ No user field!
+}
+```
+
+**Impact:**
+- You can't track who answered what
+- Can't show user progress/history
+- Can't prevent duplicate answers per user
+
+**Recommendation:** Add user tracking:
+```java
+@ManyToOne(fetch = FetchType.LAZY)
+@JoinColumn(name = "user_id", nullable = false)
+private User user;
+
+@Table(
+    uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"questao_id", "user_id"})
+    }
+)
+```
+
+---
+
+## 📋 MISSING TEST COVERAGE
+
+### Controller Tests Missing
+
+1. ✅ `testCreateQuestao` - EXISTS
+2. ✅ `testGetQuestaoById` - EXISTS
+3. ✅ `testUpdateQuestao` - EXISTS
+4. ✅ `testDeleteQuestao` - EXISTS
+5. ✅ `testAddCargoToQuestao` - EXISTS
+6. ❌ **`testUpdateQuestao_WithCargoModification`** - MISSING
+7. ❌ **`testUpdateQuestao_RemoveAllCargos_Fails`** - MISSING
+8. ❌ **`testCreateQuestao_WithZeroCorrectAlternatives`** - MISSING
+9. ❌ **`testCreateQuestao_WithMultipleCorrectAlternatives_NonAnulada`** - MISSING
+10. ❌ **`testUpdateQuestao_ClearsExistingResponses`** - MISSING
+11. ❌ **`testRemoveLastCargo_Fails`** - MISSING
+
+### Service Tests Missing
+
+1. ✅ `testGetQuestaoById_Success` - EXISTS
+2. ✅ `testCreateQuestao_Success` - EXISTS
+3. ✅ `testRemoveLastCargoFromQuestao_FailsValidation` - EXISTS
+4. ❌ **`testUpdateQuestao_WithCargoChanges`** - MISSING
+5. ❌ **`testUpdateQuestao_ResponseDeletion`** - MISSING
+6. ❌ **`testNormalizeOrders_AllNulls`** - MISSING
+7. ❌ **`testNormalizeOrders_NegativeNumbers`** - MISSING
+8. ❌ **`testNormalizeOrders_NonSequential`** - MISSING
+9. ❌ **`testAddCargo_DifferentConcurso_Fails`** - MISSING
+10. ❌ **`testUpdateAlternativas_WithInvalidId`** - MISSING
+
+---
+
+## 🔧 RECOMMENDED FIXES
+
+### Fix #1: Complete updateQuestao() Implementation
+
+```java
+@Transactional
+public QuestaoDto updateQuestao(Long id, QuestaoDto questaoDto) {
+    Questao existingQuestao = questaoRepository.findById(id)
+        .orElseThrow(() -> new ResourceNotFoundException("Questão", "ID", id));
+
+    // Normalize orders before validation
+    normalizeAlternativaOrders(questaoDto.getAlternativas());
+
+    // Validate alternativas
+    if (questaoDto.getAlternativas() != null) {
+        if (questaoDto.getAlternativas().size() < 2) {
+            throw new ValidationException("Uma questão deve ter pelo menos 2 alternativas");
+        }
+
+        if (!Boolean.TRUE.equals(questaoDto.getAnulada())) {
+            long correctCount = questaoDto.getAlternativas().stream()
+                .filter(a -> Boolean.TRUE.equals(a.getCorreta()))
+                .count();
+            if (correctCount != 1) {
+                throw new ValidationException("Uma questão deve ter exatamente uma alternativa correta");
+            }
+        }
+    }
+
+    // Update basic fields
+    questaoMapper.updateEntityFromDto(questaoDto, existingQuestao);
+
+    // Update subtemas if provided
+    if (questaoDto.getSubtemaIds() != null) {
+        existingQuestao.setSubtemas(
+            subtemaRepository.findAllById(questaoDto.getSubtemaIds())
+        );
+    }
+
+    // Clear responses explicitly (since we're updating the question)
+    Resposta resposta = respostaRepository.findByQuestaoId(id);
+    if (resposta != null) {
+        respostaRepository.delete(resposta);
+    }
+
+    // Update Alternativas
+    if (questaoDto.getAlternativas() != null) {
+        List<Alternativa> currentAlts = alternativaRepository.findByQuestaoIdOrderByOrdemAsc(id);
+        Map<Long, Alternativa> existingMap = currentAlts.stream()
+            .collect(Collectors.toMap(Alternativa::getId, a -> a));
+
+        Set<Long> idsToKeep = questaoDto.getAlternativas().stream()
+            .map(AlternativaDto::getId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+
+        // Remove alternatives not in the new list
+        for (Alternativa alt : currentAlts) {
+            if (!idsToKeep.contains(alt.getId())) {
+                existingQuestao.getAlternativas().remove(alt);
+                alternativaRepository.delete(alt);
+            }
+        }
+        alternativaRepository.flush();
+
+        // Update existing or add new
+        for (AlternativaDto altDto : questaoDto.getAlternativas()) {
+            Alternativa existingAlt = null;
+            if (altDto.getId() != null) {
+                existingAlt = existingMap.get(altDto.getId());
+            }
+
+            if (existingAlt != null) {
+                alternativaMapper.updateEntityFromDto(altDto, existingAlt);
+                alternativaRepository.save(existingAlt);
+                if (!existingQuestao.getAlternativas().contains(existingAlt)) {
+                    existingQuestao.getAlternativas().add(existingAlt);
+                }
+            } else {
+                Alternativa newAlt = alternativaMapper.toEntity(altDto);
+                newAlt.setQuestao(existingQuestao);
+                Alternativa savedAlt = alternativaRepository.save(newAlt);
+                existingQuestao.getAlternativas().add(savedAlt);
+            }
+        }
+        alternativaRepository.flush();
+    }
+
+    // 🔥 NEW: Handle ConcursoCargo updates
+    if (questaoDto.getConcursoCargoIds() != null) {
+        // Validate all belong to same concurso
+        List<ConcursoCargo> concursoCargos = new ArrayList<>();
+        for (Long ccId : questaoDto.getConcursoCargoIds()) {
+            ConcursoCargo cc = concursoCargoRepository.findById(ccId)
+                .orElseThrow(() -> new ResourceNotFoundException("ConcursoCargo", "ID", ccId));
+            
+            if (!cc.getConcurso().getId().equals(existingQuestao.getConcurso().getId())) {
+                throw new ValidationException("O concurso do cargo não corresponde ao concurso da questão");
+            }
+            concursoCargos.add(cc);
+        }
+
+        // Get current associations
+        List<QuestaoCargo> currentCargos = questaoCargoRepository.findByQuestaoId(id);
+        Map<Long, QuestaoCargo> existingCargoMap = currentCargos.stream()
+            .collect(Collectors.toMap(qc -> qc.getConcursoCargo().getId(), qc -> qc));
+
+        Set<Long> ccIdsToKeep = new HashSet<>(questaoDto.getConcursoCargoIds());
+
+        // Remove associations not in new list
+        for (QuestaoCargo qc : currentCargos) {
+            if (!ccIdsToKeep.contains(qc.getConcursoCargo().getId())) {
+                questaoCargoRepository.delete(qc);
+            }
+        }
+
+        // Add new associations
+        for (ConcursoCargo cc : concursoCargos) {
+            if (!existingCargoMap.containsKey(cc.getId())) {
+                QuestaoCargo qc = new QuestaoCargo();
+                qc.setQuestao(existingQuestao);
+                qc.setConcursoCargo(cc);
+                questaoCargoRepository.save(qc);
+            }
+        }
+    }
+
+    // Final validation: ensure at least one cargo
+    long finalCargoCount = questaoCargoRepository.countByQuestaoId(id);
+    if (finalCargoCount == 0) {
+        throw new ValidationException("Uma questão deve estar associada a pelo menos um cargo");
+    }
+
+    Questao updatedQuestao = questaoRepository.save(existingQuestao);
+    return questaoMapper.toDto(updatedQuestao);
+}
+```
+
+---
+
+### Fix #2: Fix RespostaRepository
+
+```java
+package com.studora.repository;
+
+import com.studora.entity.Resposta;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+@Repository
+public interface RespostaRepository extends JpaRepository<Resposta, Long> {
+    Resposta findByQuestaoId(Long questaoId);
+    
+    @Transactional
+    @Modifying
+    @Query("DELETE FROM Resposta r WHERE r.questao.id = :questaoId")
+    void deleteByQuestaoId(@Param("questaoId") Long questaoId);
+}
+```
+
+---
+
+### Fix #3: Fix Validation Order in createQuestao()
+
+```java
+@Transactional
+public QuestaoDto createQuestao(QuestaoDto questaoDto) {
+    Concurso concurso = concursoRepository.findById(questaoDto.getConcursoId())
+        .orElseThrow(() -> new ResourceNotFoundException("Concurso", "ID", questaoDto.getConcursoId()));
+
+    normalizeAlternativaOrders(questaoDto.getAlternativas());
+
+    // Validate cargo association
+    if (questaoDto.getConcursoCargoIds() == null || questaoDto.getConcursoCargoIds().isEmpty()) {
+        throw new ValidationException("Uma questão deve estar associada a pelo menos um cargo");
+    }
+
+    // Validate alternativas count
+    if (questaoDto.getAlternativas() == null || questaoDto.getAlternativas().size() < 2) {
+        throw new ValidationException("Uma questão deve ter pelo menos 2 alternativas");
+    }
+
+    // Validate exactly one correct (if not anulada)
+    if (!Boolean.TRUE.equals(questaoDto.getAnulada())) {
+        long correctCount = questaoDto.getAlternativas().stream()
+            .filter(a -> Boolean.TRUE.equals(a.getCorreta()))
+            .count();
+        if (correctCount != 1) {
+            throw new ValidationException("Uma questão deve ter exatamente uma alternativa correta");
+        }
+    }
+
+    // 🔥 VALIDATE CARGOS BEFORE SAVING (moved up)
+    List<ConcursoCargo> concursoCargos = new ArrayList<>();
+    for (Long ccId : questaoDto.getConcursoCargoIds()) {
+        ConcursoCargo cc = concursoCargoRepository.findById(ccId)
+            .orElseThrow(() -> new ResourceNotFoundException("ConcursoCargo", "ID", ccId));
+        
+        if (!cc.getConcurso().getId().equals(concurso.getId())) {
+            throw new ValidationException("O concurso do cargo não corresponde ao concurso da questão");
+        }
+        concursoCargos.add(cc);
+    }
+
+    // Now safe to create entities
+    Questao questao = questaoMapper.toEntity(questaoDto);
+    questao.setConcurso(concurso);
+
+    if (questaoDto.getSubtemaIds() != null) {
+        List<Subtema> subtemas = subtemaRepository.findAllById(questaoDto.getSubtemaIds());
+        questao.setSubtemas(subtemas);
+    }
+
+    Questao savedQuestao = questaoRepository.save(questao);
+
+    // Create Alternativas
+    if (questaoDto.getAlternativas() != null) {
+        for (AlternativaDto altDto : questaoDto.getAlternativas()) {
+            Alternativa alternativa = alternativaMapper.toEntity(altDto);
+            alternativa.setQuestao(savedQuestao);
+            Alternativa savedAlt = alternativaRepository.save(alternativa);
+            savedQuestao.getAlternativas().add(savedAlt);
+        }
+    }
+
+    // Create QuestaoCargo associations (using pre-validated list)
+    for (ConcursoCargo cc : concursoCargos) {
+        QuestaoCargo qc = new QuestaoCargo();
+        qc.setQuestao(savedQuestao);
+        qc.setConcursoCargo(cc);
+        QuestaoCargo savedQc = questaoCargoRepository.save(qc);
+        savedQuestao.getQuestaoCargos().add(savedQc);
+    }
+
+    return questaoMapper.toDto(savedQuestao);
+}
+```
+
+---
+
+## 📊 PRIORITY MATRIX (Updated)
+
+| Issue | Severity | Effort | Priority | Impact |
+|-------|----------|--------|----------|---------|
+| RespostaRepository.deleteByQuestaoId missing annotations | 🔴 Critical | 5 min | **P0** | App crash |
+| Update doesn't handle concursoCargoIds | 🔴 Critical | 1 hour | **P0** | Feature broken |
+| Resposta unique constraint issue | 🔴 Critical | 30 min | **P0** | Data integrity |
+| Validation order in create | 🟠 High | 15 min | **P1** | Orphan records |
+| Response clearing unreliable | 🟠 High | 10 min | **P1** | Data corruption |
+| Missing test coverage | 🟠 High | 4 hours | **P1** | Quality |
+| N+1 query issues | 🟡 Medium | 2 hours | **P2** | Performance |
+| Missing user tracking | 🟡 Medium | 2 hours | **P2** | Feature gap |
+| SQLite limitations | 🟢 Low | N/A | **P3** | Deployment |
+| Documentation | 🟢 Low | 3 hours | **P3** | Maintainability |
+
+---
+
+## ✅ IMMEDIATE ACTION PLAN
+
+### Day 1 (Critical Fixes - 2 hours)
+
+1. **Fix RespostaRepository** (5 min)
+   - Add `@Modifying`, `@Query`, `@Transactional`
+   - Test deletion works
+
+2. **Fix Resposta.unique constraint** (30 min)
+   - Decide: single answer per user or multiple?
+   - Update entity accordingly
+   - Create migration if needed
+
+3. **Fix updateQuestao cargo handling** (1 hour)
+   - Implement cargo update logic
+   - Update existing tests
+   - Add new test case
+
+4. **Fix validation order in createQuestao** (15 min)
+   - Move validation before save
+   - Test edge cases
+
+### Day 2 (High Priority - 4 hours)
+
+5. **Add missing critical tests** (2 hours)
+   - Test cargo updates
+   - Test response deletion
+   - Test validation edge cases
+
+6. **Fix response clearing** (30 min)
+   - Use explicit delete instead of clear()
+   - Verify with integration test
+
+7. **Add fetch joins for N+1 queries** (1.5 hours)
+   - Create `findByIdWithDetails()` method
+   - Update service to use it
+   - Measure query count improvement
+
+### Day 3+ (Medium Priority)
+
+8. **Add user tracking to Resposta** (if needed)
+9. **Document public API methods**
+10. **Performance optimization**
+11. **Plan PostgreSQL migration** (for production)
+
+---
+
+## 📝 ADDITIONAL RECOMMENDATIONS
+
+### 1. Add Constants
+
+```java
+public class QuestaoConstants {
+    public static final int MIN_ALTERNATIVAS = 2;
+    public static final int REQUIRED_CORRECT_ALTERNATIVAS = 1;
+    public static final int MIN_CARGO_ASSOCIATIONS = 1;
+}
+```
+
+### 2. Extract Validator
+
+```java
+@Component
+public class QuestaoValidator {
+    public void validateCreate(QuestaoDto dto) {
+        validateAlternativas(dto.getAlternativas(), dto.getAnulada());
+        validateCargoAssociations(dto.getConcursoCargoIds());
+    }
+    
+    private void validateAlternativas(List<AlternativaDto> alternativas, Boolean anulada) {
+        if (alternativas == null || alternativas.size() < MIN_ALTERNATIVAS) {
+            throw new ValidationException("Mínimo de " + MIN_ALTERNATIVAS + " alternativas");
+        }
+        
+        if (!Boolean.TRUE.equals(anulada)) {
+            long correctCount = alternativas.stream()
+                .filter(a -> Boolean.TRUE.equals(a.getCorreta()))
+                .count();
+            if (correctCount != REQUIRED_CORRECT_ALTERNATIVAS) {
+                throw new ValidationException("Exatamente " + REQUIRED_CORRECT_ALTERNATIVAS + " correta");
+            }
+        }
+    }
+}
+```
+
+### 3. Add Logging
+
+```java
+@Slf4j
+@Service
+public class QuestaoService {
+    
+    @Transactional
+    public QuestaoDto updateQuestao(Long id, QuestaoDto questaoDto) {
+        log.info("Updating question {}: alternativas={}, cargos={}", 
+                 id, 
+                 questaoDto.getAlternativas().size(),
+                 questaoDto.getConcursoCargoIds() != null ? questaoDto.getConcursoCargoIds().size() : 0);
+        // ...
+    }
+}
+```
+
+### 4. Add Performance Monitoring
+
+```java
+@Timed(value = "questao.create", description = "Time to create question")
+public QuestaoDto createQuestao(QuestaoDto questaoDto) {
+    // ...
+}
+```
+
+### 5. Consider Adding DTOs Converter
+
+```java
+@Component
+public class QuestaoRequestConverter {
+    public QuestaoDto toDto(QuestaoCreateRequest request) {
+        QuestaoDto dto = new QuestaoDto();
+        BeanUtils.copyProperties(request, dto);
+        return dto;
+    }
+    
+    public QuestaoDto toDto(QuestaoUpdateRequest request) {
+        QuestaoDto dto = new QuestaoDto();
+        BeanUtils.copyProperties(request, dto);
+        return dto;
+    }
+}
+```
+
+---
+
+## 🎯 WHAT'S WORKING WELL
+
+✅ Good separation of concerns (Controller → Service → Repository)  
+✅ Proper use of DTOs and entities  
+✅ Transaction management with `@Transactional`  
+✅ Custom exceptions with meaningful messages  
+✅ Order normalization is clever  
+✅ Swagger documentation is thorough  
+✅ Test structure follows best practices  
+✅ Using MapStruct for mapping  
+✅ RFC 7807 Problem Details enabled  
+
+---
+
+## 📎 SUMMARY
+
+Your codebase has **solid architecture** but **critical bugs that will cause runtime failures**:
+
+1. **RespostaRepository.deleteByQuestaoId()** will fail - needs annotations
+2. **Resposta unique constraint** might be wrong for your use case
+3. **updateQuestao()** ignores cargo updates - feature is broken
+4. **Validation order** could create orphan records
+5. **Response clearing** is unreliable
+
+**Estimated fix time:** 6-8 hours for all P0/P1 items.
+
+The good news: These are all fixable, and your test infrastructure is ready to verify the fixes!
+
+---
+
+## 🔨 WOULD YOU LIKE ME TO:
+
+1. ✅ Generate the complete fixed `QuestaoService.java`?
+2. ✅ Generate the complete fixed `RespostaRepository.java`?
+3. ✅ Create all missing test cases?
+4. ✅ Create the validator class?
+5. ✅ Create a migration script for Resposta changes?
+
+Let me know which files you'd like me to generate!

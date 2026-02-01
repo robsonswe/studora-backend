@@ -4,35 +4,32 @@ import com.studora.dto.BancaDto;
 import com.studora.entity.Banca;
 import com.studora.exception.ConflictException;
 import com.studora.exception.ResourceNotFoundException;
+import com.studora.mapper.BancaMapper;
 import com.studora.repository.BancaRepository;
-import com.studora.util.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class BancaService {
 
-    @Autowired
-    private BancaRepository bancaRepository;
-
-    @Autowired
-    private com.studora.repository.ConcursoRepository concursoRepository;
+    private final BancaRepository bancaRepository;
+    private final BancaMapper bancaMapper;
+    private final com.studora.repository.ConcursoRepository concursoRepository;
 
     public Page<BancaDto> findAll(Pageable pageable) {
         return bancaRepository.findAll(pageable)
-                .map(this::convertToDto);
+                .map(bancaMapper::toDto);
     }
 
     public BancaDto findById(Long id) {
         Banca banca = bancaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Banca", "ID", id));
-        return convertToDto(banca);
+        return bancaMapper.toDto(banca);
     }
 
     public BancaDto save(BancaDto bancaDto) {
@@ -46,11 +43,11 @@ public class BancaService {
         if (bancaDto.getId() != null) {
             banca = bancaRepository.findById(bancaDto.getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Banca", "ID", bancaDto.getId()));
-            banca.setNome(bancaDto.getNome()); // Keep original case for display purposes
+            bancaMapper.updateEntityFromDto(bancaDto, banca);
         } else {
-            banca = convertToEntity(bancaDto);
+            banca = bancaMapper.toEntity(bancaDto);
         }
-        return convertToDto(bancaRepository.save(banca));
+        return bancaMapper.toDto(bancaRepository.save(banca));
     }
 
     public void deleteById(Long id) {
@@ -58,22 +55,8 @@ public class BancaService {
             throw new ResourceNotFoundException("Banca", "ID", id);
         }
         if (concursoRepository.existsByBancaId(id)) {
-            throw new com.studora.exception.ConflictException("Não é possível excluir a banca pois existem concursos associados a ela.");
+            throw new ConflictException("Não é possível excluir a banca pois existem concursos associados a ela.");
         }
         bancaRepository.deleteById(id);
-    }
-
-    private BancaDto convertToDto(Banca banca) {
-        BancaDto bancaDto = new BancaDto();
-        bancaDto.setId(banca.getId());
-        bancaDto.setNome(banca.getNome());
-        return bancaDto;
-    }
-
-    private Banca convertToEntity(BancaDto bancaDto) {
-        Banca banca = new Banca();
-        banca.setId(bancaDto.getId());
-        banca.setNome(bancaDto.getNome());
-        return banca;
     }
 }

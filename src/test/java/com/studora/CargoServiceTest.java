@@ -23,12 +23,16 @@ class CargoServiceTest {
     @Mock
     private CargoRepository cargoRepository;
 
-    @InjectMocks
+    @Mock
+    private com.studora.repository.ConcursoCargoRepository concursoCargoRepository;
+
     private CargoService cargoService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        com.studora.mapper.CargoMapper realMapper = org.mapstruct.factory.Mappers.getMapper(com.studora.mapper.CargoMapper.class);
+        cargoService = new CargoService(cargoRepository, realMapper, concursoCargoRepository);
     }
 
     @Test
@@ -39,16 +43,21 @@ class CargoServiceTest {
         cargo.setNivel(NivelCargo.SUPERIOR);
         cargo.setArea("Judiciário");
 
-        when(cargoRepository.save(any(Cargo.class))).thenReturn(cargo);
-        when(cargoRepository.findById(1L)).thenReturn(Optional.of(cargo));
-
         CargoDto cargoDto = new CargoDto();
         cargoDto.setNome("Juiz");
         cargoDto.setNivel(NivelCargo.SUPERIOR);
         cargoDto.setArea("Judiciário");
 
+        when(cargoRepository.save(any(Cargo.class))).thenAnswer(i -> {
+            Cargo c = i.getArgument(0);
+            c.setId(1L);
+            return c;
+        });
+        when(cargoRepository.findById(1L)).thenReturn(Optional.of(cargo));
+
         CargoDto saved = cargoService.save(cargoDto);
         assertNotNull(saved);
+        assertEquals(1L, saved.getId());
 
         CargoDto found = cargoService.findById(1L);
         assertEquals("Juiz", found.getNome());

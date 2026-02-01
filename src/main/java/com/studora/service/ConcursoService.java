@@ -9,51 +9,46 @@ import com.studora.entity.ConcursoCargo;
 import com.studora.entity.Instituicao;
 import com.studora.exception.ResourceNotFoundException;
 import com.studora.exception.ValidationException;
+import com.studora.mapper.ConcursoCargoMapper;
+import com.studora.mapper.ConcursoMapper;
 import com.studora.repository.BancaRepository;
 import com.studora.repository.CargoRepository;
 import com.studora.repository.ConcursoCargoRepository;
 import com.studora.repository.ConcursoRepository;
 import com.studora.repository.InstituicaoRepository;
 import com.studora.util.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class ConcursoService {
 
-    @Autowired
-    private ConcursoRepository concursoRepository;
-
-    @Autowired
-    private InstituicaoRepository instituicaoRepository;
-
-    @Autowired
-    private BancaRepository bancaRepository;
-
-    @Autowired
-    private CargoRepository cargoRepository;
-
-    @Autowired
-    private ConcursoCargoRepository concursoCargoRepository;
-
-    @Autowired
-    private com.studora.repository.QuestaoCargoRepository questaoCargoRepository;
+    private final ConcursoRepository concursoRepository;
+    private final InstituicaoRepository instituicaoRepository;
+    private final BancaRepository bancaRepository;
+    private final CargoRepository cargoRepository;
+    private final ConcursoCargoRepository concursoCargoRepository;
+    private final com.studora.repository.QuestaoCargoRepository questaoCargoRepository;
+    private final ConcursoMapper concursoMapper;
+    private final ConcursoCargoMapper concursoCargoMapper;
 
     public Page<ConcursoDto> findAll(Pageable pageable) {
         return concursoRepository.findAll(pageable)
-                .map(this::convertToDto);
+                .map(concursoMapper::toDto);
     }
 
     public ConcursoDto findById(Long id) {
         Concurso concurso = concursoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Concurso", "ID", id));
-        return convertToDto(concurso);
+        return concursoMapper.toDto(concurso);
     }
 
     public ConcursoDto save(ConcursoDto concursoDto) {
@@ -88,7 +83,7 @@ public class ConcursoService {
         Concurso concurso;
         if (concursoDto.getId() != null) {
             // Update existing concurso
-            Concurso existingConcurso = concursoRepository.findById(concursoDto.getId())
+            concurso = concursoRepository.findById(concursoDto.getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Concurso", "ID", concursoDto.getId()));
 
             // Update the existing entity with new values
@@ -97,21 +92,25 @@ public class ConcursoService {
             Banca banca = bancaRepository.findById(concursoDto.getBancaId())
                     .orElseThrow(() -> new ResourceNotFoundException("Banca", "ID", concursoDto.getBancaId()));
 
-            existingConcurso.setInstituicao(instituicao);
-            existingConcurso.setBanca(banca);
-            existingConcurso.setAno(concursoDto.getAno());
-            existingConcurso.setMes(concursoDto.getMes());
-            existingConcurso.setEdital(concursoDto.getEdital());
-
-            concurso = existingConcurso;
+            concursoMapper.updateEntityFromDto(concursoDto, concurso);
+            concurso.setInstituicao(instituicao);
+            concurso.setBanca(banca);
         } else {
             // Create new concurso
-            concurso = convertToEntity(concursoDto);
+            Instituicao instituicao = instituicaoRepository.findById(concursoDto.getInstituicaoId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Instituição", "ID", concursoDto.getInstituicaoId()));
+
+            Banca banca = bancaRepository.findById(concursoDto.getBancaId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Banca", "ID", concursoDto.getBancaId()));
+
+            concurso = concursoMapper.toEntity(concursoDto);
+            concurso.setInstituicao(instituicao);
+            concurso.setBanca(banca);
         }
 
         Concurso savedConcurso = concursoRepository.save(concurso);
 
-        return convertToDto(savedConcurso);
+        return concursoMapper.toDto(savedConcurso);
     }
 
     @Transactional
@@ -127,7 +126,7 @@ public class ConcursoService {
     public List<ConcursoCargoDto> getCargosByConcursoId(Long concursoId) {
         List<ConcursoCargo> concursoCargos = concursoCargoRepository.findByConcursoId(concursoId);
         return concursoCargos.stream()
-                .map(this::convertConcursoCargoToDto)
+                .map(concursoCargoMapper::toDto)
                 .collect(Collectors.toList());
     }
 
@@ -152,7 +151,7 @@ public class ConcursoService {
         concursoCargo.setCargo(cargo);
 
         ConcursoCargo savedConcursoCargo = concursoCargoRepository.save(concursoCargo);
-        return convertConcursoCargoToDto(savedConcursoCargo);
+        return concursoCargoMapper.toDto(savedConcursoCargo);
     }
 
     @Transactional
@@ -183,42 +182,5 @@ public class ConcursoService {
 
         // Delete the association
         concursoCargoRepository.deleteAll(concursoCargos);
-    }
-
-    private ConcursoDto convertToDto(Concurso concurso) {
-        ConcursoDto dto = new ConcursoDto();
-        dto.setId(concurso.getId());
-        dto.setInstituicaoId(concurso.getInstituicao().getId());
-        dto.setBancaId(concurso.getBanca().getId());
-        dto.setAno(concurso.getAno());
-        dto.setMes(concurso.getMes());
-        dto.setEdital(concurso.getEdital());
-        return dto;
-    }
-
-    private ConcursoCargoDto convertConcursoCargoToDto(ConcursoCargo concursoCargo) {
-        ConcursoCargoDto dto = new ConcursoCargoDto();
-        dto.setId(concursoCargo.getId());
-        dto.setConcursoId(concursoCargo.getConcurso().getId());
-        dto.setCargoId(concursoCargo.getCargo().getId());
-        return dto;
-    }
-
-    private Concurso convertToEntity(ConcursoDto dto) {
-        Instituicao instituicao = instituicaoRepository.findById(dto.getInstituicaoId())
-                .orElseThrow(() -> new ResourceNotFoundException("Instituição", "ID", dto.getInstituicaoId()));
-
-        Banca banca = bancaRepository.findById(dto.getBancaId())
-                .orElseThrow(() -> new ResourceNotFoundException("Banca", "ID", dto.getBancaId()));
-
-        Concurso concurso = new Concurso();
-        concurso.setId(dto.getId());
-        concurso.setInstituicao(instituicao);
-        concurso.setBanca(banca);
-        concurso.setAno(dto.getAno());
-        concurso.setMes(dto.getMes());
-        concurso.setEdital(dto.getEdital());
-
-        return concurso;
     }
 }

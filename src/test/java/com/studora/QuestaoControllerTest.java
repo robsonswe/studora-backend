@@ -153,7 +153,8 @@ class QuestaoControllerTest {
         alt1.setTexto("Brasília");
         alt1.setCorreta(true);
         alt1.setJustificativa("Capital do Brasil");
-        alternativaRepository.save(alt1);
+        alt1 = alternativaRepository.save(alt1);
+        questao.getAlternativas().add(alt1);
 
         com.studora.entity.Alternativa alt2 = new com.studora.entity.Alternativa();
         alt2.setQuestao(questao);
@@ -161,7 +162,8 @@ class QuestaoControllerTest {
         alt2.setTexto("São Paulo");
         alt2.setCorreta(false);
         alt2.setJustificativa("Maior cidade do Brasil");
-        alternativaRepository.save(alt2);
+        alt2 = alternativaRepository.save(alt2);
+        questao.getAlternativas().add(alt2);
 
         mockMvc
             .perform(get("/api/questoes/{id}", questao.getId()))
@@ -219,7 +221,7 @@ class QuestaoControllerTest {
         Questao questao = new Questao();
         questao.setEnunciado("Questao Subtema");
         questao.setConcurso(concurso);
-        questao.setSubtemas(Collections.singletonList(subtema));
+        questao.setSubtemas(new java.util.LinkedHashSet<>(Collections.singletonList(subtema)));
         questaoRepository.save(questao);
 
         mockMvc
@@ -253,7 +255,7 @@ class QuestaoControllerTest {
     void testGetQuestoesMultiFilter() throws Exception {
         Questao qTarget = new Questao(concurso, "Target");
         qTarget.setAnulada(true);
-        qTarget.setSubtemas(Collections.singletonList(subtema));
+        qTarget.setSubtemas(new java.util.LinkedHashSet<>(Collections.singletonList(subtema)));
         questaoRepository.save(qTarget);
 
         Questao qOther = new Questao(concurso, "Other");
@@ -352,18 +354,18 @@ class QuestaoControllerTest {
         com.studora.entity.Alternativa alt1 = new com.studora.entity.Alternativa();
         alt1.setQuestao(questao);
         alt1.setOrdem(1);
-        alt1.setTexto("Alternative to Delete 1");
-        alt1.setCorreta(false);
-        alt1.setJustificativa("Justification 1");
-        alternativaRepository.save(alt1);
+        alt1.setTexto("A");
+        alt1.setCorreta(true);
+        alt1 = alternativaRepository.save(alt1);
+        questao.getAlternativas().add(alt1);
 
         com.studora.entity.Alternativa alt2 = new com.studora.entity.Alternativa();
         alt2.setQuestao(questao);
         alt2.setOrdem(2);
-        alt2.setTexto("Alternative to Delete 2");
-        alt2.setCorreta(true);
-        alt2.setJustificativa("Justification 2");
-        alternativaRepository.save(alt2);
+        alt2.setTexto("B");
+        alt2.setCorreta(false);
+        alt2 = alternativaRepository.save(alt2);
+        questao.getAlternativas().add(alt2);
 
         // Verify the question and alternatives exist before deletion
         mockMvc

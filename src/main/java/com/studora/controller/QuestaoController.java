@@ -37,6 +37,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.studora.mapper.QuestaoMapper;
+
 @RestController
 @RequestMapping("/api/questoes")
 @CrossOrigin(origins = "*")
@@ -45,6 +47,9 @@ public class QuestaoController {
 
     @Autowired
     private QuestaoService questaoService;
+
+    @Autowired
+    private QuestaoMapper questaoMapper;
 
     @Operation(
         summary = "Obter questões",
@@ -158,16 +163,7 @@ public class QuestaoController {
     @PostMapping
     public ResponseEntity<QuestaoDto> createQuestao(
             @Valid @RequestBody QuestaoCreateRequest questaoCreateRequest) {
-        // Convert the request DTO to the regular DTO for processing
-        QuestaoDto questaoDto = new QuestaoDto();
-        questaoDto.setConcursoId(questaoCreateRequest.getConcursoId());
-        questaoDto.setEnunciado(questaoCreateRequest.getEnunciado());
-        questaoDto.setAnulada(questaoCreateRequest.getAnulada());
-        questaoDto.setImageUrl(questaoCreateRequest.getImageUrl());
-        questaoDto.setSubtemaIds(questaoCreateRequest.getSubtemaIds());
-        questaoDto.setConcursoCargoIds(questaoCreateRequest.getConcursoCargoIds());
-        questaoDto.setAlternativas(questaoCreateRequest.getAlternativas());
-
+        QuestaoDto questaoDto = questaoMapper.toDto(questaoCreateRequest);
         QuestaoDto createdQuestao = questaoService.createQuestao(questaoDto);
         return new ResponseEntity<>(createdQuestao, HttpStatus.CREATED);
     }
@@ -221,16 +217,7 @@ public class QuestaoController {
     public ResponseEntity<QuestaoDto> updateQuestao(
             @Parameter(description = "ID da questão a ser atualizada", required = true) @PathVariable Long id,
             @Valid @RequestBody QuestaoUpdateRequest questaoUpdateRequest) {
-        // Convert the request DTO to the regular DTO for processing
-        QuestaoDto questaoDto = new QuestaoDto();
-        questaoDto.setConcursoId(questaoUpdateRequest.getConcursoId());
-        questaoDto.setEnunciado(questaoUpdateRequest.getEnunciado());
-        questaoDto.setAnulada(questaoUpdateRequest.getAnulada());
-        questaoDto.setImageUrl(questaoUpdateRequest.getImageUrl());
-        questaoDto.setSubtemaIds(questaoUpdateRequest.getSubtemaIds());
-        questaoDto.setConcursoCargoIds(questaoUpdateRequest.getConcursoCargoIds());
-        questaoDto.setAlternativas(questaoUpdateRequest.getAlternativas());
-
+        QuestaoDto questaoDto = questaoMapper.toDto(questaoUpdateRequest);
         QuestaoDto updatedQuestao = questaoService.updateQuestao(id, questaoDto);
         return ResponseEntity.ok(updatedQuestao);
     }

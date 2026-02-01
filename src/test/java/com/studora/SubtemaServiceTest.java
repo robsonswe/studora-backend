@@ -29,12 +29,13 @@ class SubtemaServiceTest {
     @Mock
     private com.studora.repository.QuestaoRepository questaoRepository;
 
-    @InjectMocks
     private SubtemaService subtemaService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        com.studora.mapper.SubtemaMapper realMapper = org.mapstruct.factory.Mappers.getMapper(com.studora.mapper.SubtemaMapper.class);
+        subtemaService = new SubtemaService(subtemaRepository, temaRepository, questaoRepository, realMapper);
     }
 
     @Test
@@ -85,21 +86,20 @@ class SubtemaServiceTest {
         Tema tema = new Tema();
         tema.setId(1L);
 
-        Subtema savedSubtema = new Subtema();
-        savedSubtema.setId(1L);
-        savedSubtema.setNome(subtemaDto.getNome());
-        savedSubtema.setTema(tema);
-
         when(temaRepository.findById(1L)).thenReturn(Optional.of(tema));
-        when(subtemaRepository.save(any(Subtema.class))).thenReturn(savedSubtema);
+        when(subtemaRepository.save(any(Subtema.class))).thenAnswer(i -> {
+            Subtema s = i.getArgument(0);
+            s.setId(1L);
+            return s;
+        });
 
         // Act
         SubtemaDto result = subtemaService.createSubtema(subtemaDto);
 
         // Assert
         assertNotNull(result);
-        assertEquals(savedSubtema.getNome(), result.getNome());
-        assertEquals(tema.getId(), result.getTemaId());
+        assertEquals("Atributos do Ato Administrativo", result.getNome());
+        assertEquals(1L, result.getTemaId());
         verify(temaRepository, times(1)).findById(1L);
         verify(subtemaRepository, times(1)).save(any(Subtema.class));
     }

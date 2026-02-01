@@ -7,67 +7,58 @@ import com.studora.dto.QuestaoFilter;
 import com.studora.entity.*;
 import com.studora.exception.ResourceNotFoundException;
 import com.studora.exception.ValidationException;
+import com.studora.mapper.AlternativaMapper;
+import com.studora.mapper.QuestaoCargoMapper;
+import com.studora.mapper.QuestaoMapper;
 import com.studora.repository.*;
 import com.studora.repository.specification.QuestaoSpecification;
+import com.studora.util.QuestaoValidationConstants;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class QuestaoService {
 
-    @Autowired
-    private QuestaoRepository questaoRepository;
-
-    @Autowired
-    private ConcursoRepository concursoRepository;
-
-    @Autowired
-    private SubtemaRepository subtemaRepository;
-
-    @Autowired
-    private ConcursoCargoRepository concursoCargoRepository;
-
-    @Autowired
-    private QuestaoCargoRepository questaoCargoRepository;
-
-    @Autowired
-    private TemaRepository temaRepository;
-
-    @Autowired
-    private DisciplinaRepository disciplinaRepository;
-
-    @Autowired
-    private AlternativaRepository alternativaRepository;
-
-    @Autowired
-    private RespostaRepository respostaRepository;
+    private final QuestaoRepository questaoRepository;
+    private final ConcursoRepository concursoRepository;
+    private final SubtemaRepository subtemaRepository;
+    private final ConcursoCargoRepository concursoCargoRepository;
+    private final QuestaoCargoRepository questaoCargoRepository;
+    private final TemaRepository temaRepository;
+    private final DisciplinaRepository disciplinaRepository;
+    private final AlternativaRepository alternativaRepository;
+    private final RespostaRepository respostaRepository;
+    private final QuestaoMapper questaoMapper;
+    private final AlternativaMapper alternativaMapper;
+    private final QuestaoCargoMapper questaoCargoMapper;
 
     public List<QuestaoDto> getAllQuestoes() {
         return questaoRepository
             .findAll()
             .stream()
-            .map(this::convertToDto)
+            .map(questaoMapper::toDto)
             .collect(Collectors.toList());
     }
 
     public Page<QuestaoDto> search(QuestaoFilter filter, Pageable pageable) {
         return questaoRepository.findAll(QuestaoSpecification.withFilter(filter), pageable)
-                .map(this::convertToDto);
+                .map(questaoMapper::toDto);
     }
 
     public QuestaoDto getQuestaoById(Long id) {
         Questao questao = questaoRepository
-            .findById(id)
+            .findByIdWithDetails(id)
             .orElseThrow(() ->
                 new ResourceNotFoundException("Questão", "ID", id)
             );
-        return convertToDto(questao);
+        return questaoMapper.toDto(questao);
     }
 
     @Transactional
@@ -80,13 +71,13 @@ public class QuestaoService {
         normalizeAlternativaOrders(questaoDto.getAlternativas());
 
         // Validate that the question has at least one cargo association
-        if (questaoDto.getConcursoCargoIds() == null || questaoDto.getConcursoCargoIds().isEmpty()) {
-            throw new ValidationException("Uma questão deve estar associada a pelo menos um cargo");
+        if (questaoDto.getConcursoCargoIds() == null || questaoDto.getConcursoCargoIds().size() < QuestaoValidationConstants.MIN_CARGO_ASSOCIATIONS) {
+            throw new ValidationException("Uma questão deve estar associada a pelo menos " + QuestaoValidationConstants.MIN_CARGO_ASSOCIATIONS + " cargo");
         }
 
         // Validate that the question has at least 2 alternatives
-        if (questaoDto.getAlternativas() == null || questaoDto.getAlternativas().size() < 2) {
-            throw new ValidationException("Uma questão deve ter pelo menos 2 alternativas");
+        if (questaoDto.getAlternativas() == null || questaoDto.getAlternativas().size() < QuestaoValidationConstants.MIN_ALTERNATIVAS) {
+            throw new ValidationException("Uma questão deve ter pelo menos " + QuestaoValidationConstants.MIN_ALTERNATIVAS + " alternativas");
         }
 
         // Validate that exactly one alternative is correct, unless the question is annulled
@@ -95,19 +86,32 @@ public class QuestaoService {
                 .map(com.studora.dto.AlternativaDto::getCorreta)
                 .filter(Boolean.TRUE::equals)
                 .count();
-            if (correctCount != 1) {
-                throw new ValidationException("Uma questão deve ter exatamente uma alternativa correta");
+            if (correctCount != QuestaoValidationConstants.REQUIRED_CORRECT_ALTERNATIVAS) {
+                throw new ValidationException("Uma questão deve ter exatamente " + QuestaoValidationConstants.REQUIRED_CORRECT_ALTERNATIVAS + " alternativa correta");
             }
         }
 
-        Questao questao = convertToEntity(questaoDto);
+        // PRE-VALIDATE ConcursoCargo associations before saving Questao
+        List<ConcursoCargo> validatedCargos = new ArrayList<>();
+        for (Long ccId : questaoDto.getConcursoCargoIds()) {
+            ConcursoCargo cc = concursoCargoRepository
+                .findById(ccId)
+                .orElseThrow(() -> new ResourceNotFoundException("ConcursoCargo", "ID", ccId));
+
+            if (!cc.getConcurso().getId().equals(concurso.getId())) {
+                throw new ValidationException("O concurso do cargo não corresponde ao concurso da questão");
+            }
+            validatedCargos.add(cc);
+        }
+
+        Questao questao = questaoMapper.toEntity(questaoDto);
         questao.setConcurso(concurso);
 
         if (questaoDto.getSubtemaIds() != null) {
             List<Subtema> subtemas = subtemaRepository.findAllById(
                 questaoDto.getSubtemaIds()
             );
-            questao.setSubtemas(subtemas);
+            questao.setSubtemas(new java.util.LinkedHashSet<>(subtemas));
         }
 
         Questao savedQuestao = questaoRepository.save(questao);
@@ -115,37 +119,23 @@ public class QuestaoService {
         // Handle Alternativas
         if (questaoDto.getAlternativas() != null) {
             for (com.studora.dto.AlternativaDto altDto : questaoDto.getAlternativas()) {
-                com.studora.entity.Alternativa alternativa = new com.studora.entity.Alternativa();
+                com.studora.entity.Alternativa alternativa = alternativaMapper.toEntity(altDto);
                 alternativa.setQuestao(savedQuestao);
-                alternativa.setOrdem(altDto.getOrdem());
-                alternativa.setTexto(altDto.getTexto());
-                alternativa.setCorreta(altDto.getCorreta());
-                alternativa.setJustificativa(altDto.getJustificativa());
-                // Save each alternative
-                alternativaRepository.save(alternativa);
+                com.studora.entity.Alternativa savedAlt = alternativaRepository.save(alternativa);
+                savedQuestao.getAlternativas().add(savedAlt);
             }
         }
 
-        // Handle QuestaoCargo associations
-        for (Long ccId : questaoDto.getConcursoCargoIds()) {
-            ConcursoCargo cc = concursoCargoRepository
-                .findById(ccId)
-                .orElseThrow(() ->
-                    new ResourceNotFoundException("ConcursoCargo", "ID", ccId)
-                );
-
-            // Validate that the concurso in the concursoCargo matches the concurso in the questao
-            if (!cc.getConcurso().getId().equals(questao.getConcurso().getId())) {
-                throw new ValidationException("O concurso do cargo não corresponde ao concurso da questão");
-            }
-
+        // Handle QuestaoCargo associations (using pre-validated list)
+        for (ConcursoCargo cc : validatedCargos) {
             QuestaoCargo qc = new QuestaoCargo();
             qc.setQuestao(savedQuestao);
             qc.setConcursoCargo(cc);
-            questaoCargoRepository.save(qc);
+            QuestaoCargo savedQc = questaoCargoRepository.save(qc);
+            savedQuestao.getQuestaoCargos().add(savedQc);
         }
 
-        return convertToDto(savedQuestao);
+        return questaoMapper.toDto(savedQuestao);
     }
 
     @Transactional
@@ -159,87 +149,123 @@ public class QuestaoService {
 
         // Validate that the question has at least 2 alternatives
         if (questaoDto.getAlternativas() != null) {
-            if (questaoDto.getAlternativas().size() < 2) {
-                throw new ValidationException("Uma questão deve ter pelo menos 2 alternativas");
+            if (questaoDto.getAlternativas().size() < QuestaoValidationConstants.MIN_ALTERNATIVAS) {
+                throw new ValidationException("Uma questão deve ter pelo menos " + QuestaoValidationConstants.MIN_ALTERNATIVAS + " alternativas");
             }
 
-            // Validate that exactly one alternative is correct, unless the question is annulled
             if (!Boolean.TRUE.equals(questaoDto.getAnulada())) {
                 long correctCount = questaoDto.getAlternativas().stream()
                     .map(com.studora.dto.AlternativaDto::getCorreta)
                     .filter(Boolean.TRUE::equals)
                     .count();
-                if (correctCount != 1) {
-                    throw new ValidationException("Uma questão deve ter exatamente uma alternativa correta");
+                if (correctCount != QuestaoValidationConstants.REQUIRED_CORRECT_ALTERNATIVAS) {
+                    throw new ValidationException("Uma questão deve ter exatamente " + QuestaoValidationConstants.REQUIRED_CORRECT_ALTERNATIVAS + " alternativa correta");
                 }
             }
         }
 
-        existingQuestao.setEnunciado(questaoDto.getEnunciado());
-        existingQuestao.setAnulada(questaoDto.getAnulada());
+        questaoMapper.updateEntityFromDto(questaoDto, existingQuestao);
 
         if (questaoDto.getSubtemaIds() != null) {
             existingQuestao.setSubtemas(
-                subtemaRepository.findAllById(questaoDto.getSubtemaIds())
+                new java.util.LinkedHashSet<>(subtemaRepository.findAllById(questaoDto.getSubtemaIds()))
             );
         }
 
-        // Clear responses on ANY update, as per the philosophy that any change makes responses outdated
-        if (existingQuestao.getRespostas() != null) {
-            existingQuestao.getRespostas().clear();
-        }
+        // Explicitly clear response using repository for reliability (Critical Bug fix)
+        respostaRepository.deleteByQuestaoId(id);
 
         Questao updatedQuestao = questaoRepository.save(existingQuestao);
 
         // Handle Alternativas - managed update strategy
         if (questaoDto.getAlternativas() != null) {
-            // Fetch current alternatives from DB to be absolutely sure we have the latest state
             List<com.studora.entity.Alternativa> currentAlts = alternativaRepository.findByQuestaoIdOrderByOrdemAsc(id);
-            java.util.Map<Integer, com.studora.entity.Alternativa> existingMap = currentAlts.stream()
-                .collect(java.util.stream.Collectors.toMap(com.studora.entity.Alternativa::getOrdem, a -> a));
+            java.util.Map<Long, com.studora.entity.Alternativa> existingMap = currentAlts.stream()
+                .collect(java.util.stream.Collectors.toMap(com.studora.entity.Alternativa::getId, a -> a));
 
-            java.util.Set<Integer> newOrders = questaoDto.getAlternativas().stream()
-                .map(com.studora.dto.AlternativaDto::getOrdem)
+            java.util.Set<Long> idsToKeep = questaoDto.getAlternativas().stream()
+                .map(com.studora.dto.AlternativaDto::getId)
+                .filter(java.util.Objects::nonNull)
                 .collect(java.util.stream.Collectors.toSet());
 
-            // 1. Remove alternatives that are not in the new list
             for (com.studora.entity.Alternativa alt : currentAlts) {
-                if (!newOrders.contains(alt.getOrdem())) {
+                if (!idsToKeep.contains(alt.getId())) {
+                    updatedQuestao.getAlternativas().remove(alt);
                     alternativaRepository.delete(alt);
                 }
             }
             alternativaRepository.flush();
 
-            // 2. Update existing or add new ones
             for (com.studora.dto.AlternativaDto altDto : questaoDto.getAlternativas()) {
-                com.studora.entity.Alternativa existingAlt = existingMap.get(altDto.getOrdem());
+                com.studora.entity.Alternativa existingAlt = null;
+                if (altDto.getId() != null) {
+                    existingAlt = existingMap.get(altDto.getId());
+                }
+
                 if (existingAlt != null) {
-                    // Update existing alternative (same order, so no conflict)
-                    existingAlt.setTexto(altDto.getTexto());
-                    existingAlt.setCorreta(altDto.getCorreta());
-                    existingAlt.setJustificativa(altDto.getJustificativa());
+                    alternativaMapper.updateEntityFromDto(altDto, existingAlt);
                     alternativaRepository.save(existingAlt);
+                    if (!updatedQuestao.getAlternativas().contains(existingAlt)) {
+                        updatedQuestao.getAlternativas().add(existingAlt);
+                    }
                 } else {
-                    // Create new alternative
-                    com.studora.entity.Alternativa newAlt = new com.studora.entity.Alternativa();
+                    com.studora.entity.Alternativa newAlt = alternativaMapper.toEntity(altDto);
                     newAlt.setQuestao(updatedQuestao);
-                    newAlt.setOrdem(altDto.getOrdem());
-                    newAlt.setTexto(altDto.getTexto());
-                    newAlt.setCorreta(altDto.getCorreta());
-                    newAlt.setJustificativa(altDto.getJustificativa());
-                    alternativaRepository.save(newAlt);
+                    com.studora.entity.Alternativa savedAlt = alternativaRepository.save(newAlt);
+                    updatedQuestao.getAlternativas().add(savedAlt);
                 }
             }
             alternativaRepository.flush();
         }
 
-        // Validate that the question still has at least one cargo association after update
-        List<QuestaoCargo> currentAssociations = questaoCargoRepository.findByQuestaoId(id);
-        if (currentAssociations.isEmpty()) {
-            throw new ValidationException("Uma questão deve estar associada a pelo menos um cargo");
+        // HANDLE ConcursoCargo UPDATES (Critical Bug fix)
+        if (questaoDto.getConcursoCargoIds() != null) {
+            // 1. Validate that all requested cargos belong to the same concurso
+            List<ConcursoCargo> validatedCargos = new ArrayList<>();
+            for (Long ccId : questaoDto.getConcursoCargoIds()) {
+                ConcursoCargo cc = concursoCargoRepository.findById(ccId)
+                    .orElseThrow(() -> new ResourceNotFoundException("ConcursoCargo", "ID", ccId));
+                
+                if (!cc.getConcurso().getId().equals(updatedQuestao.getConcurso().getId())) {
+                    throw new ValidationException("O concurso do cargo não corresponde ao concurso da questão");
+                }
+                validatedCargos.add(cc);
+            }
+
+            // 2. Sync associations
+            List<QuestaoCargo> currentAssociations = questaoCargoRepository.findByQuestaoId(id);
+            java.util.Map<Long, QuestaoCargo> existingAssocMap = currentAssociations.stream()
+                .collect(java.util.stream.Collectors.toMap(qc -> qc.getConcursoCargo().getId(), qc -> qc));
+
+            java.util.Set<Long> idsToKeep = new java.util.HashSet<>(questaoDto.getConcursoCargoIds());
+
+            // Remove associations not in the new list
+            for (QuestaoCargo qc : currentAssociations) {
+                if (!idsToKeep.contains(qc.getConcursoCargo().getId())) {
+                    updatedQuestao.getQuestaoCargos().remove(qc);
+                    questaoCargoRepository.delete(qc);
+                }
+            }
+
+            // Add new associations
+            for (ConcursoCargo cc : validatedCargos) {
+                if (!existingAssocMap.containsKey(cc.getId())) {
+                    QuestaoCargo qc = new QuestaoCargo();
+                    qc.setQuestao(updatedQuestao);
+                    qc.setConcursoCargo(cc);
+                    QuestaoCargo savedQc = questaoCargoRepository.save(qc);
+                    updatedQuestao.getQuestaoCargos().add(savedQc);
+                }
+            }
+            questaoCargoRepository.flush();
         }
 
-        return convertToDto(updatedQuestao);
+        // Final validation: ensure at least one cargo remains
+        if (questaoCargoRepository.findByQuestaoId(id).size() < QuestaoValidationConstants.MIN_CARGO_ASSOCIATIONS) {
+            throw new ValidationException("Uma questão deve estar associada a pelo menos " + QuestaoValidationConstants.MIN_CARGO_ASSOCIATIONS + " cargo");
+        }
+
+        return questaoMapper.toDto(updatedQuestao);
     }
 
     @Transactional
@@ -261,7 +287,7 @@ public class QuestaoService {
     public List<QuestaoCargoDto> getCargosByQuestaoId(Long questaoId) {
         List<QuestaoCargo> questaoCargos = questaoCargoRepository.findByQuestaoId(questaoId);
         return questaoCargos.stream()
-                .map(this::convertQuestaoCargoToDto)
+                .map(questaoCargoMapper::toDto)
                 .collect(Collectors.toList());
     }
 
@@ -291,7 +317,7 @@ public class QuestaoService {
         questaoCargo.setConcursoCargo(concursoCargo);
 
         QuestaoCargo savedQuestaoCargo = questaoCargoRepository.save(questaoCargo);
-        return convertQuestaoCargoToDto(savedQuestaoCargo);
+        return questaoCargoMapper.toDto(savedQuestaoCargo);
     }
 
     @Transactional
@@ -313,83 +339,7 @@ public class QuestaoService {
         questaoCargoRepository.deleteAll(questaoCargos);
     }
 
-    private QuestaoDto convertToDto(Questao questao) {
-        QuestaoDto dto = new QuestaoDto();
-        dto.setId(questao.getId());
-        dto.setConcursoId(questao.getConcurso().getId());
-        dto.setEnunciado(questao.getEnunciado());
-        dto.setAnulada(questao.getAnulada());
-
-        if (questao.getSubtemas() != null) {
-            dto.setSubtemaIds(
-                questao
-                    .getSubtemas()
-                    .stream()
-                    .map(Subtema::getId)
-                    .collect(Collectors.toList())
-            );
-        }
-
-        if (questao.getQuestaoCargos() != null) {
-            dto.setConcursoCargoIds(
-                questao
-                    .getQuestaoCargos()
-                    .stream()
-                    .map(qc -> qc.getConcursoCargo().getId())
-                    .collect(Collectors.toList())
-            );
-        }
-
-        if (questao.getAlternativas() != null && !questao.getAlternativas().isEmpty()) {
-            List<com.studora.dto.AlternativaDto> alternativaDtos = questao
-                .getAlternativas()
-                .stream()
-                .map(alt -> {
-                    com.studora.dto.AlternativaDto altDto = new com.studora.dto.AlternativaDto();
-                    altDto.setId(alt.getId());
-                    altDto.setOrdem(alt.getOrdem());
-                    altDto.setTexto(alt.getTexto());
-                    altDto.setJustificativa(alt.getJustificativa());
-                    altDto.setCorreta(alt.getCorreta());
-                    return altDto;
-                })
-                .collect(Collectors.toList());
-            dto.setAlternativas(alternativaDtos);
-        } else if (questao.getId() != null) {
-            // Try to load from repository if list is null or empty (useful in some test scenarios)
-            List<com.studora.entity.Alternativa> alts = alternativaRepository.findByQuestaoIdOrderByOrdemAsc(questao.getId());
-            if (!alts.isEmpty()) {
-                List<com.studora.dto.AlternativaDto> alternativaDtos = alts.stream()
-                    .map(alt -> {
-                        com.studora.dto.AlternativaDto altDto = new com.studora.dto.AlternativaDto();
-                        altDto.setId(alt.getId());
-                        altDto.setOrdem(alt.getOrdem());
-                        altDto.setTexto(alt.getTexto());
-                        altDto.setJustificativa(alt.getJustificativa());
-                        altDto.setCorreta(alt.getCorreta());
-                        return altDto;
-                    })
-                    .collect(Collectors.toList());
-                dto.setAlternativas(alternativaDtos);
-            } else {
-                dto.setAlternativas(new ArrayList<>());
-            }
-        } else {
-            dto.setAlternativas(new ArrayList<>());
-        }
-
-        return dto;
-    }
-
-    private QuestaoCargoDto convertQuestaoCargoToDto(QuestaoCargo questaoCargo) {
-        QuestaoCargoDto dto = new QuestaoCargoDto();
-        dto.setId(questaoCargo.getId());
-        dto.setQuestaoId(questaoCargo.getQuestao().getId());
-        dto.setConcursoCargoId(questaoCargo.getConcursoCargo().getId());
-        return dto;
-    }
-
-    private void normalizeAlternativaOrders(List<AlternativaDto> alternativas) {
+    private void normalizeAlternativaOrders(List<com.studora.dto.AlternativaDto> alternativas) {
         if (alternativas == null || alternativas.isEmpty()) {
             return;
         }
@@ -399,12 +349,5 @@ public class QuestaoService {
         for (int i = 0; i < alternativas.size(); i++) {
             alternativas.get(i).setOrdem(i + 1);
         }
-    }
-
-    private Questao convertToEntity(QuestaoDto dto) {
-        Questao questao = new Questao();
-        questao.setEnunciado(dto.getEnunciado());
-        questao.setAnulada(dto.getAnulada() != null ? dto.getAnulada() : false);
-        return questao;
     }
 }

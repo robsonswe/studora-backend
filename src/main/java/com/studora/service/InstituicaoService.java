@@ -4,35 +4,32 @@ import com.studora.dto.InstituicaoDto;
 import com.studora.entity.Instituicao;
 import com.studora.exception.ConflictException;
 import com.studora.exception.ResourceNotFoundException;
+import com.studora.mapper.InstituicaoMapper;
 import com.studora.repository.InstituicaoRepository;
-import com.studora.util.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class InstituicaoService {
 
-    @Autowired
-    private InstituicaoRepository instituicaoRepository;
-
-    @Autowired
-    private com.studora.repository.ConcursoRepository concursoRepository;
+    private final InstituicaoRepository instituicaoRepository;
+    private final InstituicaoMapper instituicaoMapper;
+    private final com.studora.repository.ConcursoRepository concursoRepository;
 
     public Page<InstituicaoDto> findAll(Pageable pageable) {
         return instituicaoRepository.findAll(pageable)
-                .map(this::convertToDto);
+                .map(instituicaoMapper::toDto);
     }
 
     public InstituicaoDto findById(Long id) {
         Instituicao instituicao = instituicaoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Instituição", "ID", id));
-        return convertToDto(instituicao);
+        return instituicaoMapper.toDto(instituicao);
     }
 
     public InstituicaoDto save(InstituicaoDto instituicaoDto) {
@@ -46,12 +43,11 @@ public class InstituicaoService {
         if (instituicaoDto.getId() != null) {
             instituicao = instituicaoRepository.findById(instituicaoDto.getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Instituição", "ID", instituicaoDto.getId()));
-            instituicao.setNome(instituicaoDto.getNome());
-            instituicao.setArea(instituicaoDto.getArea());
+            instituicaoMapper.updateEntityFromDto(instituicaoDto, instituicao);
         } else {
-            instituicao = convertToEntity(instituicaoDto);
+            instituicao = instituicaoMapper.toEntity(instituicaoDto);
         }
-        return convertToDto(instituicaoRepository.save(instituicao));
+        return instituicaoMapper.toDto(instituicaoRepository.save(instituicao));
     }
 
     public void deleteById(Long id) {
@@ -62,21 +58,5 @@ public class InstituicaoService {
             throw new com.studora.exception.ConflictException("Não é possível excluir a instituição pois existem concursos associados a ela.");
         }
         instituicaoRepository.deleteById(id);
-    }
-
-    private InstituicaoDto convertToDto(Instituicao instituicao) {
-        InstituicaoDto instituicaoDto = new InstituicaoDto();
-        instituicaoDto.setId(instituicao.getId());
-        instituicaoDto.setNome(instituicao.getNome());
-        instituicaoDto.setArea(instituicao.getArea());
-        return instituicaoDto;
-    }
-
-    private Instituicao convertToEntity(InstituicaoDto instituicaoDto) {
-        Instituicao instituicao = new Instituicao();
-        instituicao.setId(instituicaoDto.getId());
-        instituicao.setNome(instituicaoDto.getNome());
-        instituicao.setArea(instituicaoDto.getArea());
-        return instituicao;
     }
 }

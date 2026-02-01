@@ -21,12 +21,16 @@ class BancaServiceTest {
     @Mock
     private BancaRepository bancaRepository;
 
-    @InjectMocks
+    @Mock
+    private com.studora.repository.ConcursoRepository concursoRepository;
+
     private BancaService bancaService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        com.studora.mapper.BancaMapper realMapper = org.mapstruct.factory.Mappers.getMapper(com.studora.mapper.BancaMapper.class);
+        bancaService = new BancaService(bancaRepository, realMapper, concursoRepository);
     }
 
     @Test
@@ -47,14 +51,15 @@ class BancaServiceTest {
         BancaDto dto = new BancaDto();
         dto.setNome("Test");
 
-        Banca entity = new Banca();
-        entity.setId(1L);
-        entity.setNome("Test");
-
-        when(bancaRepository.save(any(Banca.class))).thenReturn(entity);
+        when(bancaRepository.save(any(Banca.class))).thenAnswer(i -> {
+            Banca b = i.getArgument(0);
+            b.setId(1L);
+            return b;
+        });
 
         BancaDto result = bancaService.save(dto);
         assertEquals(1L, result.getId());
+        assertEquals("Test", result.getNome());
     }
 
     @Test

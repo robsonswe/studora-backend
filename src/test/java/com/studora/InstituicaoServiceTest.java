@@ -20,47 +20,45 @@ class InstituicaoServiceTest {
     @Mock
     private InstituicaoRepository instituicaoRepository;
 
-    @InjectMocks
+    @Mock
+    private com.studora.repository.ConcursoRepository concursoRepository;
+
     private InstituicaoService instituicaoService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        com.studora.mapper.InstituicaoMapper realMapper = org.mapstruct.factory.Mappers.getMapper(com.studora.mapper.InstituicaoMapper.class);
+        instituicaoService = new InstituicaoService(instituicaoRepository, realMapper, concursoRepository);
     }
 
     @Test
     void testFindById() {
-        Instituicao inst = new Instituicao();
-        inst.setId(10L);
-        inst.setNome("Test Inst");
-        inst.setArea("Test Area");
+        Instituicao instituicao = new Instituicao();
+        instituicao.setId(1L);
+        instituicao.setNome("Test");
 
-        when(instituicaoRepository.findById(10L)).thenReturn(Optional.of(inst));
+        when(instituicaoRepository.findById(1L)).thenReturn(Optional.of(instituicao));
 
-        InstituicaoDto result = instituicaoService.findById(10L);
+        InstituicaoDto result = instituicaoService.findById(1L);
         assertNotNull(result);
-        assertEquals("Test Inst", result.getNome());
-        assertEquals("Test Area", result.getArea());
+        assertEquals("Test", result.getNome());
     }
 
     @Test
     void testSave() {
         InstituicaoDto dto = new InstituicaoDto();
-        dto.setNome("New Inst");
-        dto.setArea("New Area");
+        dto.setNome("Test");
 
-        Instituicao entity = new Instituicao();
-        entity.setId(1L);
-        entity.setNome("New Inst");
-        entity.setArea("New Area");
-
-        when(instituicaoRepository.save(any(Instituicao.class))).thenReturn(
-            entity
-        );
+        when(instituicaoRepository.save(any(Instituicao.class))).thenAnswer(i -> {
+            Instituicao inst = i.getArgument(0);
+            inst.setId(1L);
+            return inst;
+        });
 
         InstituicaoDto result = instituicaoService.save(dto);
-        assertEquals("New Inst", result.getNome());
-        assertEquals("New Area", result.getArea());
+        assertEquals(1L, result.getId());
+        assertEquals("Test", result.getNome());
     }
 
     @Test

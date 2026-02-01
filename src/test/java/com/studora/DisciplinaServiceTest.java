@@ -24,12 +24,13 @@ class DisciplinaServiceTest {
     @Mock
     private com.studora.repository.TemaRepository temaRepository;
 
-    @InjectMocks
     private DisciplinaService disciplinaService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        com.studora.mapper.DisciplinaMapper realMapper = org.mapstruct.factory.Mappers.getMapper(com.studora.mapper.DisciplinaMapper.class);
+        disciplinaService = new DisciplinaService(disciplinaRepository, realMapper, temaRepository);
     }
 
     @Test
@@ -71,18 +72,19 @@ class DisciplinaServiceTest {
         DisciplinaDto disciplinaDto = new DisciplinaDto();
         disciplinaDto.setNome("Direito Administrativo");
 
-        Disciplina savedDisciplina = new Disciplina();
-        savedDisciplina.setId(1L);
-        savedDisciplina.setNome(disciplinaDto.getNome());
-
-        when(disciplinaRepository.save(any(Disciplina.class))).thenReturn(savedDisciplina);
+        when(disciplinaRepository.save(any(Disciplina.class))).thenAnswer(i -> {
+            Disciplina d = i.getArgument(0);
+            d.setId(1L);
+            return d;
+        });
 
         // Act
         DisciplinaDto result = disciplinaService.createDisciplina(disciplinaDto);
 
         // Assert
         assertNotNull(result);
-        assertEquals(savedDisciplina.getNome(), result.getNome());
+        assertEquals("Direito Administrativo", result.getNome());
+        assertEquals(1L, result.getId());
         verify(disciplinaRepository, times(1)).save(any(Disciplina.class));
     }
 

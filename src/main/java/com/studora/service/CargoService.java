@@ -5,35 +5,32 @@ import com.studora.entity.Cargo;
 import com.studora.entity.NivelCargo;
 import com.studora.exception.ConflictException;
 import com.studora.exception.ResourceNotFoundException;
+import com.studora.mapper.CargoMapper;
 import com.studora.repository.CargoRepository;
-import com.studora.util.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class CargoService {
 
-    @Autowired
-    private CargoRepository cargoRepository;
-
-    @Autowired
-    private com.studora.repository.ConcursoCargoRepository concursoCargoRepository;
+    private final CargoRepository cargoRepository;
+    private final CargoMapper cargoMapper;
+    private final com.studora.repository.ConcursoCargoRepository concursoCargoRepository;
 
     public Page<CargoDto> findAll(Pageable pageable) {
         return cargoRepository.findAll(pageable)
-                .map(this::convertToDto);
+                .map(cargoMapper::toDto);
     }
 
     public CargoDto findById(Long id) {
         Cargo cargo = cargoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Cargo", "ID", id));
-        return convertToDto(cargo);
+        return cargoMapper.toDto(cargo);
     }
 
     public CargoDto save(CargoDto cargoDto) {
@@ -47,13 +44,11 @@ public class CargoService {
         if (cargoDto.getId() != null) {
             cargo = cargoRepository.findById(cargoDto.getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Cargo", "ID", cargoDto.getId()));
-            cargo.setNome(cargoDto.getNome());
-            cargo.setNivel(cargoDto.getNivel());
-            cargo.setArea(cargoDto.getArea());
+            cargoMapper.updateEntityFromDto(cargoDto, cargo);
         } else {
-            cargo = convertToEntity(cargoDto);
+            cargo = cargoMapper.toEntity(cargoDto);
         }
-        return convertToDto(cargoRepository.save(cargo));
+        return cargoMapper.toDto(cargoRepository.save(cargo));
     }
 
     public void deleteById(Long id) {
@@ -61,26 +56,8 @@ public class CargoService {
             throw new ResourceNotFoundException("Cargo", "ID", id);
         }
         if (concursoCargoRepository.existsByCargoId(id)) {
-            throw new com.studora.exception.ConflictException("Não é possível excluir o cargo pois existem concursos associados a ele.");
+            throw new com.studora.exception.ConflictException("Não é possível excluir the cargo pois existem concursos associados a ele.");
         }
         cargoRepository.deleteById(id);
-    }
-
-    private CargoDto convertToDto(Cargo cargo) {
-        CargoDto cargoDto = new CargoDto();
-        cargoDto.setId(cargo.getId());
-        cargoDto.setNome(cargo.getNome());
-        cargoDto.setNivel(cargo.getNivel());
-        cargoDto.setArea(cargo.getArea());
-        return cargoDto;
-    }
-
-    private Cargo convertToEntity(CargoDto cargoDto) {
-        Cargo cargo = new Cargo();
-        cargo.setId(cargoDto.getId());
-        cargo.setNome(cargoDto.getNome());
-        cargo.setNivel(cargoDto.getNivel());
-        cargo.setArea(cargoDto.getArea());
-        return cargo;
     }
 }

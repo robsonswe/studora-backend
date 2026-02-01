@@ -38,6 +38,16 @@ class RespostaServiceTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        
+        // Use real mapper
+        com.studora.mapper.RespostaMapper realRespostaMapper = org.mapstruct.factory.Mappers.getMapper(com.studora.mapper.RespostaMapper.class);
+        
+        respostaService = new RespostaService(
+            respostaRepository,
+            questaoRepository,
+            alternativaRepository,
+            realRespostaMapper
+        );
     }
 
     @Test
@@ -55,6 +65,10 @@ class RespostaServiceTest {
         alternativa.setId(1L);
         resposta.setAlternativaEscolhida(alternativa);
 
+        RespostaDto dto = new RespostaDto();
+        dto.setId(respostaId);
+        dto.setQuestaoId(1L);
+        dto.setAlternativaId(1L);
 
         when(respostaRepository.findById(respostaId)).thenReturn(Optional.of(resposta));
 
@@ -90,26 +104,37 @@ class RespostaServiceTest {
 
         Questao questao = new Questao();
         questao.setId(1L);
+        questao.setAnulada(false);
 
         Alternativa alternativa = new Alternativa();
         alternativa.setId(1L);
+        alternativa.setQuestao(questao);
 
         Resposta savedResposta = new Resposta();
         savedResposta.setId(1L);
         savedResposta.setQuestao(questao);
         savedResposta.setAlternativaEscolhida(alternativa);
 
+        RespostaDto resultDto = new RespostaDto();
+        resultDto.setId(1L);
+        resultDto.setQuestaoId(1L);
+        resultDto.setAlternativaId(1L);
+
         when(questaoRepository.findById(1L)).thenReturn(Optional.of(questao));
         when(alternativaRepository.findById(1L)).thenReturn(Optional.of(alternativa));
         when(respostaRepository.findByQuestaoId(1L)).thenReturn(null); // No existing response for this question
-        when(respostaRepository.save(any(Resposta.class))).thenReturn(savedResposta);
+        when(respostaRepository.save(any(Resposta.class))).thenAnswer(i -> {
+            Resposta r = i.getArgument(0);
+            r.setId(1L);
+            return r;
+        });
 
         // Act
         RespostaDto result = respostaService.createResposta(respostaCreateRequest);
 
         // Assert
         assertNotNull(result);
-        assertEquals(savedResposta.getId(), result.getId());
+        assertEquals(1L, result.getId());
         assertEquals(questao.getId(), result.getQuestaoId());
         assertEquals(alternativa.getId(), result.getAlternativaId());
         verify(questaoRepository, times(1)).findById(1L);

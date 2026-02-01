@@ -29,12 +29,13 @@ class TemaServiceTest {
     @Mock
     private com.studora.repository.SubtemaRepository subtemaRepository;
 
-    @InjectMocks
     private TemaService temaService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        com.studora.mapper.TemaMapper realMapper = org.mapstruct.factory.Mappers.getMapper(com.studora.mapper.TemaMapper.class);
+        temaService = new TemaService(temaRepository, disciplinaRepository, subtemaRepository, realMapper);
     }
 
     @Test
@@ -85,21 +86,20 @@ class TemaServiceTest {
         Disciplina disciplina = new Disciplina();
         disciplina.setId(1L);
 
-        Tema savedTema = new Tema();
-        savedTema.setId(1L);
-        savedTema.setNome(temaDto.getNome());
-        savedTema.setDisciplina(disciplina);
-
         when(disciplinaRepository.findById(1L)).thenReturn(Optional.of(disciplina));
-        when(temaRepository.save(any(Tema.class))).thenReturn(savedTema);
+        when(temaRepository.save(any(Tema.class))).thenAnswer(i -> {
+            Tema t = i.getArgument(0);
+            t.setId(1L);
+            return t;
+        });
 
         // Act
         TemaDto result = temaService.createTema(temaDto);
 
         // Assert
         assertNotNull(result);
-        assertEquals(savedTema.getNome(), result.getNome());
-        assertEquals(disciplina.getId(), result.getDisciplinaId());
+        assertEquals("Atos Administrativos", result.getNome());
+        assertEquals(1L, result.getDisciplinaId());
         verify(disciplinaRepository, times(1)).findById(1L);
         verify(temaRepository, times(1)).save(any(Tema.class));
     }

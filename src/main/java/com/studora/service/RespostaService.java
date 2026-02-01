@@ -1,6 +1,5 @@
 package com.studora.service;
 
-import com.studora.dto.AlternativaDto;
 import com.studora.dto.RespostaComAlternativasDto;
 import com.studora.dto.RespostaDto;
 import com.studora.dto.request.RespostaCreateRequest;
@@ -10,45 +9,43 @@ import com.studora.entity.Questao;
 import com.studora.entity.Resposta;
 import com.studora.exception.ResourceNotFoundException;
 import com.studora.exception.ValidationException;
+import com.studora.mapper.RespostaMapper;
 import com.studora.repository.AlternativaRepository;
 import com.studora.repository.QuestaoRepository;
 import com.studora.repository.RespostaRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
+@Transactional
+@RequiredArgsConstructor
 public class RespostaService {
 
-    @Autowired
-    private RespostaRepository respostaRepository;
-
-    @Autowired
-    private QuestaoRepository questaoRepository;
-
-    @Autowired
-    private AlternativaRepository alternativaRepository;
+    private final RespostaRepository respostaRepository;
+    private final QuestaoRepository questaoRepository;
+    private final AlternativaRepository alternativaRepository;
+    private final RespostaMapper respostaMapper;
 
     public Page<RespostaDto> findAll(Pageable pageable) {
         return respostaRepository.findAll(pageable)
-                .map(this::convertToDto);
+                .map(respostaMapper::toDto);
     }
     
     public RespostaDto getRespostaById(Long id) {
         Resposta resposta = respostaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Resposta", "ID", id));
-        return convertToDto(resposta);
+        return respostaMapper.toDto(resposta);
     }
     
     public RespostaDto getRespostaByQuestaoId(Long questaoId) {
         Resposta resposta = respostaRepository.findByQuestaoId(questaoId);
         if (resposta != null) {
-            return convertToDto(resposta);
+            return respostaMapper.toDto(resposta);
         } else {
             throw new ResourceNotFoundException("Resposta", "ID da Questão", questaoId);
         }
@@ -72,12 +69,12 @@ public class RespostaService {
         Alternativa alternativa = alternativaRepository.findById(respostaCreateRequest.getAlternativaId())
                 .orElseThrow(() -> new ResourceNotFoundException("Alternativa", "ID", respostaCreateRequest.getAlternativaId()));
 
-        Resposta resposta = convertToEntityFromRequest(respostaCreateRequest);
+        Resposta resposta = new Resposta();
         resposta.setQuestao(questao);
         resposta.setAlternativaEscolhida(alternativa);
 
         Resposta savedResposta = respostaRepository.save(resposta);
-        return convertToDto(savedResposta);
+        return respostaMapper.toDto(savedResposta);
     }
     
     public RespostaDto updateResposta(Long id, RespostaUpdateRequest respostaUpdateRequest) {
@@ -93,12 +90,12 @@ public class RespostaService {
             throw new ValidationException("Não é possível responder a uma questão anulada");
         }
 
-        // Update only the alternativaId and update the timestamp
+        // Update only the alternativaId
         existingResposta.setAlternativaEscolhida(alternativa);
-        existingResposta.setRespondidaEm(LocalDateTime.now()); // Automatically update timestamp
+        // Date will be updated by @LastModifiedDate in BaseEntity
 
         Resposta updatedResposta = respostaRepository.save(existingResposta);
-        return convertToDto(updatedResposta);
+        return respostaMapper.toDto(updatedResposta);
     }
     
     public void deleteResposta(Long id) {
@@ -106,29 +103,6 @@ public class RespostaService {
             throw new ResourceNotFoundException("Resposta", "ID", id);
         }
         respostaRepository.deleteById(id);
-    }
-    
-    private RespostaDto convertToDto(Resposta resposta) {
-        RespostaDto dto = new RespostaDto();
-        dto.setId(resposta.getId());
-        dto.setQuestaoId(resposta.getQuestao().getId());
-        dto.setAlternativaId(resposta.getAlternativaEscolhida().getId());
-        dto.setCorreta(resposta.getAlternativaEscolhida().getCorreta()); // Include the correct field
-        dto.setRespondidaEm(resposta.getRespondidaEm());
-        return dto;
-    }
-    
-    private Resposta convertToEntity(RespostaDto dto) {
-        Resposta resposta = new Resposta();
-        resposta.setRespondidaEm(dto.getRespondidaEm() != null ?
-                dto.getRespondidaEm() : LocalDateTime.now());
-        return resposta;
-    }
-
-    private Resposta convertToEntityFromRequest(RespostaCreateRequest request) {
-        Resposta resposta = new Resposta();
-        resposta.setRespondidaEm(LocalDateTime.now()); // Always set the timestamp automatically
-        return resposta;
     }
 
     public RespostaComAlternativasDto createRespostaWithAlternativas(RespostaCreateRequest respostaCreateRequest) {
@@ -149,12 +123,12 @@ public class RespostaService {
         Alternativa alternativa = alternativaRepository.findById(respostaCreateRequest.getAlternativaId())
                 .orElseThrow(() -> new ResourceNotFoundException("Alternativa", "ID", respostaCreateRequest.getAlternativaId()));
 
-        Resposta resposta = convertToEntityFromRequest(respostaCreateRequest);
+        Resposta resposta = new Resposta();
         resposta.setQuestao(questao);
         resposta.setAlternativaEscolhida(alternativa);
 
         Resposta savedResposta = respostaRepository.save(resposta);
-        return convertToRespostaComAlternativasDto(savedResposta);
+        return respostaMapper.toComAlternativasDto(savedResposta);
     }
 
     public RespostaComAlternativasDto updateRespostaWithAlternativas(Long id, RespostaUpdateRequest respostaUpdateRequest) {
@@ -170,39 +144,10 @@ public class RespostaService {
             throw new ValidationException("Não é possível responder a uma questão anulada");
         }
 
-        // Update only the alternativaId and update the timestamp
+        // Update only the alternativaId
         existingResposta.setAlternativaEscolhida(alternativa);
-        existingResposta.setRespondidaEm(LocalDateTime.now()); // Automatically update timestamp
 
         Resposta updatedResposta = respostaRepository.save(existingResposta);
-        return convertToRespostaComAlternativasDto(updatedResposta);
-    }
-
-    private RespostaComAlternativasDto convertToRespostaComAlternativasDto(Resposta resposta) {
-        RespostaComAlternativasDto dto = new RespostaComAlternativasDto();
-        dto.setId(resposta.getId());
-        dto.setQuestaoId(resposta.getQuestao().getId());
-        dto.setAlternativaId(resposta.getAlternativaEscolhida().getId());
-        dto.setCorreta(resposta.getAlternativaEscolhida().getCorreta());
-        dto.setRespondidaEm(resposta.getRespondidaEm());
-
-        // Get all alternatives for the question
-        List<Alternativa> allAlternativas = alternativaRepository.findByQuestaoIdOrderByOrdemAsc(resposta.getQuestao().getId());
-        List<AlternativaDto> alternativasDto = allAlternativas.stream()
-                .map(this::convertAlternativaToDto)
-                .collect(Collectors.toList());
-        dto.setAlternativas(alternativasDto);
-
-        return dto;
-    }
-
-    private AlternativaDto convertAlternativaToDto(Alternativa alternativa) {
-        AlternativaDto dto = new AlternativaDto();
-        dto.setId(alternativa.getId());
-        dto.setOrdem(alternativa.getOrdem());
-        dto.setTexto(alternativa.getTexto());
-        dto.setJustificativa(alternativa.getJustificativa());
-        dto.setCorreta(alternativa.getCorreta()); // Include the correct field
-        return dto;
+        return respostaMapper.toComAlternativasDto(updatedResposta);
     }
 }

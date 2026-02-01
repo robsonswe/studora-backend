@@ -5,43 +5,41 @@ import com.studora.entity.Disciplina;
 import com.studora.entity.Tema;
 import com.studora.exception.ConflictException;
 import com.studora.exception.ResourceNotFoundException;
+import com.studora.mapper.TemaMapper;
 import com.studora.repository.DisciplinaRepository;
 import com.studora.repository.TemaRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
+@Transactional
+@RequiredArgsConstructor
 public class TemaService {
 
-    @Autowired
-    private TemaRepository temaRepository;
-
-    @Autowired
-    private DisciplinaRepository disciplinaRepository;
-
-    @Autowired
-    private com.studora.repository.SubtemaRepository subtemaRepository;
+    private final TemaRepository temaRepository;
+    private final DisciplinaRepository disciplinaRepository;
+    private final com.studora.repository.SubtemaRepository subtemaRepository;
+    private final TemaMapper temaMapper;
 
     public Page<TemaDto> getAllTemas(Pageable pageable) {
         return temaRepository.findAll(pageable)
-                .map(this::convertToDto);
+                .map(temaMapper::toDto);
     }
 
     public TemaDto getTemaById(Long id) {
         Tema tema = temaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Tema", "ID", id));
-        return convertToDto(tema);
+        return temaMapper.toDto(tema);
     }
 
     public Page<TemaDto> getTemasByDisciplinaId(Long disciplinaId, Pageable pageable) {
         return temaRepository.findByDisciplinaId(disciplinaId, pageable)
-                .map(this::convertToDto);
+                .map(temaMapper::toDto);
     }
 
     public TemaDto createTema(TemaDto temaDto) {
@@ -54,11 +52,11 @@ public class TemaService {
             throw new ConflictException("Já existe um tema com o nome '" + temaDto.getNome() + "' na disciplina com ID: " + temaDto.getDisciplinaId());
         }
 
-        Tema tema = convertToEntity(temaDto);
+        Tema tema = temaMapper.toEntity(temaDto);
         tema.setDisciplina(disciplina);
 
         Tema savedTema = temaRepository.save(tema);
-        return convertToDto(savedTema);
+        return temaMapper.toDto(savedTema);
     }
 
     public TemaDto updateTema(Long id, TemaDto temaDto) {
@@ -75,11 +73,11 @@ public class TemaService {
         }
 
         // Update fields
+        temaMapper.updateEntityFromDto(temaDto, existingTema);
         existingTema.setDisciplina(disciplina);
-        existingTema.setNome(temaDto.getNome());
 
         Tema updatedTema = temaRepository.save(existingTema);
-        return convertToDto(updatedTema);
+        return temaMapper.toDto(updatedTema);
     }
 
     public void deleteTema(Long id) {
@@ -90,17 +88,5 @@ public class TemaService {
             throw new ConflictException("Não é possível excluir o tema pois existem subtemas associados a ele.");
         }
         temaRepository.deleteById(id);
-    }
-
-    private TemaDto convertToDto(Tema tema) {
-        TemaDto dto = new TemaDto();
-        dto.setId(tema.getId());
-        dto.setDisciplinaId(tema.getDisciplina().getId());
-        dto.setNome(tema.getNome());
-        return dto;
-    }
-
-    private Tema convertToEntity(TemaDto dto) {
-        return new Tema(null, dto.getNome()); // disciplina will be set separately
     }
 }
