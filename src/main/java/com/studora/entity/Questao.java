@@ -12,8 +12,8 @@ import java.util.List;
         @Index(name = "idx_questao_anulada", columnList = "anulada"),
     }
 )
-@Schema(description = "Entidade que representa uma questão de concurso")
-public class Questao {
+@Schema(description = "Entidade que representa uma questão de um concurso")
+public class Questao extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

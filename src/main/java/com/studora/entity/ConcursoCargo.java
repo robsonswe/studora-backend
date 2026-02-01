@@ -20,7 +20,7 @@ import lombok.Data;
     }
 )
 @Schema(description = "Entidade que representa a associação entre concurso e cargo")
-public class ConcursoCargo {
+public class ConcursoCargo extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

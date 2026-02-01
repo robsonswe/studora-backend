@@ -19,7 +19,7 @@ import java.util.List;
     }
 )
 @Schema(description = "Entidade que representa uma alternativa de uma questão")
-public class Alternativa {
+public class Alternativa extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

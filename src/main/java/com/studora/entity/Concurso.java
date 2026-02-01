@@ -23,7 +23,7 @@ import java.util.List;
     }
 )
 @Schema(description = "Entidade que representa um concurso")
-public class Concurso {
+public class Concurso extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

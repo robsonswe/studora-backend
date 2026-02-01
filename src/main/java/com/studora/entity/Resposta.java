@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
     }
 )
 @Schema(description = "Entidade que representa uma resposta a uma questão")
-public class Resposta {
+public class Resposta extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -6,7 +6,7 @@ import jakarta.persistence.*;
 @Entity
 @Table(name = "disciplina")
 @Schema(description = "Entidade que representa uma disciplina")
-public class Disciplina {
+public class Disciplina extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

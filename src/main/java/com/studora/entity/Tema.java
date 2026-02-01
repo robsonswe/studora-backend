@@ -15,7 +15,7 @@ import java.util.List;
     }
 )
 @Schema(description = "Entidade que representa um tema dentro de uma disciplina")
-public class Tema {
+public class Tema extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -7,8 +7,8 @@ import lombok.Data;
 
 @Data
 @Entity
-@Schema(description = "Entidade que representa um cargo")
-public class Cargo {
+@Schema(description = "Entidade que representa um cargo público")
+public class Cargo extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Schema(description = "ID único do cargo", example = "1")

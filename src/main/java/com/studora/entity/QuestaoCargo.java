@@ -18,8 +18,8 @@ import lombok.Data;
         ),
     }
 )
-@Schema(description = "Entidade que representa a associação entre questão e cargo do concurso")
-public class QuestaoCargo {
+@Schema(description = "Entidade que representa a associação entre uma questão e um cargo")
+public class QuestaoCargo extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

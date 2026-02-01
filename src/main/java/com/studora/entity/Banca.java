@@ -7,7 +7,7 @@ import lombok.Data;
 @Data
 @Entity
 @Schema(description = "Entidade que representa uma banca organizadora de concursos")
-public class Banca {
+public class Banca extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

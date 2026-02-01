@@ -13,7 +13,7 @@ import java.util.List;
     indexes = { @Index(name = "idx_subtema_tema", columnList = "tema_id") }
 )
 @Schema(description = "Entidade que representa um subtema dentro de um tema")
-public class Subtema {
+public class Subtema extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
