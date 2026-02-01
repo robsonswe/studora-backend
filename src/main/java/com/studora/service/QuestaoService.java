@@ -3,10 +3,12 @@ package com.studora.service;
 import com.studora.dto.AlternativaDto;
 import com.studora.dto.QuestaoCargoDto;
 import com.studora.dto.QuestaoDto;
+import com.studora.dto.QuestaoFilter;
 import com.studora.entity.*;
 import com.studora.exception.ResourceNotFoundException;
 import com.studora.exception.ValidationException;
 import com.studora.repository.*;
+import com.studora.repository.specification.QuestaoSpecification;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -52,6 +54,13 @@ public class QuestaoService {
             .collect(Collectors.toList());
     }
 
+    public List<QuestaoDto> search(QuestaoFilter filter) {
+        return questaoRepository.findAll(QuestaoSpecification.withFilter(filter))
+                .stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
     public QuestaoDto getQuestaoById(Long id) {
         Questao questao = questaoRepository
             .findById(id)
@@ -59,80 +68,6 @@ public class QuestaoService {
                 new ResourceNotFoundException("Questão", "ID", id)
             );
         return convertToDto(questao);
-    }
-
-    public List<QuestaoDto> getQuestoesByConcursoId(Long concursoId) {
-        return questaoRepository
-            .findByConcursoId(concursoId)
-            .stream()
-            .map(this::convertToDto)
-            .collect(Collectors.toList());
-    }
-
-    public List<QuestaoDto> getQuestoesBySubtemaId(Long subtemaId) {
-        Subtema subtema = subtemaRepository
-            .findById(subtemaId)
-            .orElseThrow(() ->
-                new ResourceNotFoundException("Subtema", "ID", subtemaId)
-            );
-
-        return questaoRepository
-            .findBySubtemasContaining(subtema)
-            .stream()
-            .map(this::convertToDto)
-            .collect(Collectors.toList());
-    }
-
-    public List<QuestaoDto> getQuestoesByTemaId(Long temaId) {
-        Tema tema = temaRepository
-            .findById(temaId)
-            .orElseThrow(() ->
-                new ResourceNotFoundException("Tema", "ID", temaId)
-            );
-
-        return questaoRepository
-            .findBySubtemasTemaId(temaId)
-            .stream()
-            .map(this::convertToDto)
-            .collect(Collectors.toList());
-    }
-
-    public List<QuestaoDto> getQuestoesByDisciplinaId(Long disciplinaId) {
-        Disciplina disciplina = disciplinaRepository
-            .findById(disciplinaId)
-            .orElseThrow(() ->
-                new ResourceNotFoundException("Disciplina", "ID", disciplinaId)
-            );
-
-        return questaoRepository
-            .findBySubtemasTemaDisciplinaId(disciplinaId)
-            .stream()
-            .map(this::convertToDto)
-            .collect(Collectors.toList());
-    }
-
-    public List<QuestaoDto> getQuestoesAnuladas() {
-        return questaoRepository
-            .findByAnuladaTrue()
-            .stream()
-            .map(this::convertToDto)
-            .collect(Collectors.toList());
-    }
-
-    public List<QuestaoDto> getQuestoesByCargoId(Long cargoId) {
-        List<QuestaoCargo> questaoCargos = questaoCargoRepository.findByConcursoCargoId(cargoId);
-        List<Long> questaoIds = questaoCargos.stream()
-                .map(qc -> qc.getQuestao().getId())
-                .collect(Collectors.toList());
-
-        if (questaoIds.isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        List<Questao> questoes = questaoRepository.findAllById(questaoIds);
-        return questoes.stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
     }
 
     @Transactional

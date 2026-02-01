@@ -3,6 +3,7 @@ package com.studora.controller;
 import com.studora.dto.AlternativaDto;
 import com.studora.dto.QuestaoCargoDto;
 import com.studora.dto.QuestaoDto;
+import com.studora.dto.QuestaoFilter;
 import com.studora.dto.request.QuestaoCreateRequest;
 import com.studora.dto.request.QuestaoUpdateRequest;
 import com.studora.dto.request.AlternativaCreateRequest;
@@ -17,6 +18,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -36,8 +38,8 @@ public class QuestaoController {
     private QuestaoService questaoService;
 
     @Operation(
-        summary = "Obter todas as questões",
-        description = "Retorna uma lista com todas as questões cadastradas",
+        summary = "Obter questões",
+        description = "Retorna uma lista de questões com base nos filtros fornecidos. Se nenhum filtro for informado, retorna todas as questões.",
         responses = {
             @ApiResponse(responseCode = "200", description = "Lista de questões retornada com sucesso",
                 content = @Content(
@@ -55,8 +57,8 @@ public class QuestaoController {
         }
     )
     @GetMapping
-    public ResponseEntity<List<QuestaoDto>> getAllQuestoes() {
-        List<QuestaoDto> questoes = questaoService.getAllQuestoes();
+    public ResponseEntity<List<QuestaoDto>> getQuestoes(@ParameterObject @Valid QuestaoFilter filter) {
+        List<QuestaoDto> questoes = questaoService.search(filter);
         return ResponseEntity.ok(questoes);
     }
 
@@ -90,159 +92,6 @@ public class QuestaoController {
             @Parameter(description = "ID da questão a ser buscada", required = true) @PathVariable Long id) {
         QuestaoDto questao = questaoService.getQuestaoById(id);
         return ResponseEntity.ok(questao);
-    }
-
-    @Operation(
-        summary = "Obter questões por concurso",
-        description = "Retorna uma lista de questões associadas a um concurso específico",
-        responses = {
-            @ApiResponse(responseCode = "200", description = "Lista de questões retornada com sucesso",
-                content = @Content(
-                    array = @ArraySchema(schema = @Schema(implementation = QuestaoDto.class)),
-                    examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\", \"correta\": true}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\", \"correta\": false}]}]"
-                    )
-                )),
-            @ApiResponse(responseCode = "404", description = "Concurso não encontrado",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Concurso com ID: '1'\",\"instance\":\"/api/questoes/concurso/1\"}"
-                    ))),
-            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/questoes/concurso/1\"}"
-                    )))
-        }
-    )
-    @GetMapping("/concurso/{concursoId}")
-    public ResponseEntity<List<QuestaoDto>> getQuestoesByConcursoId(
-            @Parameter(description = "ID do concurso para filtrar questões", required = true) @PathVariable Long concursoId) {
-        List<QuestaoDto> questoes = questaoService.getQuestoesByConcursoId(concursoId);
-        return ResponseEntity.ok(questoes);
-    }
-
-    @Operation(
-        summary = "Obter questões por subtema",
-        description = "Retorna uma lista de questões associadas a um subtema específico",
-        responses = {
-            @ApiResponse(responseCode = "200", description = "Lista de questões retornada com sucesso",
-                content = @Content(
-                    array = @ArraySchema(schema = @Schema(implementation = QuestaoDto.class)),
-                    examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\", \"correta\": true}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\", \"correta\": false}]}]"
-                    )
-                )),
-            @ApiResponse(responseCode = "404", description = "Subtema não encontrado",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Subtema com ID: '1'\",\"instance\":\"/api/questoes/subtema/1\"}"
-                    ))),
-            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/questoes/subtema/1\"}"
-                    )))
-        }
-    )
-    @GetMapping("/subtema/{subtemaId}")
-    public ResponseEntity<List<QuestaoDto>> getQuestoesBySubtemaId(
-            @Parameter(description = "ID do subtema para filtrar questões", required = true) @PathVariable Long subtemaId) {
-        List<QuestaoDto> questoes = questaoService.getQuestoesBySubtemaId(subtemaId);
-        return ResponseEntity.ok(questoes);
-    }
-
-    @Operation(
-        summary = "Obter questões anuladas",
-        description = "Retorna uma lista de todas as questões que foram anuladas",
-        responses = {
-            @ApiResponse(responseCode = "200", description = "Lista de questões anuladas retornada com sucesso",
-                content = @Content(
-                    array = @ArraySchema(schema = @Schema(implementation = QuestaoDto.class)),
-                    examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": true, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\", \"correta\": false}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\", \"correta\": false}]}]"
-                    )
-                )),
-            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/questoes/anuladas\"}"
-                    )))
-        }
-    )
-    @GetMapping("/anuladas")
-    public ResponseEntity<List<QuestaoDto>> getQuestoesAnuladas() {
-        List<QuestaoDto> questoes = questaoService.getQuestoesAnuladas();
-        return ResponseEntity.ok(questoes);
-    }
-
-    @Operation(
-        summary = "Obter questões por tema",
-        description = "Retorna uma lista de questões associadas a um tema específico",
-        responses = {
-            @ApiResponse(responseCode = "200", description = "Lista de questões retornada com sucesso",
-                content = @Content(
-                    array = @ArraySchema(schema = @Schema(implementation = QuestaoDto.class)),
-                    examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\", \"correta\": true}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\", \"correta\": false}]}]"
-                    )
-                )),
-            @ApiResponse(responseCode = "404", description = "Tema não encontrado",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Tema com ID: '1'\",\"instance\":\"/api/questoes/tema/1\"}"
-                    ))),
-            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/questoes/tema/1\"}"
-                    )))
-        }
-    )
-    @GetMapping("/tema/{temaId}")
-    public ResponseEntity<List<QuestaoDto>> getQuestoesByTemaId(
-            @Parameter(description = "ID do tema para filtrar questões", required = true) @PathVariable Long temaId) {
-        List<QuestaoDto> questoes = questaoService.getQuestoesByTemaId(temaId);
-        return ResponseEntity.ok(questoes);
-    }
-
-    @Operation(
-        summary = "Obter questões por disciplina",
-        description = "Retorna uma lista de questões associadas a uma disciplina específica",
-        responses = {
-            @ApiResponse(responseCode = "200", description = "Lista de questões retornada com sucesso",
-                content = @Content(
-                    array = @ArraySchema(schema = @Schema(implementation = QuestaoDto.class)),
-                    examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\", \"correta\": true}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\", \"correta\": false}]}]"
-                    )
-                )),
-            @ApiResponse(responseCode = "404", description = "Disciplina não encontrada",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Disciplina com ID: '1'\",\"instance\":\"/api/questoes/disciplina/1\"}"
-                    ))),
-            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/questoes/disciplina/1\"}"
-                    )))
-        }
-    )
-    @GetMapping("/disciplina/{disciplinaId}")
-    public ResponseEntity<List<QuestaoDto>> getQuestoesByDisciplinaId(
-            @Parameter(description = "ID da disciplina para filtrar questões", required = true) @PathVariable Long disciplinaId) {
-        List<QuestaoDto> questoes = questaoService.getQuestoesByDisciplinaId(disciplinaId);
-        return ResponseEntity.ok(questoes);
     }
 
     @Operation(

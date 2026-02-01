@@ -210,7 +210,7 @@ class QuestaoControllerTest {
 
         mockMvc
             .perform(
-                get("/api/questoes/concurso/{concursoId}", concurso.getId())
+                get("/api/questoes").param("concursoId", concurso.getId().toString())
             )
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].enunciado").value("Questao Concurso"));
@@ -225,7 +225,7 @@ class QuestaoControllerTest {
         questaoRepository.save(questao);
 
         mockMvc
-            .perform(get("/api/questoes/subtema/{subtemaId}", subtema.getId()))
+            .perform(get("/api/questoes").param("subtemaId", subtema.getId().toString()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[0].enunciado").value("Questao Subtema"));
     }
@@ -241,7 +241,7 @@ class QuestaoControllerTest {
         questaoRepository.save(qAnulada);
 
         mockMvc
-            .perform(get("/api/questoes/anuladas"))
+            .perform(get("/api/questoes").param("anulada", "true"))
             .andExpect(status().isOk())
             .andExpect(
                 jsonPath("$.length()").value(
@@ -249,6 +249,27 @@ class QuestaoControllerTest {
                 )
             )
             .andExpect(jsonPath("$[?(@.anulada == false)]").doesNotExist());
+    }
+
+    @Test
+    void testGetQuestoesMultiFilter() throws Exception {
+        Questao qTarget = new Questao(concurso, "Target");
+        qTarget.setAnulada(true);
+        qTarget.setSubtemas(Collections.singletonList(subtema));
+        questaoRepository.save(qTarget);
+
+        Questao qOther = new Questao(concurso, "Other");
+        qOther.setAnulada(false);
+        questaoRepository.save(qOther);
+
+        mockMvc
+            .perform(get("/api/questoes")
+                .param("concursoId", concurso.getId().toString())
+                .param("subtemaId", subtema.getId().toString())
+                .param("anulada", "true"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].enunciado").value("Target"));
     }
 
     @Test

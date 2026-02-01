@@ -232,36 +232,4 @@ public class CargoController {
         cargoService.deleteById(id);
         return ResponseEntity.noContent().build();
     }
-
-    @Operation(
-        summary = "Obter questões por ID do cargo",
-        description = "Retorna uma lista de questões associadas a um cargo específico",
-        responses = {
-            @ApiResponse(responseCode = "200", description = "Lista de questões retornada com sucesso",
-                content = @Content(
-                    array = @ArraySchema(schema = @Schema(implementation = QuestaoDto.class)),
-                    examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false}]"
-                    )
-                )),
-            @ApiResponse(responseCode = "404", description = "Cargo não encontrado",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Cargo com ID: '1'\",\"instance\":\"/api/cargos/1/questoes\"}"
-                    ))),
-            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/cargos/1/questoes\"}"
-                    )))
-        }
-    )
-    @GetMapping("/{id}/questoes")
-    public ResponseEntity<List<QuestaoDto>> getQuestoesByCargoId(
-            @Parameter(description = "ID do cargo para filtrar questões", required = true) @PathVariable Long id) {
-        List<QuestaoDto> questoes = questaoService.getQuestoesByCargoId(id);
-        return ResponseEntity.ok(questoes);
-    }
 }
