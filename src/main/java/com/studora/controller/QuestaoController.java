@@ -20,6 +20,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -39,13 +42,14 @@ public class QuestaoController {
 
     @Operation(
         summary = "Obter questões",
-        description = "Retorna uma lista de questões com base nos filtros fornecidos. Se nenhum filtro for informado, retorna todas as questões.",
+        description = "Retorna uma página de questões com base nos filtros fornecidos. Suporta paginação.",
         responses = {
-            @ApiResponse(responseCode = "200", description = "Lista de questões retornada com sucesso",
+            @ApiResponse(responseCode = "200", description = "Página de questões retornada com sucesso",
                 content = @Content(
-                    array = @ArraySchema(schema = @Schema(implementation = QuestaoDto.class)),
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = Page.class),
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\", \"correta\": true}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\", \"correta\": false}]}]"
+                        value = "{\"content\": [{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\", \"correta\": true}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\", \"correta\": false}]}], \"pageable\": {\"pageNumber\": 0, \"pageSize\": 20}, \"totalElements\": 1, \"totalPages\": 1, \"last\": true, \"size\": 20, \"number\": 0, \"sort\": {\"empty\": true, \"sorted\": false, \"unsorted\": true}, \"numberOfElements\": 1, \"first\": true, \"empty\": false}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -57,8 +61,10 @@ public class QuestaoController {
         }
     )
     @GetMapping
-    public ResponseEntity<List<QuestaoDto>> getQuestoes(@ParameterObject @Valid QuestaoFilter filter) {
-        List<QuestaoDto> questoes = questaoService.search(filter);
+    public ResponseEntity<Page<QuestaoDto>> getQuestoes(
+            @ParameterObject @Valid QuestaoFilter filter,
+            @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
+        Page<QuestaoDto> questoes = questaoService.search(filter, pageable);
         return ResponseEntity.ok(questoes);
     }
 

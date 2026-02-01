@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,11 +56,9 @@ public class QuestaoService {
             .collect(Collectors.toList());
     }
 
-    public List<QuestaoDto> search(QuestaoFilter filter) {
-        return questaoRepository.findAll(QuestaoSpecification.withFilter(filter))
-                .stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+    public Page<QuestaoDto> search(QuestaoFilter filter, Pageable pageable) {
+        return questaoRepository.findAll(QuestaoSpecification.withFilter(filter), pageable)
+                .map(this::convertToDto);
     }
 
     public QuestaoDto getQuestaoById(Long id) {

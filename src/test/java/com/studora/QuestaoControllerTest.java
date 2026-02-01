@@ -213,7 +213,7 @@ class QuestaoControllerTest {
                 get("/api/questoes").param("concursoId", concurso.getId().toString())
             )
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$[0].enunciado").value("Questao Concurso"));
+            .andExpect(jsonPath("$.content[0].enunciado").value("Questao Concurso"));
     }
 
     @Test
@@ -227,7 +227,7 @@ class QuestaoControllerTest {
         mockMvc
             .perform(get("/api/questoes").param("subtemaId", subtema.getId().toString()))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$[0].enunciado").value("Questao Subtema"));
+            .andExpect(jsonPath("$.content[0].enunciado").value("Questao Subtema"));
     }
 
     @Test
@@ -244,11 +244,11 @@ class QuestaoControllerTest {
             .perform(get("/api/questoes").param("anulada", "true"))
             .andExpect(status().isOk())
             .andExpect(
-                jsonPath("$.length()").value(
+                jsonPath("$.content.length()").value(
                     org.hamcrest.Matchers.greaterThanOrEqualTo(1)
                 )
             )
-            .andExpect(jsonPath("$[?(@.anulada == false)]").doesNotExist());
+            .andExpect(jsonPath("$.content[?(@.anulada == false)]").doesNotExist());
     }
 
     @Test
@@ -268,8 +268,8 @@ class QuestaoControllerTest {
                 .param("subtemaId", subtema.getId().toString())
                 .param("anulada", "true"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(1))
-            .andExpect(jsonPath("$[0].enunciado").value("Target"));
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].enunciado").value("Target"));
     }
 
     @Test
