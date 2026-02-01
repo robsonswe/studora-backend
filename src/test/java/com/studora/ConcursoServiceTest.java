@@ -159,7 +159,7 @@ class ConcursoServiceTest {
         dto.setAno(2023);
         dto.setMes(1);
 
-        when(concursoRepository.findById(1L)).thenReturn(Optional.of(concurso));
+        when(concursoRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(concurso));
 
         // Act
         ConcursoDto result = concursoService.findById(1L);
@@ -167,20 +167,20 @@ class ConcursoServiceTest {
         // Assert
         assertNotNull(result);
         assertEquals(1L, result.getInstituicaoId());
-        verify(concursoRepository, times(1)).findById(1L);
+        verify(concursoRepository, times(1)).findByIdWithDetails(1L);
     }
 
     @Test
     void testGetConcursoById_NotFound() {
         // Arrange
-        when(concursoRepository.findById(1L)).thenReturn(Optional.empty());
+        when(concursoRepository.findByIdWithDetails(1L)).thenReturn(Optional.empty());
 
         // Act & Assert
         assertThrows(RuntimeException.class, () -> {
             concursoService.findById(1L);
         });
 
-        verify(concursoRepository, times(1)).findById(1L);
+        verify(concursoRepository, times(1)).findByIdWithDetails(1L);
     }
 
     @Test

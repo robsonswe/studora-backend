@@ -46,7 +46,7 @@ public class ConcursoService {
     }
 
     public ConcursoDto findById(Long id) {
-        Concurso concurso = concursoRepository.findById(id)
+        Concurso concurso = concursoRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Concurso", "ID", id));
         return concursoMapper.toDto(concurso);
     }

@@ -2,7 +2,8 @@ package com.studora.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(
@@ -59,7 +60,7 @@ public class Concurso extends BaseEntity {
         fetch = FetchType.LAZY
     )
     @Schema(description = "Questões associadas ao concurso")
-    private List<Questao> questoes;
+    private Set<Questao> questoes = new LinkedHashSet<>();
 
     @OneToMany(
         mappedBy = "concurso",
@@ -68,7 +69,7 @@ public class Concurso extends BaseEntity {
         fetch = FetchType.LAZY
     )
     @Schema(description = "Associações entre o concurso e cargos")
-    private List<ConcursoCargo> concursoCargos;
+    private Set<ConcursoCargo> concursoCargos = new LinkedHashSet<>();
 
     public Concurso() {}
 
@@ -128,19 +129,19 @@ public class Concurso extends BaseEntity {
         this.edital = edital;
     }
 
-    public List<Questao> getQuestoes() {
+    public Set<Questao> getQuestoes() {
         return questoes;
     }
 
-    public void setQuestoes(List<Questao> questoes) {
+    public void setQuestoes(Set<Questao> questoes) {
         this.questoes = questoes;
     }
 
-    public List<ConcursoCargo> getConcursoCargos() {
+    public Set<ConcursoCargo> getConcursoCargos() {
         return concursoCargos;
     }
 
-    public void setConcursoCargos(List<ConcursoCargo> concursoCargos) {
+    public void setConcursoCargos(Set<ConcursoCargo> concursoCargos) {
         this.concursoCargos = concursoCargos;
     }
 }
