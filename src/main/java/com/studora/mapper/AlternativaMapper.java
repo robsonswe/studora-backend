@@ -14,14 +14,14 @@ public interface AlternativaMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "questao", ignore = true)
-    @Mapping(target = "respostas", ignore = true)
+    @Mapping(target = "resposta", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Alternativa toEntity(AlternativaDto alternativaDto);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "questao", ignore = true)
-    @Mapping(target = "respostas", ignore = true)
+    @Mapping(target = "resposta", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     void updateEntityFromDto(AlternativaDto alternativaDto, @MappingTarget Alternativa alternativa);

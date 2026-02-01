@@ -221,4 +221,68 @@ class RespostaServiceTest {
         verify(respostaRepository, times(1)).findByQuestaoId(1L);
         verify(respostaRepository, never()).save(any(Resposta.class));
     }
+
+    @Test
+    void testCreateResposta_AlternativaDoesNotBelongToQuestao() {
+        // Arrange
+        RespostaCreateRequest respostaCreateRequest = new RespostaCreateRequest();
+        respostaCreateRequest.setQuestaoId(1L);
+        respostaCreateRequest.setAlternativaId(1L);
+
+        Questao questao1 = new Questao();
+        questao1.setId(1L);
+        questao1.setAnulada(false);
+
+        Questao questao2 = new Questao();
+        questao2.setId(2L);
+
+        Alternativa alternativa = new Alternativa();
+        alternativa.setId(1L);
+        alternativa.setQuestao(questao2); // Belongs to a different question
+
+        when(questaoRepository.findById(1L)).thenReturn(Optional.of(questao1));
+        when(alternativaRepository.findById(1L)).thenReturn(Optional.of(alternativa));
+        when(respostaRepository.findByQuestaoId(1L)).thenReturn(null);
+
+        // Act & Assert
+        com.studora.exception.ValidationException exception = assertThrows(com.studora.exception.ValidationException.class, () -> {
+            respostaService.createResposta(respostaCreateRequest);
+        });
+
+        assertEquals("A alternativa escolhida não pertence à questão informada", exception.getMessage());
+        verify(respostaRepository, never()).save(any(Resposta.class));
+    }
+
+    @Test
+    void testUpdateResposta_AlternativaDoesNotBelongToQuestao() {
+        // Arrange
+        Long respostaId = 1L;
+        com.studora.dto.request.RespostaUpdateRequest request = new com.studora.dto.request.RespostaUpdateRequest();
+        request.setAlternativaId(2L);
+
+        Questao questao1 = new Questao();
+        questao1.setId(1L);
+
+        Resposta existingResposta = new Resposta();
+        existingResposta.setId(respostaId);
+        existingResposta.setQuestao(questao1);
+
+        Questao questao2 = new Questao();
+        questao2.setId(2L);
+
+        Alternativa newAlternativa = new Alternativa();
+        newAlternativa.setId(2L);
+        newAlternativa.setQuestao(questao2); // Belongs to a different question
+
+        when(respostaRepository.findByIdWithDetails(respostaId)).thenReturn(Optional.of(existingResposta));
+        when(alternativaRepository.findById(2L)).thenReturn(Optional.of(newAlternativa));
+
+        // Act & Assert
+        com.studora.exception.ValidationException exception = assertThrows(com.studora.exception.ValidationException.class, () -> {
+            respostaService.updateResposta(respostaId, request);
+        });
+
+        assertEquals("A alternativa escolhida não pertence à questão desta resposta", exception.getMessage());
+        verify(respostaRepository, never()).save(any(Resposta.class));
+    }
 }

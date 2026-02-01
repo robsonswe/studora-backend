@@ -48,14 +48,14 @@ public class Questao extends BaseEntity {
     @Schema(description = "Alternativas associadas à questão")
     private Set<Alternativa> alternativas = new LinkedHashSet<>();
 
-    @OneToMany(
+    @OneToOne(
         mappedBy = "questao",
         cascade = CascadeType.ALL,
         orphanRemoval = true,
         fetch = FetchType.LAZY
     )
-    @Schema(description = "Respostas associadas à questão")
-    private Set<Resposta> respostas = new LinkedHashSet<>();
+    @Schema(description = "Resposta associada à questão")
+    private Resposta resposta;
 
     @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JoinTable(
@@ -130,12 +130,12 @@ public class Questao extends BaseEntity {
         this.alternativas = alternativas;
     }
 
-    public Set<Resposta> getRespostas() {
-        return respostas;
+    public Resposta getResposta() {
+        return resposta;
     }
 
-    public void setRespostas(Set<Resposta> respostas) {
-        this.respostas = respostas;
+    public void setResposta(Resposta resposta) {
+        this.resposta = resposta;
     }
 
     public Set<Subtema> getSubtemas() {

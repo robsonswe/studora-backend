@@ -8,7 +8,6 @@ import java.time.LocalDateTime;
 @Table(
     name = "resposta",
     indexes = {
-        @Index(name = "idx_resposta_questao", columnList = "questao_id"),
         @Index(
             name = "idx_resposta_alternativa",
             columnList = "alternativa_id"
@@ -24,13 +23,13 @@ public class Resposta extends BaseEntity {
     @Schema(description = "ID único da resposta", example = "1")
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "questao_id", nullable = false, unique = true)
     @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
     @Schema(description = "Questão respondida")
     private Questao questao;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "alternativa_id", nullable = false)
     @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
     @Schema(description = "Alternativa escolhida como resposta")

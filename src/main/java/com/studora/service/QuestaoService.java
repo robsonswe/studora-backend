@@ -278,7 +278,7 @@ public class QuestaoService {
         List<QuestaoCargo> questaoCargos = questaoCargoRepository.findByQuestaoId(id);
         questaoCargoRepository.deleteAll(questaoCargos);
 
-        // Delete the question (this should cascade delete alternatives and related respostas)
+        // Delete the question (this should cascade delete alternatives and related resposta)
         questaoRepository.deleteById(id);
     }
 

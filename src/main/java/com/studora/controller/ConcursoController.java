@@ -239,8 +239,8 @@ public class ConcursoController {
     }
 
     @Operation(
-        summary = "Excluir concurso",
-        description = "Remove um concurso existente com base no ID fornecido. Esta operação removerá em cascata todas as questões associadas, associações de cargos, alternativas e respostas vinculadas.",
+        summary = "Excluir um concurso",
+        description = "Remove um concurso existente com base no ID fornecido. Esta operação removerá em cascata todas as questões associadas, associações de cargos, alternativas e a resposta vinculada.",
         responses = {
             @ApiResponse(responseCode = "204", description = "Concurso excluído com sucesso"),
             @ApiResponse(responseCode = "404", description = "Concurso não encontrado",

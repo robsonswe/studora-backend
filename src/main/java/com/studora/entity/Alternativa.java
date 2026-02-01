@@ -48,13 +48,13 @@ public class Alternativa extends BaseEntity {
     @Schema(description = "Justificativa da alternativa", example = "Esta é a alternativa correta porque...")
     private String justificativa;
 
-    @OneToMany(
+    @OneToOne(
         mappedBy = "alternativaEscolhida",
         cascade = CascadeType.ALL,
         fetch = FetchType.LAZY
     )
-    @Schema(description = "Respostas associadas a esta alternativa")
-    private List<Resposta> respostas;
+    @Schema(description = "Resposta associada a esta alternativa")
+    private Resposta resposta;
 
 
     public Alternativa() {}
@@ -108,12 +108,12 @@ public class Alternativa extends BaseEntity {
         this.justificativa = (justificativa != null && !justificativa.trim().isEmpty()) ? justificativa : null;
     }
 
-    public List<Resposta> getRespostas() {
-        return respostas;
+    public Resposta getResposta() {
+        return resposta;
     }
 
-    public void setRespostas(List<Resposta> respostas) {
-        this.respostas = respostas;
+    public void setResposta(Resposta resposta) {
+        this.resposta = resposta;
     }
 
 }

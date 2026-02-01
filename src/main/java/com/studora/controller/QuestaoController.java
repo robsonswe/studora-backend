@@ -170,7 +170,7 @@ public class QuestaoController {
 
     @Operation(
         summary = "Atualizar questão",
-        description = "Atualiza os dados de uma questão existente. As regras de negócio para alternativas e associação de cargos também se aplicam na atualização. Qualquer atualização removerá as respostas existentes para esta questão.",
+        description = "Atualiza os dados de uma questão existente. As regras de negócio para alternativas e associação de cargos também se aplicam na atualização. Qualquer atualização removerá a resposta existente para esta questão.",
         requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
             description = "Dados atualizados da questão",
             required = true,
@@ -224,7 +224,7 @@ public class QuestaoController {
 
     @Operation(
         summary = "Excluir questão",
-        description = "Remove uma questão existente com base no ID fornecido. Esta operação também removerá todas as alternativas e respostas associadas, além das associações com cargos.",
+        description = "Remove uma questão existente com base no ID fornecido. Esta operação também removerá todas as alternativas e a resposta associada, além das associações com cargos.",
         responses = {
             @ApiResponse(responseCode = "204", description = "Questão excluída com sucesso"),
             @ApiResponse(responseCode = "404", description = "Questão não encontrada",

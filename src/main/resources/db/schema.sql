@@ -203,9 +203,6 @@ CREATE TABLE resposta (
     FOREIGN KEY (alternativa_id) REFERENCES alternativa(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_resposta_questao
-    ON resposta (questao_id);
-
 CREATE INDEX idx_resposta_alternativa
     ON resposta (alternativa_id);
 

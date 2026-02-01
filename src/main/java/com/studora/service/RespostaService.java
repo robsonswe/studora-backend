@@ -57,13 +57,18 @@ public class RespostaService {
             throw new ValidationException("Não é possível responder a uma questão anulada");
         }
 
-        // Check if a response already exists for this question (business rule: only one response per question)
+        // Check if a response already exists for this question
         if (respostaRepository.findByQuestaoId(respostaCreateRequest.getQuestaoId()) != null) {
             throw new ValidationException("Já existe uma resposta para esta questão. Use a operação de atualização para modificar a resposta.");
         }
 
         Alternativa alternativa = alternativaRepository.findById(respostaCreateRequest.getAlternativaId())
                 .orElseThrow(() -> new ResourceNotFoundException("Alternativa", "ID", respostaCreateRequest.getAlternativaId()));
+
+        // Validate that the alternative belongs to the question
+        if (!alternativa.getQuestao().getId().equals(questao.getId())) {
+            throw new ValidationException("A alternativa escolhida não pertence à questão informada");
+        }
 
         Resposta resposta = new Resposta();
         resposta.setQuestao(questao);
@@ -80,6 +85,11 @@ public class RespostaService {
         // Only allow updating the alternativaId, questaoId should remain unchanged
         Alternativa alternativa = alternativaRepository.findById(respostaUpdateRequest.getAlternativaId())
                 .orElseThrow(() -> new ResourceNotFoundException("Alternativa", "ID", respostaUpdateRequest.getAlternativaId()));
+
+        // Validate that the alternative belongs to the question
+        if (!alternativa.getQuestao().getId().equals(existingResposta.getQuestao().getId())) {
+            throw new ValidationException("A alternativa escolhida não pertence à questão desta resposta");
+        }
 
         // Check if the question is annulled
         if (existingResposta.getQuestao().getAnulada()) {
@@ -118,6 +128,11 @@ public class RespostaService {
         Alternativa alternativa = alternativaRepository.findById(respostaCreateRequest.getAlternativaId())
                 .orElseThrow(() -> new ResourceNotFoundException("Alternativa", "ID", respostaCreateRequest.getAlternativaId()));
 
+        // Validate that the alternative belongs to the question
+        if (!alternativa.getQuestao().getId().equals(questao.getId())) {
+            throw new ValidationException("A alternativa escolhida não pertence à questão informada");
+        }
+
         Resposta resposta = new Resposta();
         resposta.setQuestao(questao);
         resposta.setAlternativaEscolhida(alternativa);
@@ -133,6 +148,11 @@ public class RespostaService {
         // Only allow updating the alternativaId, questaoId should remain unchanged
         Alternativa alternativa = alternativaRepository.findById(respostaUpdateRequest.getAlternativaId())
                 .orElseThrow(() -> new ResourceNotFoundException("Alternativa", "ID", respostaUpdateRequest.getAlternativaId()));
+
+        // Validate that the alternative belongs to the question
+        if (!alternativa.getQuestao().getId().equals(existingResposta.getQuestao().getId())) {
+            throw new ValidationException("A alternativa escolhida não pertence à questão desta resposta");
+        }
 
         // Check if the question is annulled
         if (existingResposta.getQuestao().getAnulada()) {
