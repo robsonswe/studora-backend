@@ -80,6 +80,45 @@ class CargoControllerTest {
     }
 
     @Test
+    void testGetAllCargos_DefaultSorting() throws Exception {
+        // Create cargos with same name but different area
+        Cargo c1 = new Cargo(); c1.setNome("Analista"); c1.setArea("TI"); c1.setNivel(NivelCargo.SUPERIOR);
+        Cargo c2 = new Cargo(); c2.setNome("Analista"); c2.setArea("Administrativa"); c2.setNivel(NivelCargo.SUPERIOR);
+        Cargo c3 = new Cargo(); c3.setNome("Tecnico"); c3.setArea("Judiciaria"); c3.setNivel(NivelCargo.MEDIO);
+        
+        cargoRepository.save(c2);
+        cargoRepository.save(c1);
+        cargoRepository.save(c3);
+
+        // Default sort should be nome ASC, then area ASC
+        // Expected order: Analista Administrativa, Analista TI, Tecnico Judiciaria
+        mockMvc
+            .perform(get("/api/cargos"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].area").value("Administrativa"))
+            .andExpect(jsonPath("$.content[1].area").value("TI"))
+            .andExpect(jsonPath("$.content[2].nome").value("Tecnico"));
+    }
+
+    @Test
+    void testGetAllCargos_CustomSortingByArea() throws Exception {
+        // Create cargos with different areas
+        Cargo c1 = new Cargo(); c1.setNome("Z-Cargo"); c1.setArea("TI"); c1.setNivel(NivelCargo.SUPERIOR);
+        Cargo c2 = new Cargo(); c2.setNome("A-Cargo"); c2.setArea("Administrativa"); c2.setNivel(NivelCargo.SUPERIOR);
+        
+        cargoRepository.save(c1);
+        cargoRepository.save(c2);
+
+        // Sort by area DESC
+        // Expected: TI, then Administrativa
+        mockMvc
+            .perform(get("/api/cargos").param("sort", "area").param("direction", "DESC"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].area").value("TI"))
+            .andExpect(jsonPath("$.content[1].area").value("Administrativa"));
+    }
+
+    @Test
     void testCreateCargo_Conflict_DuplicateName() throws Exception {
         // Create first cargo
         Cargo cargo1 = new Cargo();

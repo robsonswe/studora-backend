@@ -148,6 +148,33 @@ class RespostaControllerTest {
     }
 
     @Test
+    void testGetAllRespostas_DefaultSorting() throws Exception {
+        // Clear and setup specific data
+        respostaRepository.deleteAll();
+        
+        // Create 2 questions and answers with different timestamps
+        Questao q1 = new Questao(); q1.setEnunciado("Q1"); q1.setConcurso(questao.getConcurso()); q1 = questaoRepository.save(q1);
+        Alternativa a1 = new Alternativa(); a1.setOrdem(1); a1.setTexto("A1"); a1.setQuestao(q1); a1.setCorreta(true); a1 = alternativaRepository.save(a1);
+        Resposta r1 = new Resposta(q1, a1); 
+        r1.setRespondidaEm(java.time.LocalDateTime.now().minusDays(1));
+        respostaRepository.save(r1);
+
+        Questao q2 = new Questao(); q2.setEnunciado("Q2"); q2.setConcurso(questao.getConcurso()); q2 = questaoRepository.save(q2);
+        Alternativa a2 = new Alternativa(); a2.setOrdem(1); a2.setTexto("A2"); a2.setQuestao(q2); a2.setCorreta(true); a2 = alternativaRepository.save(a2);
+        Resposta r2 = new Resposta(q2, a2); 
+        r2.setRespondidaEm(java.time.LocalDateTime.now());
+        respostaRepository.save(r2);
+
+        // Default sort: respondidaEm DESC
+        // Expected: r2 (newest), then r1
+        mockMvc
+            .perform(get("/api/respostas"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].id").value(r2.getId()))
+            .andExpect(jsonPath("$.content[1].id").value(r1.getId()));
+    }
+
+    @Test
     void testDeleteResposta() throws Exception {
         Resposta resposta = new Resposta();
         resposta.setQuestao(questao);

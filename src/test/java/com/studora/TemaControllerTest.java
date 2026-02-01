@@ -108,6 +108,28 @@ class TemaControllerTest {
     }
 
     @Test
+    void testGetAllTemas_DefaultSorting() throws Exception {
+        // Create another disciplina to test disciplinaId sorting
+        Disciplina disc2 = new Disciplina();
+        disc2.setNome("Disciplina 2");
+        disc2 = disciplinaRepository.save(disc2);
+
+        Tema t1 = new Tema(); t1.setNome("B-Tema"); t1.setDisciplina(disciplina); temaRepository.save(t1);
+        Tema t2 = new Tema(); t2.setNome("A-Tema"); t2.setDisciplina(disc2); temaRepository.save(t2);
+        Tema t3 = new Tema(); t3.setNome("A-Tema"); t3.setDisciplina(disciplina); temaRepository.save(t3);
+
+        // Default sort: nome ASC, disciplina.id ASC
+        // Expected: 1. A-Tema (disciplina), 2. A-Tema (disc2), 3. B-Tema (disciplina)
+        mockMvc
+            .perform(get("/api/temas"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].nome").value("A-Tema"))
+            .andExpect(jsonPath("$.content[0].disciplinaId").value(disciplina.getId()))
+            .andExpect(jsonPath("$.content[1].disciplinaId").value(disc2.getId()))
+            .andExpect(jsonPath("$.content[2].nome").value("B-Tema"));
+    }
+
+    @Test
     void testUpdateTema() throws Exception {
         Tema tema = new Tema();
         tema.setNome("Old Name");

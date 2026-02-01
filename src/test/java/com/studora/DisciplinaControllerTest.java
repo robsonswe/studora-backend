@@ -86,6 +86,32 @@ class DisciplinaControllerTest {
     }
 
     @Test
+    void testGetAllDisciplinas_DefaultSorting() throws Exception {
+        disciplinaRepository.save(new Disciplina("Direito B"));
+        disciplinaRepository.save(new Disciplina("Direito A"));
+
+        // Default sort: nome ASC, id DESC
+        mockMvc
+            .perform(get("/api/disciplinas"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].nome").value("Direito A"))
+            .andExpect(jsonPath("$.content[1].nome").value("Direito B"));
+    }
+
+    @Test
+    void testGetAllDisciplinas_CustomSortingByDirection() throws Exception {
+        disciplinaRepository.save(new Disciplina("Direito B"));
+        disciplinaRepository.save(new Disciplina("Direito A"));
+
+        // Sort: nome DESC
+        mockMvc
+            .perform(get("/api/disciplinas").param("direction", "DESC"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].nome").value("Direito B"))
+            .andExpect(jsonPath("$.content[1].nome").value("Direito A"));
+    }
+
+    @Test
     void testUpdateDisciplina() throws Exception {
         Disciplina disciplina = new Disciplina("Old Name");
         disciplina = disciplinaRepository.save(disciplina);

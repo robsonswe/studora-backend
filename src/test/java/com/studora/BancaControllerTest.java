@@ -44,6 +44,32 @@ class BancaControllerTest {
     }
 
     @Test
+    void testGetAllBancas_DefaultSorting() throws Exception {
+        Banca b1 = new Banca(); b1.setNome("Banca B"); bancaRepository.save(b1);
+        Banca b2 = new Banca(); b2.setNome("Banca A"); bancaRepository.save(b2);
+        
+        // Default sort: nome ASC, id DESC
+        mockMvc
+            .perform(get("/api/bancas"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].nome").value("Banca A"))
+            .andExpect(jsonPath("$.content[1].nome").value("Banca B"));
+    }
+
+    @Test
+    void testGetAllBancas_CustomSortingByDirection() throws Exception {
+        Banca b1 = new Banca(); b1.setNome("Banca B"); bancaRepository.save(b1);
+        Banca b2 = new Banca(); b2.setNome("Banca A"); bancaRepository.save(b2);
+        
+        // Sort: nome DESC
+        mockMvc
+            .perform(get("/api/bancas").param("direction", "DESC"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].nome").value("Banca B"))
+            .andExpect(jsonPath("$.content[1].nome").value("Banca A"));
+    }
+
+    @Test
     void testGetAllBancas_Page1() throws Exception {
         Banca banca = new Banca();
         banca.setNome("Vunesp");

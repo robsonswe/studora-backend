@@ -79,6 +79,43 @@ class InstituicaoControllerTest {
     }
 
     @Test
+    void testGetAllInstituicoes_DefaultSorting() throws Exception {
+        Instituicao i1 = new Instituicao(); i1.setNome("B-Inst"); i1.setArea("Financeira");
+        Instituicao i2 = new Instituicao(); i2.setNome("A-Inst-1"); i2.setArea("Judiciaria");
+        Instituicao i3 = new Instituicao(); i3.setNome("A-Inst-2"); i3.setArea("Educação");
+        
+        instituicaoRepository.save(i1);
+        instituicaoRepository.save(i2);
+        instituicaoRepository.save(i3);
+
+        // Default sort: nome ASC, area ASC
+        // Expected: 1. A-Inst-1 Judiciaria, 2. A-Inst-2 Educação, 3. B-Inst Financeira
+        mockMvc
+            .perform(get("/api/instituicoes"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].nome").value("A-Inst-1"))
+            .andExpect(jsonPath("$.content[1].nome").value("A-Inst-2"))
+            .andExpect(jsonPath("$.content[2].nome").value("B-Inst"));
+    }
+
+    @Test
+    void testGetAllInstituicoes_CustomSortingByArea() throws Exception {
+        Instituicao i1 = new Instituicao(); i1.setNome("Z-Inst"); i1.setArea("Judiciaria");
+        Instituicao i2 = new Instituicao(); i2.setNome("A-Inst"); i2.setArea("Educação");
+        
+        instituicaoRepository.save(i1);
+        instituicaoRepository.save(i2);
+
+        // Sort by area ASC
+        // Expected: Educação (A-Inst), then Judiciaria (Z-Inst)
+        mockMvc
+            .perform(get("/api/instituicoes").param("sort", "area").param("direction", "ASC"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].area").value("Educação"))
+            .andExpect(jsonPath("$.content[1].area").value("Judiciaria"));
+    }
+
+    @Test
     void testUpdateInstituicao() throws Exception {
         // First create an institution
         Instituicao inst = new Instituicao();

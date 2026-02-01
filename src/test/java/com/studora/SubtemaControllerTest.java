@@ -113,6 +113,29 @@ class SubtemaControllerTest {
     }
 
     @Test
+    void testGetAllSubtemas_DefaultSorting() throws Exception {
+        // Create another tema to test temaId sorting
+        Tema tema2 = new Tema();
+        tema2.setNome("Tema 2");
+        tema2.setDisciplina(tema.getDisciplina());
+        tema2 = temaRepository.save(tema2);
+
+        Subtema s1 = new Subtema(); s1.setNome("B-Sub"); s1.setTema(tema); subtemaRepository.save(s1);
+        Subtema s2 = new Subtema(); s2.setNome("A-Sub"); s2.setTema(tema2); subtemaRepository.save(s2);
+        Subtema s3 = new Subtema(); s3.setNome("A-Sub"); s3.setTema(tema); subtemaRepository.save(s3);
+
+        // Default sort: nome ASC, tema.id ASC
+        // Expected: 1. A-Sub (tema), 2. A-Sub (tema2), 3. B-Sub (tema)
+        mockMvc
+            .perform(get("/api/subtemas"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].nome").value("A-Sub"))
+            .andExpect(jsonPath("$.content[0].temaId").value(tema.getId()))
+            .andExpect(jsonPath("$.content[1].temaId").value(tema2.getId()))
+            .andExpect(jsonPath("$.content[2].nome").value("B-Sub"));
+    }
+
+    @Test
     void testUpdateSubtema() throws Exception {
         Subtema subtema = new Subtema();
         subtema.setNome("Old Name");

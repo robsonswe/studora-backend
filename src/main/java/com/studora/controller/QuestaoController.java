@@ -22,7 +22,9 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -30,6 +32,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -43,7 +46,13 @@ public class QuestaoController {
 
     @Operation(
         summary = "Obter questões",
-        description = "Retorna uma página de questões com base nos filtros fornecidos. Suporta paginação.",
+        description = "Retorna uma página de questões com base nos filtros fornecidos. Suporta paginação e ordenação prioritária.",
+        parameters = {
+            @Parameter(name = "page", description = "Número da página (0..N)", schema = @Schema(type = "integer", defaultValue = "0")),
+            @Parameter(name = "size", description = "Tamanho da página", schema = @Schema(type = "integer", defaultValue = "20")),
+            @Parameter(name = "sort", description = "Campo para ordenação primária", schema = @Schema(type = "string", allowableValues = {"id"}, defaultValue = "id")),
+            @Parameter(name = "direction", description = "Direção da ordenação primária", schema = @Schema(type = "string", allowableValues = {"ASC", "DESC"}, defaultValue = "DESC"))
+        },
         responses = {
             @ApiResponse(responseCode = "200", description = "Página de questões retornada com sucesso",
                 content = @Content(
@@ -64,8 +73,23 @@ public class QuestaoController {
     @GetMapping
     public ResponseEntity<PageResponse<QuestaoDto>> getQuestoes(
             @ParameterObject @Valid QuestaoFilter filter,
-            @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
-        Page<QuestaoDto> questoes = questaoService.search(filter, pageable);
+            @Parameter(hidden = true) @PageableDefault(size = 20) Pageable pageable,
+            @RequestParam(defaultValue = "id") String sort,
+            @RequestParam(defaultValue = "DESC") String direction) {
+        
+        Sort.Direction dir = Sort.Direction.fromString(direction.toUpperCase());
+        List<Sort.Order> orders = new ArrayList<>();
+        
+        // Primary sort chosen by user
+        orders.add(new Sort.Order(dir, sort));
+        
+        // Default tie-breaker: ID descending (if not already primary)
+        if (!sort.equalsIgnoreCase("id")) {
+            orders.add(Sort.Order.desc("id"));
+        }
+        
+        Pageable finalPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(orders));
+        Page<QuestaoDto> questoes = questaoService.search(filter, finalPageable);
         return ResponseEntity.ok(new PageResponse<>(questoes));
     }
 

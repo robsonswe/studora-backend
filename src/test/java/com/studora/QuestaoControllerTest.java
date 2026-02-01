@@ -184,21 +184,19 @@ class QuestaoControllerTest {
         Questao questao1 = new Questao();
         questao1.setEnunciado("Enunciado 1");
         questao1.setConcurso(concurso);
-        questaoRepository.save(questao1);
+        questao1 = questaoRepository.save(questao1);
 
         Questao questao2 = new Questao();
         questao2.setEnunciado("Enunciado 2");
         questao2.setConcurso(concurso);
-        questaoRepository.save(questao2);
+        questao2 = questaoRepository.save(questao2);
 
+        // Default sort should be id DESC
         mockMvc
             .perform(get("/api/questoes"))
             .andExpect(status().isOk())
-            .andExpect(
-                jsonPath("$.length()").value(
-                    org.hamcrest.Matchers.greaterThanOrEqualTo(2)
-                )
-            );
+            .andExpect(jsonPath("$.content[0].id").value(questao2.getId()))
+            .andExpect(jsonPath("$.content[1].id").value(questao1.getId()));
     }
 
     @Test

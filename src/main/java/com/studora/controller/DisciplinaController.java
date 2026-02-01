@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import jakarta.validation.Valid;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -39,11 +40,12 @@ public class DisciplinaController {
 
     @Operation(
         summary = "Obter todas as disciplinas",
-        description = "Retorna uma página com todas as disciplinas cadastradas. Suporta paginação.",
+        description = "Retorna uma página com todas as disciplinas cadastradas. Suporta paginação e ordenação prioritária.",
         parameters = {
             @Parameter(name = "page", description = "Número da página (0..N)", schema = @Schema(type = "integer", defaultValue = "0")),
             @Parameter(name = "size", description = "Tamanho da página", schema = @Schema(type = "integer", defaultValue = "20")),
-            @Parameter(name = "sort", description = "Direção da ordenação (por nome)", schema = @Schema(type = "string", allowableValues = {"ASC", "DESC"}, defaultValue = "ASC"))
+            @Parameter(name = "sort", description = "Campo para ordenação primária", schema = @Schema(type = "string", allowableValues = {"nome"}, defaultValue = "nome")),
+            @Parameter(name = "direction", description = "Direção da ordenação primária", schema = @Schema(type = "string", allowableValues = {"ASC", "DESC"}, defaultValue = "ASC"))
         },
         responses = {
             @ApiResponse(responseCode = "200", description = "Página de disciplinas retornada com sucesso",
@@ -65,11 +67,24 @@ public class DisciplinaController {
     @GetMapping
     public ResponseEntity<PageResponse<DisciplinaDto>> getAllDisciplinas(
             @Parameter(hidden = true) @PageableDefault(size = 20) Pageable pageable,
-            @RequestParam(defaultValue = "ASC") String sort) {
+            @RequestParam(defaultValue = "nome") String sort,
+            @RequestParam(defaultValue = "ASC") String direction) {
         
-        Sort.Direction direction = Sort.Direction.fromString(sort.toUpperCase());
-        Pageable finalPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(direction, "nome"));
+        Sort.Direction dir = Sort.Direction.fromString(direction.toUpperCase());
+        List<Sort.Order> orders = new ArrayList<>();
         
+        // Primary sort chosen by user
+        orders.add(new Sort.Order(dir, sort));
+        
+        // Default tie-breaker: nome ASC (if not already primary)
+        if (!sort.equalsIgnoreCase("nome")) {
+            orders.add(Sort.Order.asc("nome"));
+        }
+        
+        // Final tie-breaker: ID descending
+        orders.add(Sort.Order.desc("id"));
+        
+        Pageable finalPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(orders));
         Page<DisciplinaDto> disciplinas = disciplinaService.findAll(finalPageable);
         return ResponseEntity.ok(new PageResponse<>(disciplinas));
     }

@@ -18,7 +18,9 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -26,6 +28,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -38,7 +41,13 @@ public class ConcursoController {
 
     @Operation(
         summary = "Obter todos os concursos",
-        description = "Retorna uma página com todos os concursos cadastrados. Suporta paginação.",
+        description = "Retorna uma página com todos os concursos cadastrados. Suporta paginação e ordenação prioritária.",
+        parameters = {
+            @Parameter(name = "page", description = "Número da página (0..N)", schema = @Schema(type = "integer", defaultValue = "0")),
+            @Parameter(name = "size", description = "Tamanho da página", schema = @Schema(type = "integer", defaultValue = "20")),
+            @Parameter(name = "sort", description = "Campo para ordenação primária", schema = @Schema(type = "string", allowableValues = {"ano", "mes", "instituicao", "banca"}, defaultValue = "ano")),
+            @Parameter(name = "direction", description = "Direção da ordenação primária", schema = @Schema(type = "string", allowableValues = {"ASC", "DESC"}, defaultValue = "DESC"))
+        },
         responses = {
             @ApiResponse(responseCode = "200", description = "Página de concursos retornada com sucesso",
                 content = @Content(
@@ -58,8 +67,32 @@ public class ConcursoController {
     )
     @GetMapping
     public ResponseEntity<PageResponse<ConcursoDto>> getAllConcursos(
-            @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
-        Page<ConcursoDto> concursos = concursoService.findAll(pageable);
+            @Parameter(hidden = true) @PageableDefault(size = 20) Pageable pageable,
+            @RequestParam(defaultValue = "ano") String sort,
+            @RequestParam(defaultValue = "DESC") String direction) {
+        
+        Sort.Direction dir = Sort.Direction.fromString(direction.toUpperCase());
+        List<Sort.Order> orders = new ArrayList<>();
+        
+        // Map Swagger parameter names to internal property names if necessary
+        String sortProperty = sort;
+        if (sort.equalsIgnoreCase("instituicao")) sortProperty = "instituicao.nome";
+        if (sort.equalsIgnoreCase("banca")) sortProperty = "banca.nome";
+
+        // Primary sort chosen by user
+        orders.add(new Sort.Order(dir, sortProperty));
+        
+        // Default tie-breakers: ano DESC -> mes DESC -> instituicao.nome ASC -> banca.nome ASC -> id DESC
+        if (!sortProperty.equals("ano")) orders.add(Sort.Order.desc("ano"));
+        if (!sortProperty.equals("mes")) orders.add(Sort.Order.desc("mes"));
+        if (!sortProperty.equals("instituicao.nome")) orders.add(Sort.Order.asc("instituicao.nome"));
+        if (!sortProperty.equals("banca.nome")) orders.add(Sort.Order.asc("banca.nome"));
+        
+        // Final tie-breaker: ID descending
+        orders.add(Sort.Order.desc("id"));
+        
+        Pageable finalPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(orders));
+        Page<ConcursoDto> concursos = concursoService.findAll(finalPageable);
         return ResponseEntity.ok(new PageResponse<>(concursos));
     }
 

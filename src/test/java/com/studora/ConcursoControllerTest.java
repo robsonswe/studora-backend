@@ -248,6 +248,51 @@ class ConcursoControllerTest {
     }
 
     @Test
+    void testGetAllConcursos_DefaultSorting() throws Exception {
+        Instituicao i1 = new Instituicao(); i1.setNome("A-Inst"); i1.setArea("TI"); i1 = instituicaoRepository.save(i1);
+        Instituicao i2 = new Instituicao(); i2.setNome("B-Inst"); i2.setArea("TI"); i2 = instituicaoRepository.save(i2);
+        Banca b = new Banca(); b.setNome("Banca"); b = bancaRepository.save(b);
+
+        // Save in mixed order
+        concursoRepository.save(new Concurso(i1, b, 2023, 1));
+        concursoRepository.save(new Concurso(i1, b, 2023, 5));
+        concursoRepository.save(new Concurso(i2, b, 2022, 12));
+        concursoRepository.save(new Concurso(i1, b, 2024, 1));
+
+        // Default sort: ano DESC, mes DESC, inst ASC
+        // Expected: 
+        // 1. 2024, 1
+        // 2. 2023, 5
+        // 3. 2023, 1
+        // 4. 2022, 12
+        mockMvc
+            .perform(get("/api/concursos"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].ano").value(2024))
+            .andExpect(jsonPath("$.content[1].mes").value(5))
+            .andExpect(jsonPath("$.content[2].mes").value(1))
+            .andExpect(jsonPath("$.content[3].ano").value(2022));
+    }
+
+    @Test
+    void testGetAllConcursos_CustomSortingByInstituicao() throws Exception {
+        Instituicao i1 = new Instituicao(); i1.setNome("Z-Inst"); i1.setArea("TI"); i1 = instituicaoRepository.save(i1);
+        Instituicao i2 = new Instituicao(); i2.setNome("A-Inst"); i2.setArea("TI"); i2 = instituicaoRepository.save(i2);
+        Banca b = new Banca(); b.setNome("Banca"); b = bancaRepository.save(b);
+
+        concursoRepository.save(new Concurso(i1, b, 2023, 1));
+        concursoRepository.save(new Concurso(i2, b, 2024, 1));
+
+        // Sort by instituicao ASC
+        // Expected: A-Inst (2024), then Z-Inst (2023)
+        mockMvc
+            .perform(get("/api/concursos").param("sort", "instituicao").param("direction", "ASC"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].ano").value(2024))
+            .andExpect(jsonPath("$.content[1].ano").value(2023));
+    }
+
+    @Test
     void testAddCargoToConcurso_NonExistentConcurso() throws Exception {
         // Create cargo
         Cargo cargo = new Cargo();

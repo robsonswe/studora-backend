@@ -18,13 +18,16 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.validation.Valid;
@@ -42,7 +45,13 @@ public class CargoController {
 
     @Operation(
         summary = "Obter todos os cargos",
-        description = "Retorna uma página com todos os cargos cadastrados. Suporta paginação.",
+        description = "Retorna uma página com todos os cargos cadastrados. Suporta paginação e ordenação prioritária.",
+        parameters = {
+            @Parameter(name = "page", description = "Número da página (0..N)", schema = @Schema(type = "integer", defaultValue = "0")),
+            @Parameter(name = "size", description = "Tamanho da página", schema = @Schema(type = "integer", defaultValue = "20")),
+            @Parameter(name = "sort", description = "Campo para ordenação primária", schema = @Schema(type = "string", allowableValues = {"nome", "area", "nivel"}, defaultValue = "nome")),
+            @Parameter(name = "direction", description = "Direção da ordenação primária", schema = @Schema(type = "string", allowableValues = {"ASC", "DESC"}, defaultValue = "ASC"))
+        },
         responses = {
             @ApiResponse(responseCode = "200", description = "Página de cargos retornada com sucesso",
                 content = @Content(
@@ -62,8 +71,27 @@ public class CargoController {
     )
     @GetMapping
     public ResponseEntity<PageResponse<CargoDto>> getAllCargos(
-            @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
-        Page<CargoDto> cargos = cargoService.findAll(pageable);
+            @Parameter(hidden = true) @PageableDefault(size = 20) Pageable pageable,
+            @RequestParam(defaultValue = "nome") String sort,
+            @RequestParam(defaultValue = "ASC") String direction) {
+        
+        Sort.Direction dir = Sort.Direction.fromString(direction.toUpperCase());
+        List<Sort.Order> orders = new ArrayList<>();
+        
+        // Primary sort chosen by user
+        orders.add(new Sort.Order(dir, sort));
+        
+        // Default tie-breakers in order: nome -> area -> nivel
+        // Skip the user-selected property if it's already first
+        if (!sort.equalsIgnoreCase("nome")) orders.add(Sort.Order.asc("nome"));
+        if (!sort.equalsIgnoreCase("area")) orders.add(Sort.Order.asc("area"));
+        if (!sort.equalsIgnoreCase("nivel")) orders.add(Sort.Order.asc("nivel"));
+        
+        // Final tie-breaker: ID descending
+        orders.add(Sort.Order.desc("id"));
+        
+        Pageable finalPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(orders));
+        Page<CargoDto> cargos = cargoService.findAll(finalPageable);
         return ResponseEntity.ok(new PageResponse<>(cargos));
     }
 

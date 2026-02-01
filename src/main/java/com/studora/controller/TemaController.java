@@ -16,7 +16,9 @@ import io.swagger.v3.oas.annotations.media.ExampleObject;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -24,6 +26,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -37,7 +40,13 @@ public class TemaController {
 
     @Operation(
         summary = "Obter todos os temas",
-        description = "Retorna uma página com todos os temas cadastrados. Suporta paginação.",
+        description = "Retorna uma página com todos os temas cadastrados. Suporta paginação e ordenação prioritária.",
+        parameters = {
+            @Parameter(name = "page", description = "Número da página (0..N)", schema = @Schema(type = "integer", defaultValue = "0")),
+            @Parameter(name = "size", description = "Tamanho da página", schema = @Schema(type = "integer", defaultValue = "20")),
+            @Parameter(name = "sort", description = "Campo para ordenação primária", schema = @Schema(type = "string", allowableValues = {"nome", "disciplinaId"}, defaultValue = "nome")),
+            @Parameter(name = "direction", description = "Direção da ordenação primária", schema = @Schema(type = "string", allowableValues = {"ASC", "DESC"}, defaultValue = "ASC"))
+        },
         responses = {
             @ApiResponse(responseCode = "200", description = "Página de temas retornada com sucesso",
                 content = @Content(
@@ -57,8 +66,29 @@ public class TemaController {
     )
     @GetMapping
     public ResponseEntity<PageResponse<TemaDto>> getAllTemas(
-            @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
-        Page<TemaDto> temas = temaService.getAllTemas(pageable);
+            @Parameter(hidden = true) @PageableDefault(size = 20) Pageable pageable,
+            @RequestParam(defaultValue = "nome") String sort,
+            @RequestParam(defaultValue = "ASC") String direction) {
+        
+        Sort.Direction dir = Sort.Direction.fromString(direction.toUpperCase());
+        List<Sort.Order> orders = new ArrayList<>();
+        
+        // Map Swagger parameter names to internal property names
+        String sortProperty = sort;
+        if (sort.equalsIgnoreCase("disciplinaId")) sortProperty = "disciplina.id";
+
+        // Primary sort chosen by user
+        orders.add(new Sort.Order(dir, sortProperty));
+        
+        // Default tie-breakers: nome ASC -> disciplina.id ASC
+        if (!sortProperty.equals("nome")) orders.add(Sort.Order.asc("nome"));
+        if (!sortProperty.equals("disciplina.id")) orders.add(Sort.Order.asc("disciplina.id"));
+        
+        // Final tie-breaker: ID descending
+        orders.add(Sort.Order.desc("id"));
+        
+        Pageable finalPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), Sort.by(orders));
+        Page<TemaDto> temas = temaService.getAllTemas(finalPageable);
         return ResponseEntity.ok(new PageResponse<>(temas));
     }
 
