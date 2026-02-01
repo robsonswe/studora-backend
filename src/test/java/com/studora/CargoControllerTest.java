@@ -51,7 +51,7 @@ class CargoControllerTest {
         mockMvc
             .perform(get("/api/cargos"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$[0].nome").exists());
+            .andExpect(jsonPath("$.content[0].nome").exists());
     }
 
     @Test

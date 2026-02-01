@@ -8,6 +8,8 @@ import com.studora.exception.ResourceNotFoundException;
 import com.studora.repository.CargoRepository;
 import com.studora.util.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -23,10 +25,9 @@ public class CargoService {
     @Autowired
     private com.studora.repository.ConcursoCargoRepository concursoCargoRepository;
 
-    public List<CargoDto> findAll() {
-        return cargoRepository.findAll().stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+    public Page<CargoDto> findAll(Pageable pageable) {
+        return cargoRepository.findAll(pageable)
+                .map(this::convertToDto);
     }
 
     public CargoDto findById(Long id) {

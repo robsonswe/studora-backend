@@ -12,7 +12,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -32,13 +36,14 @@ public class SubtemaController {
 
     @Operation(
         summary = "Obter todos os subtemas",
-        description = "Retorna uma lista com todos os subtemas cadastrados",
+        description = "Retorna uma página com todos os subtemas cadastrados. Suporta paginação.",
         responses = {
-            @ApiResponse(responseCode = "200", description = "Lista de subtemas retornada com sucesso",
+            @ApiResponse(responseCode = "200", description = "Página de subtemas retornada com sucesso",
                 content = @Content(
-                    array = @ArraySchema(schema = @Schema(implementation = SubtemaDto.class)),
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = Page.class),
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"nome\": \"Habeas Corpus\", \"temaId\": 1}, {\"id\": 2, \"nome\": \"Mandado de Segurança\", \"temaId\": 1}]"
+                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Habeas Corpus\", \"temaId\": 1}], \"pageable\": {\"pageNumber\": 0, \"pageSize\": 20}, \"totalElements\": 2, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -50,8 +55,9 @@ public class SubtemaController {
         }
     )
     @GetMapping
-    public ResponseEntity<List<SubtemaDto>> getAllSubtemas() {
-        List<SubtemaDto> subtemas = subtemaService.getAllSubtemas();
+    public ResponseEntity<Page<SubtemaDto>> getAllSubtemas(
+            @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
+        Page<SubtemaDto> subtemas = subtemaService.getAllSubtemas(pageable);
         return ResponseEntity.ok(subtemas);
     }
 
@@ -82,20 +88,21 @@ public class SubtemaController {
     )
     @GetMapping("/{id}")
     public ResponseEntity<SubtemaDto> getSubtemaById(
-            @Parameter(description = "ID do subtema a ser buscado", required = true) @PathVariable Long id) {
+            @Parameter(description = "ID do subtema a ser buscada", required = true) @PathVariable Long id) {
         SubtemaDto subtema = subtemaService.getSubtemaById(id);
         return ResponseEntity.ok(subtema);
     }
 
     @Operation(
         summary = "Obter subtemas por ID do tema",
-        description = "Retorna uma lista de subtemas associados a um tema específico",
+        description = "Retorna uma página de subtemas associados a um tema específico. Suporta paginação.",
         responses = {
-            @ApiResponse(responseCode = "200", description = "Lista de subtemas retornada com sucesso",
+            @ApiResponse(responseCode = "200", description = "Página de subtemas retornada com sucesso",
                 content = @Content(
-                    array = @ArraySchema(schema = @Schema(implementation = SubtemaDto.class)),
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = Page.class),
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"nome\": \"Habeas Corpus\", \"temaId\": 1}, {\"id\": 2, \"nome\": \"Mandado de Segurança\", \"temaId\": 1}]"
+                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Habeas Corpus\", \"temaId\": 1}], \"pageable\": {\"pageNumber\": 0, \"pageSize\": 20}, \"totalElements\": 2, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "404", description = "Tema não encontrado",
@@ -113,9 +120,10 @@ public class SubtemaController {
         }
     )
     @GetMapping("/tema/{temaId}")
-    public ResponseEntity<List<SubtemaDto>> getSubtemasByTemaId(
-            @Parameter(description = "ID do tema para filtrar subtemas", required = true) @PathVariable Long temaId) {
-        List<SubtemaDto> subtemas = subtemaService.getSubtemasByTemaId(temaId);
+    public ResponseEntity<Page<SubtemaDto>> getSubtemasByTemaId(
+            @Parameter(description = "ID do tema para filtrar subtemas", required = true) @PathVariable Long temaId,
+            @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
+        Page<SubtemaDto> subtemas = subtemaService.getSubtemasByTemaId(temaId, pageable);
         return ResponseEntity.ok(subtemas);
     }
 

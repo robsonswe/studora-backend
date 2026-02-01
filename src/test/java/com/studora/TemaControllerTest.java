@@ -101,7 +101,7 @@ class TemaControllerTest {
             .perform(get("/api/temas"))
             .andExpect(status().isOk())
             .andExpect(
-                jsonPath("$.length()").value(
+                jsonPath("$.content.length()").value(
                     org.hamcrest.Matchers.greaterThanOrEqualTo(2)
                 )
             );

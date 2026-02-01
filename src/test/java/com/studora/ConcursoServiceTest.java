@@ -18,6 +18,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -81,36 +84,38 @@ class ConcursoServiceTest {
         Concurso concurso2 = new Concurso(instituicao2, banca2, 2024, 2);
         concurso2.setId(2L);
 
-        when(concursoRepository.findAll()).thenReturn(Arrays.asList(concurso1, concurso2));
+        Page<Concurso> page = new PageImpl<>(Arrays.asList(concurso1, concurso2));
+        when(concursoRepository.findAll(any(Pageable.class))).thenReturn(page);
 
         // Act
-        List<ConcursoDto> result = concursoService.findAll();
+        Page<ConcursoDto> result = concursoService.findAll(Pageable.unpaged());
 
         // Assert
-        assertEquals(2, result.size());
-        assertEquals(1L, result.get(0).getInstituicaoId());
-        assertEquals(1L, result.get(0).getBancaId());
-        assertEquals(2023, result.get(0).getAno());
-        assertEquals(1, result.get(0).getMes());
-        assertEquals(2L, result.get(1).getInstituicaoId());
-        assertEquals(2L, result.get(1).getBancaId());
-        assertEquals(2024, result.get(1).getAno());
-        assertEquals(2, result.get(1).getMes());
+        assertEquals(2, result.getContent().size());
+        assertEquals(1L, result.getContent().get(0).getInstituicaoId());
+        assertEquals(1L, result.getContent().get(0).getBancaId());
+        assertEquals(2023, result.getContent().get(0).getAno());
+        assertEquals(1, result.getContent().get(0).getMes());
+        assertEquals(2L, result.getContent().get(1).getInstituicaoId());
+        assertEquals(2L, result.getContent().get(1).getBancaId());
+        assertEquals(2024, result.getContent().get(1).getAno());
+        assertEquals(2, result.getContent().get(1).getMes());
 
-        verify(concursoRepository, times(1)).findAll();
+        verify(concursoRepository, times(1)).findAll(any(Pageable.class));
     }
 
     @Test
     void testGetAllConcursos_Empty() {
         // Arrange
-        when(concursoRepository.findAll()).thenReturn(Collections.emptyList());
+        Page<Concurso> page = new PageImpl<>(Collections.emptyList());
+        when(concursoRepository.findAll(any(Pageable.class))).thenReturn(page);
 
         // Act
-        List<ConcursoDto> result = concursoService.findAll();
+        Page<ConcursoDto> result = concursoService.findAll(Pageable.unpaged());
 
         // Assert
         assertTrue(result.isEmpty());
-        verify(concursoRepository, times(1)).findAll();
+        verify(concursoRepository, times(1)).findAll(any(Pageable.class));
     }
 
     @Test

@@ -12,7 +12,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -33,13 +37,14 @@ public class BancaController {
 
     @Operation(
         summary = "Obter todas as bancas",
-        description = "Retorna uma lista com todas as bancas organizadoras cadastradas",
+        description = "Retorna uma página com todas as bancas organizadoras cadastradas. Suporta paginação.",
         responses = {
-            @ApiResponse(responseCode = "200", description = "Lista de bancas retornada com sucesso",
+            @ApiResponse(responseCode = "200", description = "Página de bancas retornada com sucesso",
                 content = @Content(
-                    array = @ArraySchema(schema = @Schema(implementation = BancaDto.class)),
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = Page.class),
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"nome\": \"Cebraspe (CESPE)\"}, {\"id\": 2, \"nome\": \"FGV\"}, {\"id\": 3, \"nome\": \"Vunesp\"}]"
+                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Cebraspe (CESPE)\"}, {\"id\": 2, \"nome\": \"FGV\"}], \"pageable\": {\"pageNumber\": 0, \"pageSize\": 20}, \"totalElements\": 2, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -51,8 +56,9 @@ public class BancaController {
         }
     )
     @GetMapping
-    public ResponseEntity<List<BancaDto>> getAllBancas() {
-        List<BancaDto> bancas = bancaService.findAll();
+    public ResponseEntity<Page<BancaDto>> getAllBancas(
+            @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
+        Page<BancaDto> bancas = bancaService.findAll(pageable);
         return ResponseEntity.ok(bancas);
     }
 

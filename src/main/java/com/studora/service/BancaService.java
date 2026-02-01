@@ -7,6 +7,8 @@ import com.studora.exception.ResourceNotFoundException;
 import com.studora.repository.BancaRepository;
 import com.studora.util.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -22,10 +24,9 @@ public class BancaService {
     @Autowired
     private com.studora.repository.ConcursoRepository concursoRepository;
 
-    public List<BancaDto> findAll() {
-        return bancaRepository.findAll().stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+    public Page<BancaDto> findAll(Pageable pageable) {
+        return bancaRepository.findAll(pageable)
+                .map(this::convertToDto);
     }
 
     public BancaDto findById(Long id) {

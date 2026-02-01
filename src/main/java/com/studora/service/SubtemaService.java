@@ -8,6 +8,8 @@ import com.studora.exception.ResourceNotFoundException;
 import com.studora.repository.SubtemaRepository;
 import com.studora.repository.TemaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -26,10 +28,9 @@ public class SubtemaService {
     @Autowired
     private com.studora.repository.QuestaoRepository questaoRepository;
 
-    public List<SubtemaDto> getAllSubtemas() {
-        return subtemaRepository.findAll().stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+    public Page<SubtemaDto> getAllSubtemas(Pageable pageable) {
+        return subtemaRepository.findAll(pageable)
+                .map(this::convertToDto);
     }
 
     public SubtemaDto getSubtemaById(Long id) {
@@ -38,10 +39,9 @@ public class SubtemaService {
         return convertToDto(subtema);
     }
 
-    public List<SubtemaDto> getSubtemasByTemaId(Long temaId) {
-        return subtemaRepository.findByTemaId(temaId).stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+    public Page<SubtemaDto> getSubtemasByTemaId(Long temaId, Pageable pageable) {
+        return subtemaRepository.findByTemaId(temaId, pageable)
+                .map(this::convertToDto);
     }
 
     public SubtemaDto createSubtema(SubtemaDto subtemaDto) {

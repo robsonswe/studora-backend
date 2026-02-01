@@ -16,6 +16,8 @@ import com.studora.repository.ConcursoRepository;
 import com.studora.repository.InstituicaoRepository;
 import com.studora.util.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,10 +45,9 @@ public class ConcursoService {
     @Autowired
     private com.studora.repository.QuestaoCargoRepository questaoCargoRepository;
 
-    public List<ConcursoDto> findAll() {
-        return concursoRepository.findAll().stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+    public Page<ConcursoDto> findAll(Pageable pageable) {
+        return concursoRepository.findAll(pageable)
+                .map(this::convertToDto);
     }
 
     public ConcursoDto findById(Long id) {

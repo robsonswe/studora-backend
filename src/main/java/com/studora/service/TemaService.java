@@ -8,6 +8,8 @@ import com.studora.exception.ResourceNotFoundException;
 import com.studora.repository.DisciplinaRepository;
 import com.studora.repository.TemaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -26,10 +28,9 @@ public class TemaService {
     @Autowired
     private com.studora.repository.SubtemaRepository subtemaRepository;
 
-    public List<TemaDto> getAllTemas() {
-        return temaRepository.findAll().stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+    public Page<TemaDto> getAllTemas(Pageable pageable) {
+        return temaRepository.findAll(pageable)
+                .map(this::convertToDto);
     }
 
     public TemaDto getTemaById(Long id) {
@@ -38,10 +39,9 @@ public class TemaService {
         return convertToDto(tema);
     }
 
-    public List<TemaDto> getTemasByDisciplinaId(Long disciplinaId) {
-        return temaRepository.findByDisciplinaId(disciplinaId).stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+    public Page<TemaDto> getTemasByDisciplinaId(Long disciplinaId, Pageable pageable) {
+        return temaRepository.findByDisciplinaId(disciplinaId, pageable)
+                .map(this::convertToDto);
     }
 
     public TemaDto createTema(TemaDto temaDto) {

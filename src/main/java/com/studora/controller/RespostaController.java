@@ -13,7 +13,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -33,13 +37,14 @@ public class RespostaController {
 
     @Operation(
         summary = "Obter todas as respostas",
-        description = "Retorna uma lista com todas as respostas cadastradas",
+        description = "Retorna uma página com todas as respostas cadastradas. Suporta paginação.",
         responses = {
-            @ApiResponse(responseCode = "200", description = "Lista de respostas retornada com sucesso",
+            @ApiResponse(responseCode = "200", description = "Página de respostas retornada com sucesso",
                 content = @Content(
-                    array = @ArraySchema(schema = @Schema(implementation = RespostaDto.class)),
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = Page.class),
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"respondidaEm\": \"2023-06-15T10:30:00\"}]"
+                        value = "{\"content\": [{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"respondidaEm\": \"2023-06-15T10:30:00\"}], \"pageable\": {\"pageNumber\": 0, \"pageSize\": 20}, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -51,8 +56,9 @@ public class RespostaController {
         }
     )
     @GetMapping
-    public ResponseEntity<List<RespostaDto>> getAllRespostas() {
-        List<RespostaDto> respostas = respostaService.getAllRespostas();
+    public ResponseEntity<Page<RespostaDto>> getAllRespostas(
+            @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
+        Page<RespostaDto> respostas = respostaService.findAll(pageable);
         return ResponseEntity.ok(respostas);
     }
 

@@ -14,12 +14,17 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController
@@ -32,13 +37,14 @@ public class ConcursoController {
 
     @Operation(
         summary = "Obter todos os concursos",
-        description = "Retorna uma lista com todos os concursos cadastrados",
+        description = "Retorna uma página com todos os concursos cadastrados. Suporta paginação.",
         responses = {
-            @ApiResponse(responseCode = "200", description = "Lista de concursos retornada com sucesso",
+            @ApiResponse(responseCode = "200", description = "Página de concursos retornada com sucesso",
                 content = @Content(
-                    array = @ArraySchema(schema = @Schema(implementation = ConcursoDto.class)),
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = Page.class),
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"instituicaoId\": 1, \"bancaId\": 1, \"ano\": 2023, \"mes\": 6, \"edital\": \"Edital 01/2023\"}]"
+                        value = "{\"content\": [{\"id\": 1, \"instituicaoId\": 1, \"bancaId\": 1, \"ano\": 2023, \"mes\": 5, \"edital\": \"https://exemplo.com/edital.pdf\"}], \"pageable\": {\"pageNumber\": 0, \"pageSize\": 20}, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -50,8 +56,9 @@ public class ConcursoController {
         }
     )
     @GetMapping
-    public ResponseEntity<List<ConcursoDto>> getAllConcursos() {
-        List<ConcursoDto> concursos = concursoService.findAll();
+    public ResponseEntity<Page<ConcursoDto>> getAllConcursos(
+            @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
+        Page<ConcursoDto> concursos = concursoService.findAll(pageable);
         return ResponseEntity.ok(concursos);
     }
 

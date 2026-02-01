@@ -6,6 +6,8 @@ import com.studora.exception.ConflictException;
 import com.studora.exception.ResourceNotFoundException;
 import com.studora.repository.DisciplinaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,17 +16,16 @@ import java.util.stream.Collectors;
 
 @Service
 public class DisciplinaService {
-    
+
     @Autowired
     private DisciplinaRepository disciplinaRepository;
 
     @Autowired
     private com.studora.repository.TemaRepository temaRepository;
-    
-    public List<DisciplinaDto> getAllDisciplinas() {
-        return disciplinaRepository.findAll().stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+
+    public Page<DisciplinaDto> findAll(Pageable pageable) {
+        return disciplinaRepository.findAll(pageable)
+                .map(this::convertToDto);
     }
     
     public DisciplinaDto getDisciplinaById(Long id) {

@@ -39,7 +39,7 @@ class BancaControllerTest {
         mockMvc
             .perform(get("/api/bancas"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$[0].nome").value("Vunesp"));
+            .andExpect(jsonPath("$.content[0].nome").value("Vunesp"));
     }
 
     @Test

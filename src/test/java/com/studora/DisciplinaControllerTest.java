@@ -79,7 +79,7 @@ class DisciplinaControllerTest {
             .perform(get("/api/disciplinas"))
             .andExpect(status().isOk())
             .andExpect(
-                jsonPath("$.length()").value(
+                jsonPath("$.content.length()").value(
                     org.hamcrest.Matchers.greaterThanOrEqualTo(2)
                 )
             );

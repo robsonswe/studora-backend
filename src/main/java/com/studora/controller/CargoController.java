@@ -14,7 +14,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -37,13 +41,14 @@ public class CargoController {
 
     @Operation(
         summary = "Obter todos os cargos",
-        description = "Retorna uma lista com todos os cargos cadastrados",
+        description = "Retorna uma página com todos os cargos cadastrados. Suporta paginação.",
         responses = {
-            @ApiResponse(responseCode = "200", description = "Lista de cargos retornada com sucesso",
+            @ApiResponse(responseCode = "200", description = "Página de cargos retornada com sucesso",
                 content = @Content(
-                    array = @ArraySchema(schema = @Schema(implementation = CargoDto.class)),
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = Page.class),
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"nome\": \"Analista Judiciário\", \"nivel\": \"Superior\", \"area\": \"Direito\"}, {\"id\": 2, \"nome\": \"Técnico Judiciário\", \"nivel\": \"Médio\", \"area\": \"Administrativa\"}]"
+                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Analista Judiciário\", \"nivel\": \"Superior\", \"area\": \"Direito\"}, {\"id\": 2, \"nome\": \"Técnico Judiciário\", \"nivel\": \"Médio\", \"area\": \"Administrativa\"}], \"pageable\": {\"pageNumber\": 0, \"pageSize\": 20}, \"totalElements\": 2, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -55,8 +60,9 @@ public class CargoController {
         }
     )
     @GetMapping
-    public ResponseEntity<List<CargoDto>> getAllCargos() {
-        List<CargoDto> cargos = cargoService.findAll();
+    public ResponseEntity<Page<CargoDto>> getAllCargos(
+            @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
+        Page<CargoDto> cargos = cargoService.findAll(pageable);
         return ResponseEntity.ok(cargos);
     }
 

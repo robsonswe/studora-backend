@@ -72,7 +72,7 @@ class InstituicaoControllerTest {
             .perform(get("/api/instituicoes"))
             .andExpect(status().isOk())
             .andExpect(
-                jsonPath("$.length()").value(
+                jsonPath("$.content.length()").value(
                     org.hamcrest.Matchers.greaterThanOrEqualTo(1)
                 )
             );

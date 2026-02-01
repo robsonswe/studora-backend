@@ -7,6 +7,8 @@ import com.studora.exception.ResourceNotFoundException;
 import com.studora.repository.InstituicaoRepository;
 import com.studora.util.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -22,10 +24,9 @@ public class InstituicaoService {
     @Autowired
     private com.studora.repository.ConcursoRepository concursoRepository;
 
-    public List<InstituicaoDto> findAll() {
-        return instituicaoRepository.findAll().stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+    public Page<InstituicaoDto> findAll(Pageable pageable) {
+        return instituicaoRepository.findAll(pageable)
+                .map(this::convertToDto);
     }
 
     public InstituicaoDto findById(Long id) {

@@ -1,6 +1,8 @@
 package com.studora.repository;
 
 import com.studora.entity.Subtema;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -11,6 +13,7 @@ import java.util.Optional;
 
 @Repository
 public interface SubtemaRepository extends JpaRepository<Subtema, Long> {
+    Page<Subtema> findByTemaId(Long temaId, Pageable pageable);
     List<Subtema> findByTemaId(Long temaId);
 
     Optional<Subtema> findByTemaIdAndNome(Long temaId, String nome);

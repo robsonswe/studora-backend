@@ -14,6 +14,8 @@ import com.studora.repository.AlternativaRepository;
 import com.studora.repository.QuestaoRepository;
 import com.studora.repository.RespostaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -22,20 +24,19 @@ import java.util.stream.Collectors;
 
 @Service
 public class RespostaService {
-    
+
     @Autowired
     private RespostaRepository respostaRepository;
-    
+
     @Autowired
     private QuestaoRepository questaoRepository;
-    
+
     @Autowired
     private AlternativaRepository alternativaRepository;
-    
-    public List<RespostaDto> getAllRespostas() {
-        return respostaRepository.findAll().stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+
+    public Page<RespostaDto> findAll(Pageable pageable) {
+        return respostaRepository.findAll(pageable)
+                .map(this::convertToDto);
     }
     
     public RespostaDto getRespostaById(Long id) {

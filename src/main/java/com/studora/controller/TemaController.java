@@ -12,7 +12,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -32,13 +36,14 @@ public class TemaController {
 
     @Operation(
         summary = "Obter todos os temas",
-        description = "Retorna uma lista com todos os temas cadastrados",
+        description = "Retorna uma página com todos os temas cadastrados. Suporta paginação.",
         responses = {
-            @ApiResponse(responseCode = "200", description = "Lista de temas retornada com sucesso",
+            @ApiResponse(responseCode = "200", description = "Página de temas retornada com sucesso",
                 content = @Content(
-                    array = @ArraySchema(schema = @Schema(implementation = TemaDto.class)),
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = Page.class),
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1}]"
+                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1}], \"pageable\": {\"pageNumber\": 0, \"pageSize\": 20}, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -50,8 +55,9 @@ public class TemaController {
         }
     )
     @GetMapping
-    public ResponseEntity<List<TemaDto>> getAllTemas() {
-        List<TemaDto> temas = temaService.getAllTemas();
+    public ResponseEntity<Page<TemaDto>> getAllTemas(
+            @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
+        Page<TemaDto> temas = temaService.getAllTemas(pageable);
         return ResponseEntity.ok(temas);
     }
 
@@ -82,20 +88,21 @@ public class TemaController {
     )
     @GetMapping("/{id}")
     public ResponseEntity<TemaDto> getTemaById(
-            @Parameter(description = "ID do tema a ser buscado", required = true) @PathVariable Long id) {
+            @Parameter(description = "ID do tema a ser buscada", required = true) @PathVariable Long id) {
         TemaDto tema = temaService.getTemaById(id);
         return ResponseEntity.ok(tema);
     }
 
     @Operation(
         summary = "Obter temas por disciplina",
-        description = "Retorna uma lista de temas associados a uma disciplina específica",
+        description = "Retorna uma página de temas associados a uma disciplina específica. Suporta paginação.",
         responses = {
-            @ApiResponse(responseCode = "200", description = "Lista de temas retornada com sucesso",
+            @ApiResponse(responseCode = "200", description = "Página de temas retornada com sucesso",
                 content = @Content(
-                    array = @ArraySchema(schema = @Schema(implementation = TemaDto.class)),
+                    mediaType = "application/json",
+                    schema = @Schema(implementation = Page.class),
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1}]"
+                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1}], \"pageable\": {\"pageNumber\": 0, \"pageSize\": 20}, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "404", description = "Disciplina não encontrada",
@@ -113,9 +120,10 @@ public class TemaController {
         }
     )
     @GetMapping("/disciplina/{disciplinaId}")
-    public ResponseEntity<List<TemaDto>> getTemasByDisciplinaId(
-            @Parameter(description = "ID da disciplina para filtrar temas", required = true) @PathVariable Long disciplinaId) {
-        List<TemaDto> temas = temaService.getTemasByDisciplinaId(disciplinaId);
+    public ResponseEntity<Page<TemaDto>> getTemasByDisciplinaId(
+            @Parameter(description = "ID da disciplina para filtrar temas", required = true) @PathVariable Long disciplinaId,
+            @ParameterObject @PageableDefault(size = 20) Pageable pageable) {
+        Page<TemaDto> temas = temaService.getTemasByDisciplinaId(disciplinaId, pageable);
         return ResponseEntity.ok(temas);
     }
 
@@ -231,7 +239,7 @@ public class TemaController {
 
     @Operation(
         summary = "Excluir tema",
-        description = "Remove um tema existente com base no ID fornecido. A exclusão será impedida se houver subtemas associados a este tema.",
+        description = "Remove um tema existente with base no ID fornecido. A exclusão será impedida se houver subtemas associados a este tema.",
         responses = {
             @ApiResponse(responseCode = "204", description = "Tema excluído com sucesso"),
             @ApiResponse(responseCode = "404", description = "Tema não encontrado",
