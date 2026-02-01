@@ -32,4 +32,6 @@ public interface TemaRepository extends JpaRepository<Tema, Long> {
            "JOIN FETCH t.disciplina " +
            "WHERE t.id = :id")
     Optional<Tema> findByIdWithDetails(@Param("id") Long id);
+
+    Page<Tema> findByNomeContainingIgnoreCase(String nome, Pageable pageable);
 }

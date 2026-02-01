@@ -187,4 +187,40 @@ class InstituicaoControllerTest {
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.detail").value("Já existe uma instituição com o nome 'banco central'"));
     }
+
+    @Test
+    void testGetAllAreas() throws Exception {
+        // Create institutions with different areas
+        Instituicao i1 = new Instituicao(); i1.setNome("I1"); i1.setArea("Educação");
+        Instituicao i2 = new Instituicao(); i2.setNome("I2"); i2.setArea("Judiciária");
+        Instituicao i3 = new Instituicao(); i3.setNome("I3"); i3.setArea("Educação"); // Duplicate
+        
+        instituicaoRepository.save(i1);
+        instituicaoRepository.save(i2);
+        instituicaoRepository.save(i3);
+
+        // Should return unique areas
+        mockMvc
+            .perform(get("/api/instituicoes/areas"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(2))
+            .andExpect(jsonPath("$").value(org.hamcrest.Matchers.containsInAnyOrder("Educação", "Judiciária")));
+    }
+
+    @Test
+    void testGetAllAreas_WithSearch() throws Exception {
+        // Create institutions with different areas
+        Instituicao i1 = new Instituicao(); i1.setNome("I1"); i1.setArea("Educação");
+        Instituicao i2 = new Instituicao(); i2.setNome("I2"); i2.setArea("Judiciária");
+        
+        instituicaoRepository.save(i1);
+        instituicaoRepository.save(i2);
+
+        // Search for 'jud'
+        mockMvc
+            .perform(get("/api/instituicoes/areas").param("search", "jud"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0]").value("Judiciária"));
+    }
 }

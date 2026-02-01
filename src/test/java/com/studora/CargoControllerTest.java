@@ -173,4 +173,40 @@ class CargoControllerTest {
             .andExpect(jsonPath("$.status").value(409))
             .andExpect(jsonPath("$.detail").value("Já existe um cargo com o nome 'analista de sistemas', nível 'SUPERIOR' e área 'tecnologia da informacao'"));
     }
+
+    @Test
+    void testGetAllAreas() throws Exception {
+        // Create cargos with different areas
+        Cargo c1 = new Cargo(); c1.setNome("C1"); c1.setArea("TI");
+        Cargo c2 = new Cargo(); c2.setNome("C2"); c2.setArea("Administrativa");
+        Cargo c3 = new Cargo(); c3.setNome("C3"); c3.setArea("TI"); // Duplicate area
+        
+        cargoRepository.save(c1);
+        cargoRepository.save(c2);
+        cargoRepository.save(c3);
+
+        // Should return unique areas
+        mockMvc
+            .perform(get("/api/cargos/areas"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(2))
+            .andExpect(jsonPath("$").value(org.hamcrest.Matchers.containsInAnyOrder("TI", "Administrativa")));
+    }
+
+    @Test
+    void testGetAllAreas_WithSearch() throws Exception {
+        // Create cargos with different areas
+        Cargo c1 = new Cargo(); c1.setNome("C1"); c1.setArea("Tecnologia");
+        Cargo c2 = new Cargo(); c2.setNome("C2"); c2.setArea("Administrativa");
+        
+        cargoRepository.save(c1);
+        cargoRepository.save(c2);
+
+        // Search for 'tec'
+        mockMvc
+            .perform(get("/api/cargos/areas").param("search", "tec"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0]").value("Tecnologia"));
+    }
 }

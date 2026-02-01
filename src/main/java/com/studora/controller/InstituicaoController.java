@@ -41,8 +41,9 @@ public class InstituicaoController {
 
     @Operation(
         summary = "Obter todas as instituições",
-        description = "Retorna uma página com todas as instituições cadastradas. Suporta paginação e ordenação prioritária.",
+        description = "Retorna uma página com todas as instituições cadastradas. Suporta paginação, ordenação prioritária e busca por nome.",
         parameters = {
+            @Parameter(name = "nome", description = "Filtro para busca por nome (fuzzy)", schema = @Schema(type = "string")),
             @Parameter(name = "page", description = "Número da página (0..N)", schema = @Schema(type = "integer", defaultValue = "0")),
             @Parameter(name = "size", description = "Tamanho da página", schema = @Schema(type = "integer", defaultValue = "20")),
             @Parameter(name = "sort", description = "Campo para ordenação primária", schema = @Schema(type = "string", allowableValues = {"nome", "area"}, defaultValue = "nome")),
@@ -67,6 +68,7 @@ public class InstituicaoController {
     )
     @GetMapping
     public ResponseEntity<PageResponse<InstituicaoDto>> getAllInstituicoes(
+            @RequestParam(required = false) String nome,
             @Parameter(hidden = true) @PageableDefault(size = 20) Pageable pageable,
             @RequestParam(defaultValue = "nome") String sort,
             @RequestParam(defaultValue = "ASC") String direction) {
@@ -77,7 +79,7 @@ public class InstituicaoController {
         );
 
         Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, Map.of(), tieBreakers);
-        Page<InstituicaoDto> instituicoes = instituicaoService.findAll(finalPageable);
+        Page<InstituicaoDto> instituicoes = instituicaoService.findAll(nome, finalPageable);
         return ResponseEntity.ok(new PageResponse<>(instituicoes));
     }
 
@@ -248,8 +250,28 @@ public class InstituicaoController {
     )
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteInstituicao(
-            @Parameter(description = "ID da instituição a ser excluída", required = true) @PathVariable Long id) {
+            @Parameter(description = "ID da institution a ser excluída", required = true) @PathVariable Long id) {
         instituicaoService.deleteById(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+        summary = "Obter todas as áreas de instituições",
+        description = "Retorna uma lista com todas as áreas únicas cadastradas para as instituições. Suporta busca fuzzy.",
+        parameters = {
+            @Parameter(name = "search", description = "Filtro para busca por área (fuzzy)", schema = @Schema(type = "string"))
+        },
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Lista de áreas retornada com sucesso",
+                content = @Content(
+                    mediaType = "application/json",
+                    array = @ArraySchema(schema = @Schema(type = "string")),
+                    examples = @ExampleObject(value = "[\"Educação\", \"Judiciária\", \"Fiscal\"]")
+                ))
+        }
+    )
+    @GetMapping("/areas")
+    public ResponseEntity<List<String>> getAllAreas(@RequestParam(required = false) String search) {
+        return ResponseEntity.ok(instituicaoService.findAllAreas(search));
     }
 }

@@ -42,8 +42,9 @@ public class DisciplinaController {
 
     @Operation(
         summary = "Obter todas as disciplinas",
-        description = "Retorna uma página com todas as disciplinas cadastradas. Suporta paginação e ordenação prioritária.",
+        description = "Retorna uma página com todas as disciplinas cadastradas. Suporta paginação, ordenação prioritária e busca por nome.",
         parameters = {
+            @Parameter(name = "nome", description = "Filtro para busca por nome (fuzzy)", schema = @Schema(type = "string")),
             @Parameter(name = "page", description = "Número da página (0..N)", schema = @Schema(type = "integer", defaultValue = "0")),
             @Parameter(name = "size", description = "Tamanho da página", schema = @Schema(type = "integer", defaultValue = "20")),
             @Parameter(name = "sort", description = "Campo para ordenação primária", schema = @Schema(type = "string", allowableValues = {"nome"}, defaultValue = "nome")),
@@ -68,6 +69,7 @@ public class DisciplinaController {
     )
     @GetMapping
     public ResponseEntity<PageResponse<DisciplinaDto>> getAllDisciplinas(
+            @RequestParam(required = false) String nome,
             @Parameter(hidden = true) @PageableDefault(size = 20) Pageable pageable,
             @RequestParam(defaultValue = "nome") String sort,
             @RequestParam(defaultValue = "ASC") String direction) {
@@ -77,7 +79,7 @@ public class DisciplinaController {
         );
 
         Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, Map.of(), tieBreakers);
-        Page<DisciplinaDto> disciplinas = disciplinaService.findAll(finalPageable);
+        Page<DisciplinaDto> disciplinas = disciplinaService.findAll(nome, finalPageable);
         return ResponseEntity.ok(new PageResponse<>(disciplinas));
     }
 

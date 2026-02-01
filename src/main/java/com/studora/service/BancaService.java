@@ -21,7 +21,11 @@ public class BancaService {
     private final BancaMapper bancaMapper;
     private final com.studora.repository.ConcursoRepository concursoRepository;
 
-    public Page<BancaDto> findAll(Pageable pageable) {
+    public Page<BancaDto> findAll(String nome, Pageable pageable) {
+        if (nome != null && !nome.isBlank()) {
+            return bancaRepository.findByNomeContainingIgnoreCase(nome, pageable)
+                    .map(bancaMapper::toDto);
+        }
         return bancaRepository.findAll(pageable)
                 .map(bancaMapper::toDto);
     }

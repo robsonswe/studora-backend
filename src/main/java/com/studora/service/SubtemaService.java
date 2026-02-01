@@ -25,7 +25,11 @@ public class SubtemaService {
     private final com.studora.repository.QuestaoRepository questaoRepository;
     private final SubtemaMapper subtemaMapper;
 
-    public Page<SubtemaDto> getAllSubtemas(Pageable pageable) {
+    public Page<SubtemaDto> getAllSubtemas(String nome, Pageable pageable) {
+        if (nome != null && !nome.isBlank()) {
+            return subtemaRepository.findByNomeContainingIgnoreCase(nome, pageable)
+                    .map(subtemaMapper::toDto);
+        }
         return subtemaRepository.findAll(pageable)
                 .map(subtemaMapper::toDto);
     }

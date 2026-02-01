@@ -42,8 +42,9 @@ public class TemaController {
 
     @Operation(
         summary = "Obter todos os temas",
-        description = "Retorna uma página com todos os temas cadastrados. Suporta paginação e ordenação prioritária.",
+        description = "Retorna uma página com todas as temas cadastrados. Suporta paginação, ordenação prioritária e busca por nome.",
         parameters = {
+            @Parameter(name = "nome", description = "Filtro para busca por nome (fuzzy)", schema = @Schema(type = "string")),
             @Parameter(name = "page", description = "Número da página (0..N)", schema = @Schema(type = "integer", defaultValue = "0")),
             @Parameter(name = "size", description = "Tamanho da página", schema = @Schema(type = "integer", defaultValue = "20")),
             @Parameter(name = "sort", description = "Campo para ordenação primária", schema = @Schema(type = "string", allowableValues = {"nome", "disciplinaId"}, defaultValue = "nome")),
@@ -68,6 +69,7 @@ public class TemaController {
     )
     @GetMapping
     public ResponseEntity<PageResponse<TemaDto>> getAllTemas(
+            @RequestParam(required = false) String nome,
             @Parameter(hidden = true) @PageableDefault(size = 20) Pageable pageable,
             @RequestParam(defaultValue = "nome") String sort,
             @RequestParam(defaultValue = "ASC") String direction) {
@@ -80,7 +82,7 @@ public class TemaController {
         );
 
         Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, mapping, tieBreakers);
-        Page<TemaDto> temas = temaService.getAllTemas(finalPageable);
+        Page<TemaDto> temas = temaService.getAllTemas(nome, finalPageable);
         return ResponseEntity.ok(new PageResponse<>(temas));
     }
 

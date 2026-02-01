@@ -26,7 +26,11 @@ public class TemaService {
     private final com.studora.repository.SubtemaRepository subtemaRepository;
     private final TemaMapper temaMapper;
 
-    public Page<TemaDto> getAllTemas(Pageable pageable) {
+    public Page<TemaDto> getAllTemas(String nome, Pageable pageable) {
+        if (nome != null && !nome.isBlank()) {
+            return temaRepository.findByNomeContainingIgnoreCase(nome, pageable)
+                    .map(temaMapper::toDto);
+        }
         return temaRepository.findAll(pageable)
                 .map(temaMapper::toDto);
     }

@@ -47,8 +47,9 @@ public class CargoController {
 
     @Operation(
         summary = "Obter todos os cargos",
-        description = "Retorna uma página com todos os cargos cadastrados. Suporta paginação e ordenação prioritária.",
+        description = "Retorna uma página com todos os cargos cadastrados. Suporta paginação, ordenação prioritária e busca por nome.",
         parameters = {
+            @Parameter(name = "nome", description = "Filtro para busca por nome (fuzzy)", schema = @Schema(type = "string")),
             @Parameter(name = "page", description = "Número da página (0..N)", schema = @Schema(type = "integer", defaultValue = "0")),
             @Parameter(name = "size", description = "Tamanho da página", schema = @Schema(type = "integer", defaultValue = "20")),
             @Parameter(name = "sort", description = "Campo para ordenação primária", schema = @Schema(type = "string", allowableValues = {"nome", "area", "nivel"}, defaultValue = "nome")),
@@ -73,6 +74,7 @@ public class CargoController {
     )
     @GetMapping
     public ResponseEntity<PageResponse<CargoDto>> getAllCargos(
+            @RequestParam(required = false) String nome,
             @Parameter(hidden = true) @PageableDefault(size = 20) Pageable pageable,
             @RequestParam(defaultValue = "nome") String sort,
             @RequestParam(defaultValue = "ASC") String direction) {
@@ -84,8 +86,28 @@ public class CargoController {
         );
 
         Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, Map.of(), tieBreakers);
-        Page<CargoDto> cargos = cargoService.findAll(finalPageable);
+        Page<CargoDto> cargos = cargoService.findAll(nome, finalPageable);
         return ResponseEntity.ok(new PageResponse<>(cargos));
+    }
+
+    @Operation(
+        summary = "Obter todas as áreas de cargos",
+        description = "Retorna uma lista com todas as áreas únicas cadastradas para os cargos. Suporta busca fuzzy.",
+        parameters = {
+            @Parameter(name = "search", description = "Filtro para busca por área (fuzzy)", schema = @Schema(type = "string"))
+        },
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Lista de áreas retornada com sucesso",
+                content = @Content(
+                    mediaType = "application/json",
+                    array = @ArraySchema(schema = @Schema(type = "string")),
+                    examples = @ExampleObject(value = "[\"Tecnologia da Informação\", \"Judiciária\", \"Administrativa\"]")
+                ))
+        }
+    )
+    @GetMapping("/areas")
+    public ResponseEntity<List<String>> getAllAreas(@RequestParam(required = false) String search) {
+        return ResponseEntity.ok(cargoService.findAllAreas(search));
     }
 
     @Operation(

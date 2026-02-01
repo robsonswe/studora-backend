@@ -22,9 +22,20 @@ public class CargoService {
     private final CargoMapper cargoMapper;
     private final com.studora.repository.ConcursoCargoRepository concursoCargoRepository;
 
-    public Page<CargoDto> findAll(Pageable pageable) {
+    public Page<CargoDto> findAll(String nome, Pageable pageable) {
+        if (nome != null && !nome.isBlank()) {
+            return cargoRepository.findByNomeContainingIgnoreCase(nome, pageable)
+                    .map(cargoMapper::toDto);
+        }
         return cargoRepository.findAll(pageable)
                 .map(cargoMapper::toDto);
+    }
+
+    public java.util.List<String> findAllAreas(String search) {
+        if (search != null && !search.isBlank()) {
+            return cargoRepository.findDistinctAreas(search);
+        }
+        return cargoRepository.findDistinctAreas();
     }
 
     public CargoDto findById(Long id) {

@@ -42,8 +42,9 @@ public class SubtemaController {
 
     @Operation(
         summary = "Obter todos os subtemas",
-        description = "Retorna uma página com todos os subtemas cadastrados. Suporta paginação e ordenação prioritária.",
+        description = "Retorna uma página com todos os subtemas cadastrados. Suporta paginação, ordenação prioritária e busca por nome.",
         parameters = {
+            @Parameter(name = "nome", description = "Filtro para busca por nome (fuzzy)", schema = @Schema(type = "string")),
             @Parameter(name = "page", description = "Número da página (0..N)", schema = @Schema(type = "integer", defaultValue = "0")),
             @Parameter(name = "size", description = "Tamanho da página", schema = @Schema(type = "integer", defaultValue = "20")),
             @Parameter(name = "sort", description = "Campo para ordenação primária", schema = @Schema(type = "string", allowableValues = {"nome", "temaId"}, defaultValue = "nome")),
@@ -68,6 +69,7 @@ public class SubtemaController {
     )
     @GetMapping
     public ResponseEntity<PageResponse<SubtemaDto>> getAllSubtemas(
+            @RequestParam(required = false) String nome,
             @Parameter(hidden = true) @PageableDefault(size = 20) Pageable pageable,
             @RequestParam(defaultValue = "nome") String sort,
             @RequestParam(defaultValue = "ASC") String direction) {
@@ -80,7 +82,7 @@ public class SubtemaController {
         );
 
         Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, mapping, tieBreakers);
-        Page<SubtemaDto> subtemas = subtemaService.getAllSubtemas(finalPageable);
+        Page<SubtemaDto> subtemas = subtemaService.getAllSubtemas(nome, finalPageable);
         return ResponseEntity.ok(new PageResponse<>(subtemas));
     }
 

@@ -21,7 +21,11 @@ public class DisciplinaService {
     private final DisciplinaMapper disciplinaMapper;
     private final com.studora.repository.TemaRepository temaRepository;
 
-    public Page<DisciplinaDto> findAll(Pageable pageable) {
+    public Page<DisciplinaDto> findAll(String nome, Pageable pageable) {
+        if (nome != null && !nome.isBlank()) {
+            return disciplinaRepository.findByNomeContainingIgnoreCase(nome, pageable)
+                    .map(disciplinaMapper::toDto);
+        }
         return disciplinaRepository.findAll(pageable)
                 .map(disciplinaMapper::toDto);
     }

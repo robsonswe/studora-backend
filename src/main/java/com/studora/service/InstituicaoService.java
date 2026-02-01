@@ -21,9 +21,20 @@ public class InstituicaoService {
     private final InstituicaoMapper instituicaoMapper;
     private final com.studora.repository.ConcursoRepository concursoRepository;
 
-    public Page<InstituicaoDto> findAll(Pageable pageable) {
+    public Page<InstituicaoDto> findAll(String nome, Pageable pageable) {
+        if (nome != null && !nome.isBlank()) {
+            return instituicaoRepository.findByNomeContainingIgnoreCase(nome, pageable)
+                    .map(instituicaoMapper::toDto);
+        }
         return instituicaoRepository.findAll(pageable)
                 .map(instituicaoMapper::toDto);
+    }
+
+    public java.util.List<String> findAllAreas(String search) {
+        if (search != null && !search.isBlank()) {
+            return instituicaoRepository.findDistinctAreas(search);
+        }
+        return instituicaoRepository.findDistinctAreas();
     }
 
     public InstituicaoDto findById(Long id) {

@@ -33,4 +33,6 @@ public interface SubtemaRepository extends JpaRepository<Subtema, Long> {
            "JOIN FETCH t.disciplina " +
            "WHERE s.id = :id")
     Optional<Subtema> findByIdWithDetails(@Param("id") Long id);
+
+    Page<Subtema> findByNomeContainingIgnoreCase(String nome, Pageable pageable);
 }
