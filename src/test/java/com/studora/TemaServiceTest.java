@@ -51,7 +51,7 @@ class TemaServiceTest {
         disciplina.setNome("Direito Constitucional");
         tema.setDisciplina(disciplina);
 
-        when(temaRepository.findById(temaId)).thenReturn(Optional.of(tema));
+        when(temaRepository.findByIdWithDetails(temaId)).thenReturn(Optional.of(tema));
 
         // Act
         TemaDto result = temaService.getTemaById(temaId);
@@ -59,21 +59,21 @@ class TemaServiceTest {
         // Assert
         assertNotNull(result);
         assertEquals(tema.getNome(), result.getNome());
-        verify(temaRepository, times(1)).findById(temaId);
+        verify(temaRepository, times(1)).findByIdWithDetails(temaId);
     }
 
     @Test
     void testGetTemaById_NotFound() {
         // Arrange
         Long temaId = 1L;
-        when(temaRepository.findById(temaId)).thenReturn(Optional.empty());
+        when(temaRepository.findByIdWithDetails(temaId)).thenReturn(Optional.empty());
 
         // Act & Assert
         assertThrows(RuntimeException.class, () -> {
             temaService.getTemaById(temaId);
         });
 
-        verify(temaRepository, times(1)).findById(temaId);
+        verify(temaRepository, times(1)).findByIdWithDetails(temaId);
     }
 
     @Test

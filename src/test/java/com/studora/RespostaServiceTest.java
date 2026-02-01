@@ -65,12 +65,7 @@ class RespostaServiceTest {
         alternativa.setId(1L);
         resposta.setAlternativaEscolhida(alternativa);
 
-        RespostaDto dto = new RespostaDto();
-        dto.setId(respostaId);
-        dto.setQuestaoId(1L);
-        dto.setAlternativaId(1L);
-
-        when(respostaRepository.findById(respostaId)).thenReturn(Optional.of(resposta));
+        when(respostaRepository.findByIdWithDetails(respostaId)).thenReturn(Optional.of(resposta));
 
         // Act
         RespostaDto result = respostaService.getRespostaById(respostaId);
@@ -78,21 +73,61 @@ class RespostaServiceTest {
         // Assert
         assertNotNull(result);
         assertEquals(resposta.getId(), result.getId());
-        verify(respostaRepository, times(1)).findById(respostaId);
+        verify(respostaRepository, times(1)).findByIdWithDetails(respostaId);
     }
 
     @Test
     void testGetRespostaById_NotFound() {
         // Arrange
         Long respostaId = 1L;
-        when(respostaRepository.findById(respostaId)).thenReturn(Optional.empty());
+        when(respostaRepository.findByIdWithDetails(respostaId)).thenReturn(Optional.empty());
 
         // Act & Assert
         assertThrows(RuntimeException.class, () -> {
             respostaService.getRespostaById(respostaId);
         });
 
-        verify(respostaRepository, times(1)).findById(respostaId);
+        verify(respostaRepository, times(1)).findByIdWithDetails(respostaId);
+    }
+
+    @Test
+    void testGetRespostaByQuestaoId_Success() {
+        // Arrange
+        Long questaoId = 1L;
+        Resposta resposta = new Resposta();
+        resposta.setId(1L);
+
+        Questao questao = new Questao();
+        questao.setId(questaoId);
+        resposta.setQuestao(questao);
+
+        Alternativa alternativa = new Alternativa();
+        alternativa.setId(1L);
+        resposta.setAlternativaEscolhida(alternativa);
+
+        when(respostaRepository.findByQuestaoIdWithDetails(questaoId)).thenReturn(Optional.of(resposta));
+
+        // Act
+        RespostaDto result = respostaService.getRespostaByQuestaoId(questaoId);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(questaoId, result.getQuestaoId());
+        verify(respostaRepository, times(1)).findByQuestaoIdWithDetails(questaoId);
+    }
+
+    @Test
+    void testGetRespostaByQuestaoId_NotFound() {
+        // Arrange
+        Long questaoId = 1L;
+        when(respostaRepository.findByQuestaoIdWithDetails(questaoId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> {
+            respostaService.getRespostaByQuestaoId(questaoId);
+        });
+
+        verify(respostaRepository, times(1)).findByQuestaoIdWithDetails(questaoId);
     }
 
     @Test

@@ -8,6 +8,8 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Repository
 public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     Resposta findByQuestaoId(Long questaoId);
@@ -16,4 +18,16 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     @Modifying
     @Query("DELETE FROM Resposta r WHERE r.questao.id = :questaoId")
     void deleteByQuestaoId(@Param("questaoId") Long questaoId);
+
+    @Query("SELECT r FROM Resposta r " +
+           "JOIN FETCH r.questao " +
+           "JOIN FETCH r.alternativaEscolhida " +
+           "WHERE r.id = :id")
+    Optional<Resposta> findByIdWithDetails(@Param("id") Long id);
+
+    @Query("SELECT r FROM Resposta r " +
+           "JOIN FETCH r.questao " +
+           "JOIN FETCH r.alternativaEscolhida " +
+           "WHERE r.questao.id = :questaoId")
+    Optional<Resposta> findByQuestaoIdWithDetails(@Param("questaoId") Long questaoId);
 }

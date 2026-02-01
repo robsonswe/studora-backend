@@ -51,7 +51,7 @@ class SubtemaServiceTest {
         tema.setNome("Atos Administrativos");
         subtema.setTema(tema);
 
-        when(subtemaRepository.findById(subtemaId)).thenReturn(Optional.of(subtema));
+        when(subtemaRepository.findByIdWithDetails(subtemaId)).thenReturn(Optional.of(subtema));
 
         // Act
         SubtemaDto result = subtemaService.getSubtemaById(subtemaId);
@@ -59,21 +59,21 @@ class SubtemaServiceTest {
         // Assert
         assertNotNull(result);
         assertEquals(subtema.getNome(), result.getNome());
-        verify(subtemaRepository, times(1)).findById(subtemaId);
+        verify(subtemaRepository, times(1)).findByIdWithDetails(subtemaId);
     }
 
     @Test
     void testGetSubtemaById_NotFound() {
         // Arrange
         Long subtemaId = 1L;
-        when(subtemaRepository.findById(subtemaId)).thenReturn(Optional.empty());
+        when(subtemaRepository.findByIdWithDetails(subtemaId)).thenReturn(Optional.empty());
 
         // Act & Assert
         assertThrows(RuntimeException.class, () -> {
             subtemaService.getSubtemaById(subtemaId);
         });
 
-        verify(subtemaRepository, times(1)).findById(subtemaId);
+        verify(subtemaRepository, times(1)).findByIdWithDetails(subtemaId);
     }
 
     @Test

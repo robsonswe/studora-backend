@@ -27,4 +27,9 @@ public interface TemaRepository extends JpaRepository<Tema, Long> {
 
     @Query("SELECT t FROM Tema t WHERE t.disciplina.id = :disciplinaId AND UPPER(t.nome) = UPPER(:nome) AND t.id != :id")
     Optional<Tema> findByDisciplinaIdAndNomeIgnoreCaseAndIdNot(@Param("disciplinaId") Long disciplinaId, @Param("nome") String nome, @Param("id") Long id);
+
+    @Query("SELECT t FROM Tema t " +
+           "JOIN FETCH t.disciplina " +
+           "WHERE t.id = :id")
+    Optional<Tema> findByIdWithDetails(@Param("id") Long id);
 }

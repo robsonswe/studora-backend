@@ -2,7 +2,8 @@ package com.studora.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(
@@ -33,7 +34,7 @@ public class Tema extends BaseEntity {
 
     @OneToMany(mappedBy = "tema", fetch = FetchType.LAZY)
     @Schema(description = "Subtemas associados ao tema")
-    private List<Subtema> subtemas;
+    private Set<Subtema> subtemas = new LinkedHashSet<>();
 
     // Constructors
     public Tema() {}
@@ -68,11 +69,11 @@ public class Tema extends BaseEntity {
         this.nome = nome;
     }
 
-    public List<Subtema> getSubtemas() {
+    public Set<Subtema> getSubtemas() {
         return subtemas;
     }
 
-    public void setSubtemas(List<Subtema> subtemas) {
+    public void setSubtemas(Set<Subtema> subtemas) {
         this.subtemas = subtemas;
     }
 }

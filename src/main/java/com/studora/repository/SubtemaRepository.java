@@ -27,4 +27,10 @@ public interface SubtemaRepository extends JpaRepository<Subtema, Long> {
 
     @Query("SELECT s FROM Subtema s WHERE s.tema.id = :temaId AND UPPER(s.nome) = UPPER(:nome) AND s.id != :id")
     Optional<Subtema> findByTemaIdAndNomeIgnoreCaseAndIdNot(@Param("temaId") Long temaId, @Param("nome") String nome, @Param("id") Long id);
+
+    @Query("SELECT s FROM Subtema s " +
+           "JOIN FETCH s.tema t " +
+           "JOIN FETCH t.disciplina " +
+           "WHERE s.id = :id")
+    Optional<Subtema> findByIdWithDetails(@Param("id") Long id);
 }

@@ -31,7 +31,7 @@ public class SubtemaService {
     }
 
     public SubtemaDto getSubtemaById(Long id) {
-        Subtema subtema = subtemaRepository.findById(id)
+        Subtema subtema = subtemaRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Subtema", "ID", id));
         return subtemaMapper.toDto(subtema);
     }
@@ -59,7 +59,7 @@ public class SubtemaService {
     }
 
     public SubtemaDto updateSubtema(Long id, SubtemaDto subtemaDto) {
-        Subtema existingSubtema = subtemaRepository.findById(id)
+        Subtema existingSubtema = subtemaRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Subtema", "ID", id));
 
         Tema tema = temaRepository.findById(subtemaDto.getTemaId())

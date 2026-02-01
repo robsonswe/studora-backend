@@ -56,7 +56,7 @@ public class CargoService {
             throw new ResourceNotFoundException("Cargo", "ID", id);
         }
         if (concursoCargoRepository.existsByCargoId(id)) {
-            throw new com.studora.exception.ConflictException("Não é possível excluir the cargo pois existem concursos associados a ele.");
+            throw new com.studora.exception.ConflictException("Não é possível excluir o cargo pois existem concursos associados a ele.");
         }
         cargoRepository.deleteById(id);
     }

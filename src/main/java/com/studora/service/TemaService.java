@@ -32,7 +32,7 @@ public class TemaService {
     }
 
     public TemaDto getTemaById(Long id) {
-        Tema tema = temaRepository.findById(id)
+        Tema tema = temaRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Tema", "ID", id));
         return temaMapper.toDto(tema);
     }
@@ -60,7 +60,7 @@ public class TemaService {
     }
 
     public TemaDto updateTema(Long id, TemaDto temaDto) {
-        Tema existingTema = temaRepository.findById(id)
+        Tema existingTema = temaRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Tema", "ID", id));
 
         Disciplina disciplina = disciplinaRepository.findById(temaDto.getDisciplinaId())

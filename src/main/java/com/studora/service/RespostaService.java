@@ -37,18 +37,15 @@ public class RespostaService {
     }
     
     public RespostaDto getRespostaById(Long id) {
-        Resposta resposta = respostaRepository.findById(id)
+        Resposta resposta = respostaRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Resposta", "ID", id));
         return respostaMapper.toDto(resposta);
     }
     
     public RespostaDto getRespostaByQuestaoId(Long questaoId) {
-        Resposta resposta = respostaRepository.findByQuestaoId(questaoId);
-        if (resposta != null) {
-            return respostaMapper.toDto(resposta);
-        } else {
-            throw new ResourceNotFoundException("Resposta", "ID da Questão", questaoId);
-        }
+        return respostaRepository.findByQuestaoIdWithDetails(questaoId)
+                .map(respostaMapper::toDto)
+                .orElseThrow(() -> new ResourceNotFoundException("Resposta", "ID da Questão", questaoId));
     }
     
     public RespostaDto createResposta(RespostaCreateRequest respostaCreateRequest) {
@@ -61,8 +58,7 @@ public class RespostaService {
         }
 
         // Check if a response already exists for this question (business rule: only one response per question)
-        Resposta existingResposta = respostaRepository.findByQuestaoId(respostaCreateRequest.getQuestaoId());
-        if (existingResposta != null) {
+        if (respostaRepository.findByQuestaoId(respostaCreateRequest.getQuestaoId()) != null) {
             throw new ValidationException("Já existe uma resposta para esta questão. Use a operação de atualização para modificar a resposta.");
         }
 
@@ -78,7 +74,7 @@ public class RespostaService {
     }
     
     public RespostaDto updateResposta(Long id, RespostaUpdateRequest respostaUpdateRequest) {
-        Resposta existingResposta = respostaRepository.findById(id)
+        Resposta existingResposta = respostaRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Resposta", "ID", id));
 
         // Only allow updating the alternativaId, questaoId should remain unchanged
@@ -115,8 +111,7 @@ public class RespostaService {
         }
 
         // Check if a response already exists for this question (business rule: only one response per question)
-        Resposta existingResposta = respostaRepository.findByQuestaoId(respostaCreateRequest.getQuestaoId());
-        if (existingResposta != null) {
+        if (respostaRepository.findByQuestaoId(respostaCreateRequest.getQuestaoId()) != null) {
             throw new ValidationException("Já existe uma resposta para esta questão. Use a operação de atualização para modificar a resposta.");
         }
 
@@ -132,7 +127,7 @@ public class RespostaService {
     }
 
     public RespostaComAlternativasDto updateRespostaWithAlternativas(Long id, RespostaUpdateRequest respostaUpdateRequest) {
-        Resposta existingResposta = respostaRepository.findById(id)
+        Resposta existingResposta = respostaRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Resposta", "ID", id));
 
         // Only allow updating the alternativaId, questaoId should remain unchanged
