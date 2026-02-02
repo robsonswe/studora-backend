@@ -18,6 +18,15 @@ public interface QuestaoRepository extends JpaRepository<Questao, Long>, JpaSpec
 
     @Query("SELECT DISTINCT q FROM Questao q " +
            "LEFT JOIN FETCH q.alternativas " +
+           "LEFT JOIN FETCH q.subtemas " +
+           "LEFT JOIN FETCH q.questaoCargos qc " +
+           "LEFT JOIN FETCH qc.concursoCargo " +
+           "LEFT JOIN FETCH q.concurso")
+    List<Questao> findAllWithDetails();
+
+    @Query("SELECT DISTINCT q FROM Questao q " +
+           "LEFT JOIN FETCH q.alternativas " +
+           "LEFT JOIN FETCH q.subtemas " +
            "LEFT JOIN FETCH q.questaoCargos qc " +
            "LEFT JOIN FETCH qc.concursoCargo " +
            "WHERE q.id = :id")

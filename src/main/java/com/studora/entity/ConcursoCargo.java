@@ -2,9 +2,14 @@ package com.studora.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+import java.util.Objects;
 
-@Data
+@Getter
+@Setter
+@ToString
 @Entity
 @Table(
     name = "concurso_cargo",
@@ -37,4 +42,32 @@ public class ConcursoCargo extends BaseEntity {
     @JoinColumn(name = "cargo_id", nullable = false)
     @Schema(description = "Cargo associado")
     private Cargo cargo;
+
+    @OneToMany(
+        mappedBy = "concursoCargo",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true,
+        fetch = FetchType.LAZY
+    )
+    @Schema(description = "Associações entre este concurso-cargo e questões")
+    @ToString.Exclude
+    private java.util.Set<QuestaoCargo> questaoCargos = new java.util.LinkedHashSet<>();
+
+    public void addQuestaoCargo(QuestaoCargo questaoCargo) {
+        this.questaoCargos.add(questaoCargo);
+        questaoCargo.setConcursoCargo(this);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ConcursoCargo)) return false;
+        ConcursoCargo that = (ConcursoCargo) o;
+        return id != null && id.equals(that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }

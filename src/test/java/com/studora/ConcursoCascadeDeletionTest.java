@@ -18,11 +18,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
 import java.util.List;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
 class ConcursoCascadeDeletionTest {
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Autowired
     private ConcursoService concursoService;
@@ -128,6 +133,7 @@ class ConcursoCascadeDeletionTest {
 
         // 6. ACTION: Delete the Concurso
         concursoService.deleteById(concursoId);
+        entityManager.clear();
 
         // 7. VERIFY CASCADE
         assertFalse(concursoRepository.existsById(concursoId), "Concurso should be deleted");

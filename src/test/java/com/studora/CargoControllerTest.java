@@ -59,6 +59,7 @@ class CargoControllerTest {
         Cargo cargo = new Cargo();
         cargo.setNome("Tecnico");
         cargo.setNivel(NivelCargo.MEDIO);
+        cargo.setArea("TI");
         cargo = cargoRepository.save(cargo);
 
         mockMvc
@@ -72,6 +73,7 @@ class CargoControllerTest {
         Cargo cargo = new Cargo();
         cargo.setNome("DeleteMe");
         cargo.setNivel(NivelCargo.FUNDAMENTAL);
+        cargo.setArea("TI");
         cargo = cargoRepository.save(cargo);
 
         mockMvc
@@ -177,9 +179,9 @@ class CargoControllerTest {
     @Test
     void testGetAllAreas() throws Exception {
         // Create cargos with different areas
-        Cargo c1 = new Cargo(); c1.setNome("C1"); c1.setArea("TI");
-        Cargo c2 = new Cargo(); c2.setNome("C2"); c2.setArea("Administrativa");
-        Cargo c3 = new Cargo(); c3.setNome("C3"); c3.setArea("TI"); // Duplicate area
+        Cargo c1 = new Cargo(); c1.setNome("C1"); c1.setArea("TI"); c1.setNivel(NivelCargo.SUPERIOR);
+        Cargo c2 = new Cargo(); c2.setNome("C2"); c2.setArea("Administrativa"); c2.setNivel(NivelCargo.SUPERIOR);
+        Cargo c3 = new Cargo(); c3.setNome("C3"); c3.setArea("TI"); c3.setNivel(NivelCargo.SUPERIOR); // Duplicate area
         
         cargoRepository.save(c1);
         cargoRepository.save(c2);
@@ -196,8 +198,8 @@ class CargoControllerTest {
     @Test
     void testGetAllAreas_WithSearch() throws Exception {
         // Create cargos with different areas
-        Cargo c1 = new Cargo(); c1.setNome("C1"); c1.setArea("Tecnologia");
-        Cargo c2 = new Cargo(); c2.setNome("C2"); c2.setArea("Administrativa");
+        Cargo c1 = new Cargo(); c1.setNome("C1"); c1.setArea("Tecnologia"); c1.setNivel(NivelCargo.SUPERIOR);
+        Cargo c2 = new Cargo(); c2.setNome("C2"); c2.setArea("Administrativa"); c2.setNivel(NivelCargo.SUPERIOR);
         
         cargoRepository.save(c1);
         cargoRepository.save(c2);

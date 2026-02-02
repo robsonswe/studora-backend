@@ -2,9 +2,14 @@ package com.studora.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+import java.util.Objects;
 
-@Data
+@Getter
+@Setter
+@ToString
 @Entity
 @Table(
     name = "questao_cargo",
@@ -37,4 +42,17 @@ public class QuestaoCargo extends BaseEntity {
     @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
     @Schema(description = "Associação concurso-cargo associada")
     private ConcursoCargo concursoCargo;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof QuestaoCargo)) return false;
+        QuestaoCargo that = (QuestaoCargo) o;
+        return id != null && id.equals(that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }

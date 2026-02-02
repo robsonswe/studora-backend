@@ -161,4 +161,9 @@ public class Questao extends BaseEntity {
     public void setQuestaoCargos(Set<QuestaoCargo> questaoCargos) {
         this.questaoCargos = questaoCargos;
     }
+
+    public void addQuestaoCargo(QuestaoCargo questaoCargo) {
+        this.questaoCargos.add(questaoCargo);
+        questaoCargo.setQuestao(this);
+    }
 }

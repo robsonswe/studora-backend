@@ -120,6 +120,7 @@ public class ConcursoService {
         }
 
         concursoRepository.deleteById(id);
+        concursoRepository.flush();
     }
 
     // Methods for managing cargo associations
@@ -147,7 +148,7 @@ public class ConcursoService {
                 .orElseThrow(() -> new ResourceNotFoundException("Cargo", "ID", concursoCargoDto.getCargoId()));
 
         ConcursoCargo concursoCargo = new ConcursoCargo();
-        concursoCargo.setConcurso(concurso);
+        concurso.addConcursoCargo(concursoCargo);
         concursoCargo.setCargo(cargo);
 
         ConcursoCargo savedConcursoCargo = concursoCargoRepository.save(concursoCargo);

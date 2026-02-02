@@ -1,6 +1,10 @@
 package com.studora.util;
 
+import java.util.regex.Pattern;
+
 public class StringUtils {
+
+    private static final Pattern MULTI_SPACE = Pattern.compile(" +");
 
     /**
      * Trims leading/trailing whitespace and replaces multiple consecutive 
@@ -12,6 +16,6 @@ public class StringUtils {
         if (input == null) {
             return null;
         }
-        return input.trim().replaceAll(" +", " ");
+        return MULTI_SPACE.matcher(input.trim()).replaceAll(" ");
     }
 }

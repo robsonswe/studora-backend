@@ -22,12 +22,14 @@ import java.util.stream.Collectors;
 public interface QuestaoMapper {
 
     @Mapping(target = "concursoId", source = "concurso.id")
-    @Mapping(target = "subtemaIds", source = "subtemas", qualifiedByName = "subtemasToIds")
-    @Mapping(target = "concursoCargoIds", source = "questaoCargos", qualifiedByName = "questaoCargosToIds")
+    @Mapping(target = "subtemaIds", source = "subtemas")
+    @Mapping(target = "concursoCargoIds", source = "questaoCargos")
     QuestaoDto toDto(Questao questao);
 
+    @Mapping(target = "id", ignore = true)
     QuestaoDto toDto(QuestaoCreateRequest request);
 
+    @Mapping(target = "id", ignore = true)
     QuestaoDto toDto(QuestaoUpdateRequest request);
 
     @Mapping(target = "id", ignore = true)
@@ -50,17 +52,12 @@ public interface QuestaoMapper {
     @Mapping(target = "updatedAt", ignore = true)
     void updateEntityFromDto(QuestaoDto questaoDto, @MappingTarget Questao questao);
 
-    @Named("subtemasToIds")
-    default List<Long> subtemasToIds(Set<Subtema> subtemas) {
-        if (subtemas == null) return null;
-        return subtemas.stream().map(Subtema::getId).collect(Collectors.toList());
+    default Long mapSubtemaToId(Subtema subtema) {
+        return subtema != null ? subtema.getId() : null;
     }
 
-    @Named("questaoCargosToIds")
-    default List<Long> questaoCargosToIds(Set<com.studora.entity.QuestaoCargo> questaoCargos) {
-        if (questaoCargos == null) return null;
-        return questaoCargos.stream()
-                .map(qc -> qc.getConcursoCargo().getId())
-                .collect(Collectors.toList());
+    default Long mapQuestaoCargoToId(com.studora.entity.QuestaoCargo questaoCargo) {
+        return (questaoCargo != null && questaoCargo.getConcursoCargo() != null) 
+            ? questaoCargo.getConcursoCargo().getId() : null;
     }
 }

@@ -4,6 +4,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.studora.dto.QuestaoDto;
+import com.studora.dto.request.AlternativaCreateRequest;
 import com.studora.dto.request.QuestaoCreateRequest;
 import com.studora.dto.request.QuestaoUpdateRequest;
 import com.studora.entity.*;
@@ -105,14 +106,14 @@ class QuestaoControllerTest {
 
     @Test
     void testCreateQuestao() throws Exception {
-        // Create alternativas
-        com.studora.dto.AlternativaDto alt1 = new com.studora.dto.AlternativaDto();
+        // Create alternativas using AlternativaCreateRequest
+        AlternativaCreateRequest alt1 = new AlternativaCreateRequest();
         alt1.setOrdem(1);
         alt1.setTexto("Brasília");
         alt1.setCorreta(true);
         alt1.setJustificativa("Capital oficial do Brasil");
 
-        com.studora.dto.AlternativaDto alt2 = new com.studora.dto.AlternativaDto();
+        AlternativaCreateRequest alt2 = new AlternativaCreateRequest();
         alt2.setOrdem(2);
         alt2.setTexto("São Paulo");
         alt2.setCorreta(false);

@@ -1,6 +1,5 @@
 package com.studora.dto.request;
 
-import com.studora.dto.AlternativaDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import jakarta.validation.constraints.NotBlank;
@@ -40,7 +39,7 @@ public class QuestaoCreateRequest {
     private List<Long> concursoCargoIds; // IDs of associated ConcursoCargo records
 
     @Schema(description = "Alternativas da questão")
-    private List<AlternativaDto> alternativas; // Alternativas associated with the question
+    private List<AlternativaCreateRequest> alternativas; // Alternativas associated with the question
 
     // Constructors
     public QuestaoCreateRequest() {}
@@ -50,11 +49,11 @@ public class QuestaoCreateRequest {
         this.enunciado = enunciado;
     }
 
-    public List<AlternativaDto> getAlternativas() {
+    public List<AlternativaCreateRequest> getAlternativas() {
         return alternativas;
     }
 
-    public void setAlternativas(List<AlternativaDto> alternativas) {
+    public void setAlternativas(List<AlternativaCreateRequest> alternativas) {
         this.alternativas = alternativas;
     }
 }

@@ -17,11 +17,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class QuestaoService {
@@ -39,19 +41,22 @@ public class QuestaoService {
     private final AlternativaMapper alternativaMapper;
     private final QuestaoCargoMapper questaoCargoMapper;
 
+    @Transactional(readOnly = true)
     public List<QuestaoDto> getAllQuestoes() {
         return questaoRepository
-            .findAll()
+            .findAllWithDetails()
             .stream()
             .map(questaoMapper::toDto)
             .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public Page<QuestaoDto> search(QuestaoFilter filter, Pageable pageable) {
         return questaoRepository.findAll(QuestaoSpecification.withFilter(filter), pageable)
                 .map(questaoMapper::toDto);
     }
 
+    @Transactional(readOnly = true)
     public QuestaoDto getQuestaoById(Long id) {
         Questao questao = questaoRepository
             .findByIdWithDetails(id)
@@ -63,6 +68,7 @@ public class QuestaoService {
 
     @Transactional
     public QuestaoDto createQuestao(QuestaoDto questaoDto) {
+        log.info("Criando nova questão para o concurso ID: {}", questaoDto.getConcursoId());
         Concurso concurso = concursoRepository
             .findById(questaoDto.getConcursoId())
             .orElseThrow(() -> new ResourceNotFoundException("Concurso", "ID", questaoDto.getConcursoId()));
@@ -105,7 +111,7 @@ public class QuestaoService {
         }
 
         Questao questao = questaoMapper.toEntity(questaoDto);
-        questao.setConcurso(concurso);
+        concurso.addQuestao(questao);
 
         if (questaoDto.getSubtemaIds() != null) {
             List<Subtema> subtemas = subtemaRepository.findAllById(
@@ -128,11 +134,10 @@ public class QuestaoService {
 
         // Handle QuestaoCargo associations (using pre-validated list)
         for (ConcursoCargo cc : validatedCargos) {
-            QuestaoCargo qc = new QuestaoCargo();
-            qc.setQuestao(savedQuestao);
-            qc.setConcursoCargo(cc);
-            QuestaoCargo savedQc = questaoCargoRepository.save(qc);
-            savedQuestao.getQuestaoCargos().add(savedQc);
+                QuestaoCargo qc = new QuestaoCargo();
+                savedQuestao.addQuestaoCargo(qc);
+                cc.addQuestaoCargo(qc);
+                questaoCargoRepository.save(qc);
         }
 
         return questaoMapper.toDto(savedQuestao);
@@ -140,6 +145,7 @@ public class QuestaoService {
 
     @Transactional
     public QuestaoDto updateQuestao(Long id, QuestaoDto questaoDto) {
+        log.info("Atualizando questão ID: {}", id);
         Questao existingQuestao = questaoRepository
             .findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Questão", "ID", id));
@@ -270,6 +276,7 @@ public class QuestaoService {
 
     @Transactional
     public void deleteQuestao(Long id) {
+        log.info("Excluindo questão ID: {}", id);
         if (!questaoRepository.existsById(id)) {
             throw new ResourceNotFoundException("Questão", "ID", id);
         }

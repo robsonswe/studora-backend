@@ -4,8 +4,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import lombok.Data;
 
-@Schema(description = "Request DTO para adicionar uma alternativa a uma questão")
+@Schema(description = "Request DTO para criação de uma alternativa")
+@Data
 public class AlternativaCreateRequest {
 
     @Schema(description = "Ordem da alternativa na lista", example = "1", required = true)
@@ -24,45 +26,11 @@ public class AlternativaCreateRequest {
     @Schema(description = "Justificativa da alternativa", example = "Esta é a alternativa correta porque...")
     private String justificativa;
 
-    // Constructors
     public AlternativaCreateRequest() {}
 
     public AlternativaCreateRequest(Integer ordem, String texto, Boolean correta) {
         this.ordem = ordem;
         this.texto = texto;
         this.correta = correta;
-    }
-
-    // Getters and Setters
-    public Integer getOrdem() {
-        return ordem;
-    }
-
-    public void setOrdem(Integer ordem) {
-        this.ordem = ordem;
-    }
-
-    public String getTexto() {
-        return texto;
-    }
-
-    public void setTexto(String texto) {
-        this.texto = texto;
-    }
-
-    public Boolean getCorreta() {
-        return correta;
-    }
-
-    public void setCorreta(Boolean correta) {
-        this.correta = correta;
-    }
-
-    public String getJustificativa() {
-        return justificativa;
-    }
-
-    public void setJustificativa(String justificativa) {
-        this.justificativa = justificativa;
     }
 }

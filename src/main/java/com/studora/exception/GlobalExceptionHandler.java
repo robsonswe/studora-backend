@@ -1,5 +1,8 @@
 package com.studora.exception;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -12,11 +15,15 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 
 import java.net.URI;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+
+    @Autowired
+    private Environment env;
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ProblemDetail handleResourceNotFound(ResourceNotFoundException ex) {
@@ -70,11 +77,19 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleGenericException(Exception ex) {
-        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR,
-            "Ocorreu um erro inesperado no servidor. Por favor, tente novamente mais tarde.");
+        boolean isDev = Arrays.asList(env.getActiveProfiles()).contains("dev");
+        String detail = isDev ? ex.getMessage() : "Ocorreu um erro inesperado no servidor. Por favor, tente novamente mais tarde.";
+        
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, detail);
         problemDetail.setTitle("Erro interno no servidor");
         problemDetail.setType(URI.create("about:blank"));
         problemDetail.setProperty("timestamp", Instant.now());
+        
+        if (isDev) {
+            problemDetail.setProperty("exception", ex.getClass().getName());
+            // Optionally add stack trace if needed, but message is usually enough for quick fixes
+        }
+        
         return problemDetail;
     }
 }

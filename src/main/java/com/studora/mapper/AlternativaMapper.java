@@ -1,6 +1,7 @@
 package com.studora.mapper;
 
 import com.studora.dto.AlternativaDto;
+import com.studora.dto.request.AlternativaCreateRequest;
 import com.studora.entity.Alternativa;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -11,6 +12,10 @@ public interface AlternativaMapper {
 
     @Mapping(target = "questaoId", source = "questao.id")
     AlternativaDto toDto(Alternativa alternativa);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "questaoId", ignore = true)
+    AlternativaDto toDto(AlternativaCreateRequest request);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "questao", ignore = true)

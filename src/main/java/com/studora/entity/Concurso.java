@@ -2,6 +2,8 @@ package com.studora.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -42,10 +44,14 @@ public class Concurso extends BaseEntity {
     private Banca banca;
 
     @Column(nullable = false)
+    @Min(value = 1900, message = "Ano deve ser no mínimo 1900")
+    @Max(value = 2100, message = "Ano deve ser no máximo 2100")
     @Schema(description = "Ano em que o concurso foi realizado", example = "2023")
     private Integer ano;
 
     @Column(nullable = false)
+    @Min(value = 1, message = "Mês deve ser entre 1 e 12")
+    @Max(value = 12, message = "Mês deve ser entre 1 e 12")
     @Schema(description = "Mês em que o concurso foi realizado", example = "6")
     private Integer mes;
 
@@ -143,5 +149,15 @@ public class Concurso extends BaseEntity {
 
     public void setConcursoCargos(Set<ConcursoCargo> concursoCargos) {
         this.concursoCargos = concursoCargos;
+    }
+
+    public void addQuestao(Questao questao) {
+        this.questoes.add(questao);
+        questao.setConcurso(this);
+    }
+
+    public void addConcursoCargo(ConcursoCargo concursoCargo) {
+        this.concursoCargos.add(concursoCargo);
+        concursoCargo.setConcurso(this);
     }
 }

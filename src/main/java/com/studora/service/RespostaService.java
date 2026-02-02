@@ -14,6 +14,7 @@ import com.studora.repository.AlternativaRepository;
 import com.studora.repository.QuestaoRepository;
 import com.studora.repository.RespostaRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+@Slf4j
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -49,6 +51,7 @@ public class RespostaService {
     }
     
     public RespostaDto createResposta(RespostaCreateRequest respostaCreateRequest) {
+        log.info("Criando nova resposta para a questão ID: {}", respostaCreateRequest.getQuestaoId());
         Questao questao = questaoRepository.findById(respostaCreateRequest.getQuestaoId())
                 .orElseThrow(() -> new ResourceNotFoundException("Questão", "ID", respostaCreateRequest.getQuestaoId()));
 
@@ -79,6 +82,7 @@ public class RespostaService {
     }
     
     public RespostaDto updateResposta(Long id, RespostaUpdateRequest respostaUpdateRequest) {
+        log.info("Atualizando resposta ID: {}", id);
         Resposta existingResposta = respostaRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Resposta", "ID", id));
 
@@ -105,6 +109,7 @@ public class RespostaService {
     }
     
     public void deleteResposta(Long id) {
+        log.info("Excluindo resposta ID: {}", id);
         if (!respostaRepository.existsById(id)) {
             throw new ResourceNotFoundException("Resposta", "ID", id);
         }

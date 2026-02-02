@@ -15,6 +15,7 @@ public interface ConcursoCargoMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "concurso", ignore = true)
     @Mapping(target = "cargo", ignore = true)
+    @Mapping(target = "questaoCargos", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     ConcursoCargo toEntity(ConcursoCargoDto concursoCargoDto);
