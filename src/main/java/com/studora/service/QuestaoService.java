@@ -150,6 +150,25 @@ public class QuestaoService {
             .findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Questão", "ID", id));
 
+        // Content Change Check: if enunciado, anulada, or alternativas are about to change, we must delete historical responses.
+        boolean contentChanged = false;
+        
+        if (questaoDto.getEnunciado() != null && !questaoDto.getEnunciado().equals(existingQuestao.getEnunciado())) {
+            contentChanged = true;
+        }
+        if (questaoDto.getAnulada() != null && !questaoDto.getAnulada().equals(existingQuestao.getAnulada())) {
+            contentChanged = true;
+        }
+        // For simplicity, if new alternatives are provided, we assume content change
+        if (questaoDto.getAlternativas() != null && !questaoDto.getAlternativas().isEmpty()) {
+            contentChanged = true;
+        }
+
+        if (contentChanged) {
+            log.info("Mudança de conteúdo detectada na questão {}. Excluindo histórico de respostas.", id);
+            respostaRepository.deleteByQuestaoId(id);
+        }
+
         // Normalize orders before validation and processing
         normalizeAlternativaOrders(questaoDto.getAlternativas());
 
@@ -177,9 +196,6 @@ public class QuestaoService {
                 new java.util.LinkedHashSet<>(subtemaRepository.findAllById(questaoDto.getSubtemaIds()))
             );
         }
-
-        // Explicitly clear response using repository for reliability (Critical Bug fix)
-        respostaRepository.deleteByQuestaoId(id);
 
         Questao updatedQuestao = questaoRepository.save(existingQuestao);
 
@@ -272,6 +288,16 @@ public class QuestaoService {
         }
 
         return questaoMapper.toDto(updatedQuestao);
+    }
+
+    @Transactional
+    public QuestaoDto toggleDesatualizada(Long id) {
+        log.info("Toggling status desatualizada para questão ID: {}", id);
+        Questao questao = questaoRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Questão", "ID", id));
+        
+        questao.setDesatualizada(!questao.getDesatualizada());
+        return questaoMapper.toDto(questaoRepository.save(questao));
     }
 
     @Transactional

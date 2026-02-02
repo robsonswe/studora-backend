@@ -3,7 +3,6 @@ package com.studora.service;
 import com.studora.dto.RespostaComAlternativasDto;
 import com.studora.dto.RespostaDto;
 import com.studora.dto.request.RespostaCreateRequest;
-import com.studora.dto.request.RespostaUpdateRequest;
 import com.studora.entity.Alternativa;
 import com.studora.entity.Questao;
 import com.studora.entity.Resposta;
@@ -44,101 +43,59 @@ public class RespostaService {
         return respostaMapper.toDto(resposta);
     }
     
-    public RespostaDto getRespostaByQuestaoId(Long questaoId) {
-        return respostaRepository.findByQuestaoIdWithDetails(questaoId)
+    public java.util.List<RespostaDto> getRespostasByQuestaoId(Long questaoId) {
+        java.util.List<Resposta> respostas = respostaRepository.findByQuestaoIdWithDetails(questaoId);
+        if (respostas.isEmpty()) {
+            throw new ResourceNotFoundException("Resposta", "ID da Questão", questaoId);
+        }
+        return respostas.stream()
                 .map(respostaMapper::toDto)
-                .orElseThrow(() -> new ResourceNotFoundException("Resposta", "ID da Questão", questaoId));
+                .collect(java.util.stream.Collectors.toList());
     }
     
-    public RespostaDto createResposta(RespostaCreateRequest respostaCreateRequest) {
-        log.info("Criando nova resposta para a questão ID: {}", respostaCreateRequest.getQuestaoId());
-        Questao questao = questaoRepository.findById(respostaCreateRequest.getQuestaoId())
-                .orElseThrow(() -> new ResourceNotFoundException("Questão", "ID", respostaCreateRequest.getQuestaoId()));
+    public RespostaDto createResposta(RespostaCreateRequest request) {
+        log.info("Criando nova tentativa para a questão ID: {}", request.getQuestaoId());
+        Questao questao = questaoRepository.findById(request.getQuestaoId())
+                .orElseThrow(() -> new ResourceNotFoundException("Questão", "ID", request.getQuestaoId()));
 
         // Check if the question is annulled
         if (questao.getAnulada()) {
             throw new ValidationException("Não é possível responder a uma questão anulada");
         }
 
-        // Check if a response already exists for this question
-        if (respostaRepository.findByQuestaoId(respostaCreateRequest.getQuestaoId()) != null) {
-            throw new ValidationException("Já existe uma resposta para esta questão. Use a operação de atualização para modificar a resposta.");
-        }
-
-        Alternativa alternativa = alternativaRepository.findById(respostaCreateRequest.getAlternativaId())
-                .orElseThrow(() -> new ResourceNotFoundException("Alternativa", "ID", respostaCreateRequest.getAlternativaId()));
+        Alternativa alternativa = alternativaRepository.findById(request.getAlternativaId())
+                .orElseThrow(() -> new ResourceNotFoundException("Alternativa", "ID", request.getAlternativaId()));
 
         // Validate that the alternative belongs to the question
         if (!alternativa.getQuestao().getId().equals(questao.getId())) {
             throw new ValidationException("A alternativa escolhida não pertence à questão informada");
         }
 
-        Resposta resposta = new Resposta();
+        Resposta resposta = respostaMapper.toEntity(request);
         resposta.setQuestao(questao);
         resposta.setAlternativaEscolhida(alternativa);
 
         Resposta savedResposta = respostaRepository.save(resposta);
         return respostaMapper.toDto(savedResposta);
     }
-    
-    public RespostaDto updateResposta(Long id, RespostaUpdateRequest respostaUpdateRequest) {
-        log.info("Atualizando resposta ID: {}", id);
-        Resposta existingResposta = respostaRepository.findByIdWithDetails(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Resposta", "ID", id));
 
-        // Only allow updating the alternativaId, questaoId should remain unchanged
-        Alternativa alternativa = alternativaRepository.findById(respostaUpdateRequest.getAlternativaId())
-                .orElseThrow(() -> new ResourceNotFoundException("Alternativa", "ID", respostaUpdateRequest.getAlternativaId()));
+    public RespostaComAlternativasDto createRespostaWithAlternativas(RespostaCreateRequest request) {
+        log.info("Criando nova tentativa com alternativas para a questão ID: {}", request.getQuestaoId());
+        Questao questao = questaoRepository.findById(request.getQuestaoId())
+                .orElseThrow(() -> new ResourceNotFoundException("Questão", "ID", request.getQuestaoId()));
 
-        // Validate that the alternative belongs to the question
-        if (!alternativa.getQuestao().getId().equals(existingResposta.getQuestao().getId())) {
-            throw new ValidationException("A alternativa escolhida não pertence à questão desta resposta");
-        }
-
-        // Check if the question is annulled
-        if (existingResposta.getQuestao().getAnulada()) {
-            throw new ValidationException("Não é possível responder a uma questão anulada");
-        }
-
-        // Update only the alternativaId
-        existingResposta.setAlternativaEscolhida(alternativa);
-        // Date will be updated by @LastModifiedDate in BaseEntity
-
-        Resposta updatedResposta = respostaRepository.save(existingResposta);
-        return respostaMapper.toDto(updatedResposta);
-    }
-    
-    public void deleteResposta(Long id) {
-        log.info("Excluindo resposta ID: {}", id);
-        if (!respostaRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Resposta", "ID", id);
-        }
-        respostaRepository.deleteById(id);
-    }
-
-    public RespostaComAlternativasDto createRespostaWithAlternativas(RespostaCreateRequest respostaCreateRequest) {
-        Questao questao = questaoRepository.findById(respostaCreateRequest.getQuestaoId())
-                .orElseThrow(() -> new ResourceNotFoundException("Questão", "ID", respostaCreateRequest.getQuestaoId()));
-
-        // Check if the question is annulled
         if (questao.getAnulada()) {
             throw new ValidationException("Não é possível responder a uma questão anulada");
         }
 
-        // Check if a response already exists for this question (business rule: only one response per question)
-        if (respostaRepository.findByQuestaoId(respostaCreateRequest.getQuestaoId()) != null) {
-            throw new ValidationException("Já existe uma resposta para esta questão. Use a operação de atualização para modificar a resposta.");
-        }
+        Alternativa alternativa = alternativaRepository.findById(request.getAlternativaId())
+                .orElseThrow(() -> new ResourceNotFoundException("Alternativa", "ID", request.getAlternativaId()));
 
-        Alternativa alternativa = alternativaRepository.findById(respostaCreateRequest.getAlternativaId())
-                .orElseThrow(() -> new ResourceNotFoundException("Alternativa", "ID", respostaCreateRequest.getAlternativaId()));
-
-        // Validate that the alternative belongs to the question
         if (!alternativa.getQuestao().getId().equals(questao.getId())) {
             throw new ValidationException("A alternativa escolhida não pertence à questão informada");
         }
 
-        Resposta resposta = new Resposta();
+        Resposta resposta = respostaMapper.toEntity(request);
         resposta.setQuestao(questao);
         resposta.setAlternativaEscolhida(alternativa);
 
@@ -146,28 +103,12 @@ public class RespostaService {
         return respostaMapper.toComAlternativasDto(savedResposta);
     }
 
-    public RespostaComAlternativasDto updateRespostaWithAlternativas(Long id, RespostaUpdateRequest respostaUpdateRequest) {
-        Resposta existingResposta = respostaRepository.findByIdWithDetails(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Resposta", "ID", id));
-
-        // Only allow updating the alternativaId, questaoId should remain unchanged
-        Alternativa alternativa = alternativaRepository.findById(respostaUpdateRequest.getAlternativaId())
-                .orElseThrow(() -> new ResourceNotFoundException("Alternativa", "ID", respostaUpdateRequest.getAlternativaId()));
-
-        // Validate that the alternative belongs to the question
-        if (!alternativa.getQuestao().getId().equals(existingResposta.getQuestao().getId())) {
-            throw new ValidationException("A alternativa escolhida não pertence à questão desta resposta");
+    @Transactional
+    public void deleteResposta(Long id) {
+        log.info("Excluindo resposta ID: {}", id);
+        if (!respostaRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Resposta", "ID", id);
         }
-
-        // Check if the question is annulled
-        if (existingResposta.getQuestao().getAnulada()) {
-            throw new ValidationException("Não é possível responder a uma questão anulada");
-        }
-
-        // Update only the alternativaId
-        existingResposta.setAlternativaEscolhida(alternativa);
-
-        Resposta updatedResposta = respostaRepository.save(existingResposta);
-        return respostaMapper.toComAlternativasDto(updatedResposta);
+        respostaRepository.deleteById(id);
     }
 }

@@ -22,6 +22,9 @@ public class QuestaoUpdateRequest {
     @Schema(description = "Indica se a questão foi anulada", example = "false", defaultValue = "false")
     private Boolean anulada = false;
 
+    @Schema(description = "Indica se a questão está desatualizada", example = "false", defaultValue = "false")
+    private Boolean desatualizada = false;
+
     @Schema(description = "URL da imagem associada à questão", example = "https://exemplo.com/imagem.jpg")
     private String imageUrl;
 

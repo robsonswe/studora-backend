@@ -30,4 +30,7 @@ public class QuestaoFilter {
 
     @Schema(description = "Filtrar por questões anuladas (true) ou não anuladas (false)", example = "false")
     private Boolean anulada;
+
+    @Schema(description = "Filtrar por questões desatualizadas (true) ou atualizadas (false)", example = "false")
+    private Boolean desatualizada;
 }

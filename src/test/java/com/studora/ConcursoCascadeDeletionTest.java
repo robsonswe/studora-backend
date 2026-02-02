@@ -129,7 +129,7 @@ class ConcursoCascadeDeletionTest {
         assertTrue(questaoRepository.existsById(questaoId));
         assertTrue(concursoCargoRepository.existsById(concursoCargoId));
         assertFalse(alternativaRepository.findByQuestaoIdOrderByOrdemAsc(questaoId).isEmpty());
-        assertNotNull(respostaRepository.findByQuestaoId(questaoId));
+        assertTrue(respostaRepository.findFirstByQuestaoIdOrderByCreatedAtDesc(questaoId).isPresent());
 
         // 6. ACTION: Delete the Concurso
         concursoService.deleteById(concursoId);
@@ -142,7 +142,7 @@ class ConcursoCascadeDeletionTest {
         
         // Verify Questao components are also gone (cascade from Questao)
         assertTrue(alternativaRepository.findByQuestaoIdOrderByOrdemAsc(questaoId).isEmpty(), "Alternativas should be deleted");
-        assertNull(respostaRepository.findByQuestaoId(questaoId), "Resposta should be deleted");
+        assertTrue(respostaRepository.findFirstByQuestaoIdOrderByCreatedAtDesc(questaoId).isEmpty(), "Resposta should be deleted");
         assertTrue(questaoCargoRepository.findByQuestaoId(questaoId).isEmpty(), "QuestaoCargo associations should be deleted");
     }
 }

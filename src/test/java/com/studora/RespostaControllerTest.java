@@ -77,6 +77,13 @@ class RespostaControllerTest {
     }
 
     @Test
+    void testGetRespostaByQuestaoId_NotFound() throws Exception {
+        mockMvc
+            .perform(get("/api/respostas/questao/{questaoId}", 99999L))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
     void testCreateResposta() throws Exception {
         RespostaCreateRequest respostaCreateRequest = new RespostaCreateRequest();
         respostaCreateRequest.setQuestaoId(questao.getId());
@@ -156,22 +163,37 @@ class RespostaControllerTest {
         Questao q1 = new Questao(); q1.setEnunciado("Q1"); q1.setConcurso(questao.getConcurso()); q1 = questaoRepository.save(q1);
         Alternativa a1 = new Alternativa(); a1.setOrdem(1); a1.setTexto("A1"); a1.setQuestao(q1); a1.setCorreta(true); a1 = alternativaRepository.save(a1);
         Resposta r1 = new Resposta(q1, a1); 
-        r1.setRespondidaEm(java.time.LocalDateTime.now().minusDays(1));
-        respostaRepository.save(r1);
+        r1 = respostaRepository.save(r1);
+
+        // Sleep to ensure different createdAt (if necessary for the test logic, but normally order is enough)
+        Thread.sleep(10);
 
         Questao q2 = new Questao(); q2.setEnunciado("Q2"); q2.setConcurso(questao.getConcurso()); q2 = questaoRepository.save(q2);
         Alternativa a2 = new Alternativa(); a2.setOrdem(1); a2.setTexto("A2"); a2.setQuestao(q2); a2.setCorreta(true); a2 = alternativaRepository.save(a2);
         Resposta r2 = new Resposta(q2, a2); 
-        r2.setRespondidaEm(java.time.LocalDateTime.now());
-        respostaRepository.save(r2);
+        r2 = respostaRepository.save(r2);
 
-        // Default sort: respondidaEm DESC
+        // Default sort: createdAt DESC
         // Expected: r2 (newest), then r1
         mockMvc
             .perform(get("/api/respostas"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].id").value(r2.getId()))
             .andExpect(jsonPath("$.content[1].id").value(r1.getId()));
+    }
+
+    @Test
+    void testGetRespostaByQuestaoId() throws Exception {
+        Resposta resposta = new Resposta();
+        resposta.setQuestao(questao);
+        resposta.setAlternativaEscolhida(alternativa);
+        resposta = respostaRepository.save(resposta);
+
+        mockMvc
+            .perform(get("/api/respostas/questao/{questaoId}", questao.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$").isArray())
+            .andExpect(jsonPath("$[0].id").value(resposta.getId()));
     }
 
     @Test

@@ -48,14 +48,18 @@ public class Questao extends BaseEntity {
     @Schema(description = "Alternativas associadas à questão")
     private Set<Alternativa> alternativas = new LinkedHashSet<>();
 
-    @OneToOne(
+    @Column(nullable = false, columnDefinition = "INTEGER")
+    @Schema(description = "Indica se a questão está desatualizada", example = "false", defaultValue = "false")
+    private Boolean desatualizada = false;
+
+    @OneToMany(
         mappedBy = "questao",
         cascade = CascadeType.ALL,
         orphanRemoval = true,
         fetch = FetchType.LAZY
     )
-    @Schema(description = "Resposta associada à questão")
-    private Resposta resposta;
+    @Schema(description = "Respostas associadas à questão")
+    private Set<Resposta> respostas = new LinkedHashSet<>();
 
     @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JoinTable(
@@ -130,12 +134,20 @@ public class Questao extends BaseEntity {
         this.alternativas = alternativas;
     }
 
-    public Resposta getResposta() {
-        return resposta;
+    public Boolean getDesatualizada() {
+        return desatualizada;
     }
 
-    public void setResposta(Resposta resposta) {
-        this.resposta = resposta;
+    public void setDesatualizada(Boolean desatualizada) {
+        this.desatualizada = desatualizada;
+    }
+
+    public Set<Resposta> getRespostas() {
+        return respostas;
+    }
+
+    public void setRespostas(Set<Resposta> respostas) {
+        this.respostas = respostas;
     }
 
     public Set<Subtema> getSubtemas() {

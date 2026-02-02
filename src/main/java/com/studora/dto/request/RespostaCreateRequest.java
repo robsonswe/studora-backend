@@ -16,6 +16,15 @@ public class RespostaCreateRequest {
     @Schema(description = "ID da alternativa selecionada como resposta", example = "1", required = true)
     private Long alternativaId;
 
+    @Schema(description = "Raciocínio ou comentário do usuário para esta tentativa", example = "Achei que era a B por causa de...")
+    private String justificativa;
+
+    @Schema(description = "ID do grau de dificuldade percebido (1=Fácil, 2=Média, 3=Difícil, 4=Chute)", example = "2")
+    private Integer dificuldadeId;
+
+    @Schema(description = "Duração da tentativa em segundos", example = "45")
+    private Integer tempoRespostaSegundos;
+
     // Constructors
     public RespostaCreateRequest() {}
 

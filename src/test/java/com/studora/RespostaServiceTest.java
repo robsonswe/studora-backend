@@ -105,14 +105,15 @@ class RespostaServiceTest {
         alternativa.setId(1L);
         resposta.setAlternativaEscolhida(alternativa);
 
-        when(respostaRepository.findByQuestaoIdWithDetails(questaoId)).thenReturn(Optional.of(resposta));
+        when(respostaRepository.findByQuestaoIdWithDetails(questaoId)).thenReturn(java.util.List.of(resposta));
 
         // Act
-        RespostaDto result = respostaService.getRespostaByQuestaoId(questaoId);
+        java.util.List<RespostaDto> result = respostaService.getRespostasByQuestaoId(questaoId);
 
         // Assert
         assertNotNull(result);
-        assertEquals(questaoId, result.getQuestaoId());
+        assertFalse(result.isEmpty());
+        assertEquals(questaoId, result.get(0).getQuestaoId());
         verify(respostaRepository, times(1)).findByQuestaoIdWithDetails(questaoId);
     }
 
@@ -120,11 +121,11 @@ class RespostaServiceTest {
     void testGetRespostaByQuestaoId_NotFound() {
         // Arrange
         Long questaoId = 1L;
-        when(respostaRepository.findByQuestaoIdWithDetails(questaoId)).thenReturn(Optional.empty());
+        when(respostaRepository.findByQuestaoIdWithDetails(questaoId)).thenReturn(java.util.Collections.emptyList());
 
         // Act & Assert
-        assertThrows(RuntimeException.class, () -> {
-            respostaService.getRespostaByQuestaoId(questaoId);
+        assertThrows(com.studora.exception.ResourceNotFoundException.class, () -> {
+            respostaService.getRespostasByQuestaoId(questaoId);
         });
 
         verify(respostaRepository, times(1)).findByQuestaoIdWithDetails(questaoId);
@@ -145,19 +146,8 @@ class RespostaServiceTest {
         alternativa.setId(1L);
         alternativa.setQuestao(questao);
 
-        Resposta savedResposta = new Resposta();
-        savedResposta.setId(1L);
-        savedResposta.setQuestao(questao);
-        savedResposta.setAlternativaEscolhida(alternativa);
-
-        RespostaDto resultDto = new RespostaDto();
-        resultDto.setId(1L);
-        resultDto.setQuestaoId(1L);
-        resultDto.setAlternativaId(1L);
-
         when(questaoRepository.findById(1L)).thenReturn(Optional.of(questao));
         when(alternativaRepository.findById(1L)).thenReturn(Optional.of(alternativa));
-        when(respostaRepository.findByQuestaoId(1L)).thenReturn(null); // No existing response for this question
         when(respostaRepository.save(any(Resposta.class))).thenAnswer(i -> {
             Resposta r = i.getArgument(0);
             r.setId(1L);
@@ -174,7 +164,6 @@ class RespostaServiceTest {
         assertEquals(alternativa.getId(), result.getAlternativaId());
         verify(questaoRepository, times(1)).findById(1L);
         verify(alternativaRepository, times(1)).findById(1L);
-        verify(respostaRepository, times(1)).findByQuestaoId(1L);
         verify(respostaRepository, times(1)).save(any(Resposta.class));
     }
 
@@ -182,8 +171,7 @@ class RespostaServiceTest {
     void testCreateResposta_QuestaoNotFound() {
         // Arrange
         RespostaCreateRequest respostaCreateRequest = new RespostaCreateRequest();
-        respostaCreateRequest.setQuestaoId(1L);
-        respostaCreateRequest.setAlternativaId(1L);
+        confirmCreateRequest(respostaCreateRequest);
 
         when(questaoRepository.findById(1L)).thenReturn(Optional.empty());
 
@@ -197,19 +185,22 @@ class RespostaServiceTest {
         verify(respostaRepository, never()).save(any(Resposta.class));
     }
 
+    private void confirmCreateRequest(RespostaCreateRequest req) {
+        req.setQuestaoId(1L);
+        req.setAlternativaId(1L);
+    }
+
     @Test
     void testCreateResposta_AlternativaNotFound() {
         // Arrange
         RespostaCreateRequest respostaCreateRequest = new RespostaCreateRequest();
-        respostaCreateRequest.setQuestaoId(1L);
-        respostaCreateRequest.setAlternativaId(1L);
+        confirmCreateRequest(respostaCreateRequest);
 
         Questao questao = new Questao();
         questao.setId(1L);
 
         when(questaoRepository.findById(1L)).thenReturn(Optional.of(questao));
         when(alternativaRepository.findById(1L)).thenReturn(Optional.empty());
-        when(respostaRepository.findByQuestaoId(1L)).thenReturn(null); // No existing response for this question
 
         // Act & Assert
         assertThrows(RuntimeException.class, () -> {
@@ -218,7 +209,6 @@ class RespostaServiceTest {
 
         verify(questaoRepository, times(1)).findById(1L);
         verify(alternativaRepository, times(1)).findById(1L);
-        verify(respostaRepository, times(1)).findByQuestaoId(1L);
         verify(respostaRepository, never()).save(any(Resposta.class));
     }
 
@@ -226,8 +216,7 @@ class RespostaServiceTest {
     void testCreateResposta_AlternativaDoesNotBelongToQuestao() {
         // Arrange
         RespostaCreateRequest respostaCreateRequest = new RespostaCreateRequest();
-        respostaCreateRequest.setQuestaoId(1L);
-        respostaCreateRequest.setAlternativaId(1L);
+        confirmCreateRequest(respostaCreateRequest);
 
         Questao questao1 = new Questao();
         questao1.setId(1L);
@@ -242,7 +231,6 @@ class RespostaServiceTest {
 
         when(questaoRepository.findById(1L)).thenReturn(Optional.of(questao1));
         when(alternativaRepository.findById(1L)).thenReturn(Optional.of(alternativa));
-        when(respostaRepository.findByQuestaoId(1L)).thenReturn(null);
 
         // Act & Assert
         com.studora.exception.ValidationException exception = assertThrows(com.studora.exception.ValidationException.class, () -> {
@@ -250,39 +238,6 @@ class RespostaServiceTest {
         });
 
         assertEquals("A alternativa escolhida não pertence à questão informada", exception.getMessage());
-        verify(respostaRepository, never()).save(any(Resposta.class));
-    }
-
-    @Test
-    void testUpdateResposta_AlternativaDoesNotBelongToQuestao() {
-        // Arrange
-        Long respostaId = 1L;
-        com.studora.dto.request.RespostaUpdateRequest request = new com.studora.dto.request.RespostaUpdateRequest();
-        request.setAlternativaId(2L);
-
-        Questao questao1 = new Questao();
-        questao1.setId(1L);
-
-        Resposta existingResposta = new Resposta();
-        existingResposta.setId(respostaId);
-        existingResposta.setQuestao(questao1);
-
-        Questao questao2 = new Questao();
-        questao2.setId(2L);
-
-        Alternativa newAlternativa = new Alternativa();
-        newAlternativa.setId(2L);
-        newAlternativa.setQuestao(questao2); // Belongs to a different question
-
-        when(respostaRepository.findByIdWithDetails(respostaId)).thenReturn(Optional.of(existingResposta));
-        when(alternativaRepository.findById(2L)).thenReturn(Optional.of(newAlternativa));
-
-        // Act & Assert
-        com.studora.exception.ValidationException exception = assertThrows(com.studora.exception.ValidationException.class, () -> {
-            respostaService.updateResposta(respostaId, request);
-        });
-
-        assertEquals("A alternativa escolhida não pertence à questão desta resposta", exception.getMessage());
         verify(respostaRepository, never()).save(any(Resposta.class));
     }
 }

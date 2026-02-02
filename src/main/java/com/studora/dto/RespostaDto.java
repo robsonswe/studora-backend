@@ -24,8 +24,17 @@ public class RespostaDto {
     @Schema(description = "Indica se a alternativa selecionada é a correta", example = "true")
     private Boolean correta;
 
+    @Schema(description = "Raciocínio ou comentário do usuário para esta tentativa", example = "Achei que era a B por causa de...")
+    private String justificativa;
+
+    @Schema(description = "ID do grau de dificuldade percebido (1=Fácil, 2=Média, 3=Difícil, 4=Chute)", example = "2")
+    private Integer dificuldadeId;
+
+    @Schema(description = "Duração da tentativa em segundos", example = "45")
+    private Integer tempoRespostaSegundos;
+
     @Schema(description = "Data e hora em que a resposta foi registrada (gerada automaticamente)", example = "2023-06-15T10:30:00", accessMode = Schema.AccessMode.READ_ONLY)
-    private LocalDateTime respondidaEm;
+    private java.time.LocalDateTime createdAt;
 
     // Constructors
     public RespostaDto() {}

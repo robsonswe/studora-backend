@@ -12,7 +12,10 @@ import java.util.Optional;
 
 @Repository
 public interface RespostaRepository extends JpaRepository<Resposta, Long> {
-    Resposta findByQuestaoId(Long questaoId);
+    
+    Optional<Resposta> findFirstByQuestaoIdOrderByCreatedAtDesc(Long questaoId);
+
+    java.util.List<Resposta> findByQuestaoIdOrderByCreatedAtDesc(Long questaoId);
     
     @Transactional
     @Modifying
@@ -28,6 +31,7 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     @Query("SELECT r FROM Resposta r " +
            "JOIN FETCH r.questao " +
            "JOIN FETCH r.alternativaEscolhida " +
-           "WHERE r.questao.id = :questaoId")
-    Optional<Resposta> findByQuestaoIdWithDetails(@Param("questaoId") Long questaoId);
+           "WHERE r.questao.id = :questaoId " +
+           "ORDER BY r.createdAt DESC")
+    java.util.List<Resposta> findByQuestaoIdWithDetails(@Param("questaoId") Long questaoId);
 }

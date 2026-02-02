@@ -4,7 +4,6 @@ import com.studora.dto.PageResponse;
 import com.studora.dto.RespostaDto;
 import com.studora.dto.RespostaComAlternativasDto;
 import com.studora.dto.request.RespostaCreateRequest;
-import com.studora.dto.request.RespostaUpdateRequest;
 import com.studora.service.RespostaService;
 import com.studora.util.PaginationUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -47,7 +46,7 @@ public class RespostaController {
         parameters = {
             @Parameter(name = "page", description = "Número da página (0..N)", schema = @Schema(type = "integer", defaultValue = "0")),
             @Parameter(name = "size", description = "Tamanho da página", schema = @Schema(type = "integer", defaultValue = "20")),
-            @Parameter(name = "sort", description = "Campo para ordenação primária", schema = @Schema(type = "string", allowableValues = {"respondidaEm"}, defaultValue = "respondidaEm")),
+            @Parameter(name = "sort", description = "Campo para ordenação primária", schema = @Schema(type = "string", allowableValues = {"createdAt"}, defaultValue = "createdAt")),
             @Parameter(name = "direction", description = "Direção da ordenação primária", schema = @Schema(type = "string", allowableValues = {"ASC", "DESC"}, defaultValue = "DESC"))
         },
         responses = {
@@ -56,7 +55,7 @@ public class RespostaController {
                     mediaType = "application/json",
                     schema = @Schema(implementation = PageResponse.class),
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"respondidaEm\": \"2023-06-15T10:30:00\"}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"createdAt\": \"2023-06-15T10:30:00\"}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -70,11 +69,11 @@ public class RespostaController {
     @GetMapping
     public ResponseEntity<PageResponse<RespostaDto>> getAllRespostas(
             @Parameter(hidden = true) @PageableDefault(size = 20) Pageable pageable,
-            @RequestParam(defaultValue = "respondidaEm") String sort,
+            @RequestParam(defaultValue = "createdAt") String sort,
             @RequestParam(defaultValue = "DESC") String direction) {
         
         List<Sort.Order> tieBreakers = List.of(
-            Sort.Order.desc("respondidaEm")
+            Sort.Order.desc("createdAt")
         );
 
         Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, Map.of(), tieBreakers);
@@ -90,7 +89,7 @@ public class RespostaController {
                 content = @Content(
                     schema = @Schema(implementation = RespostaDto.class),
                     examples = @ExampleObject(
-                        value = "{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"respondidaEm\": \"2023-06-15T10:30:00\"}"
+                        value = "{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"createdAt\": \"2023-06-15T10:30:00\"}"
                     )
                 )),
             @ApiResponse(responseCode = "404", description = "Resposta não encontrada",
@@ -115,21 +114,21 @@ public class RespostaController {
     }
 
     @Operation(
-        summary = "Obter resposta por questão",
-        description = "Retorna a resposta associada a uma questão específica. Cada questão possui no máximo uma resposta.",
+        summary = "Obter todas as respostas por questão",
+        description = "Retorna a lista de todas as tentativas associadas a uma questão específica, ordenadas da mais recente para a mais antiga.",
         responses = {
-            @ApiResponse(responseCode = "200", description = "Resposta retornada com sucesso",
+            @ApiResponse(responseCode = "200", description = "Lista de respostas retornada com sucesso",
                 content = @Content(
-                    schema = @Schema(implementation = RespostaDto.class),
+                    array = @ArraySchema(schema = @Schema(implementation = RespostaDto.class)),
                     examples = @ExampleObject(
-                        value = "{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"respondidaEm\": \"2023-06-15T10:30:00\"}"
+                        value = "[{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"createdAt\": \"2023-06-15T10:30:00\"}]"
                     )
                 )),
-            @ApiResponse(responseCode = "404", description = "Resposta não encontrada para a questão",
+            @ApiResponse(responseCode = "404", description = "Questão não encontrada",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Resposta com ID da Questão: '1'\",\"instance\":\"/api/respostas/questao/1\"}"
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Questão com ID: '1'\",\"instance\":\"/api/respostas/questao/1\"}"
                     ))),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",
@@ -140,16 +139,16 @@ public class RespostaController {
         }
     )
     @GetMapping("/questao/{questaoId}")
-    public ResponseEntity<RespostaDto> getRespostaByQuestaoId(
-            @Parameter(description = "ID da questão para obter a resposta", required = true) @PathVariable Long questaoId) {
-        RespostaDto resposta = respostaService.getRespostaByQuestaoId(questaoId);
-        return ResponseEntity.ok(resposta);
+    public ResponseEntity<List<RespostaDto>> getRespostasByQuestaoId(
+            @Parameter(description = "ID da questão para obter as respostas", required = true) @PathVariable Long questaoId) {
+        List<RespostaDto> respostas = respostaService.getRespostasByQuestaoId(questaoId);
+        return ResponseEntity.ok(respostas);
     }
 
 
     @Operation(
         summary = "Criar nova resposta",
-        description = "Registra uma nova resposta para uma questão. Não é possível responder a questões anuladas ou que já possuam resposta.",
+        description = "Registra uma nova tentativa de resposta para uma questão. Não é possível responder a questões anuladas.",
         requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
             description = "Dados da nova resposta a ser criada",
             required = true,
@@ -163,7 +162,7 @@ public class RespostaController {
                 content = @Content(
                     schema = @Schema(implementation = RespostaComAlternativasDto.class),
                     examples = @ExampleObject(
-                        value = "{\"id\": 2, \"questaoId\": 1, \"alternativaId\": 2, \"correta\": true, \"respondidaEm\": \"2023-06-15T10:30:00\", \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Alternativa A\", \"justificativa\": \"Justificativa A\", \"correta\": false}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Alternativa B\", \"justificativa\": \"Justificativa B\", \"correta\": true}]}"
+                        value = "{\"id\": 2, \"questaoId\": 1, \"alternativaId\": 2, \"correta\": true, \"createdAt\": \"2023-06-15T10:30:00\", \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Alternativa A\", \"justificativa\": \"Justificativa A\", \"correta\": false}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Alternativa B\", \"justificativa\": \"Justificativa B\", \"correta\": true}]}"
                     )
                 )),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
@@ -194,61 +193,8 @@ public class RespostaController {
     }
 
     @Operation(
-        summary = "Atualizar resposta",
-        description = "Atualiza a alternativa selecionada em uma resposta existente. O registro de data/hora será atualizado automaticamente.",
-        requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            description = "Dados atualizados da resposta (apenas alternativaId pode ser alterado)",
-            required = true,
-            content = @Content(
-                mediaType = "application/json",
-                schema = @Schema(implementation = RespostaUpdateRequest.class)
-            )
-        ),
-        responses = {
-            @ApiResponse(responseCode = "200", description = "Resposta atualizada com sucesso",
-                content = @Content(
-                    schema = @Schema(implementation = RespostaComAlternativasDto.class),
-                    examples = @ExampleObject(
-                        value = "{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 2, \"correta\": true, \"respondidaEm\": \"2023-06-15T10:30:00\", \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Alternativa A\", \"justificativa\": \"Justificativa A\", \"correta\": false}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Alternativa B\", \"justificativa\": \"Justificativa B\", \"correta\": true}]}"
-                    )
-                )),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/respostas/1\",\"errors\":{\"alternativaId\":\"não deve ser nulo\"}}"
-                    ))),
-            @ApiResponse(responseCode = "404", description = "Resposta não encontrada",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Resposta com ID: '1'\",\"instance\":\"/api/respostas/1\"}"
-                    ))),
-            @ApiResponse(responseCode = "422", description = "Entidade não processável - Regras de negócio violadas",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Entidade não processável\",\"status\":422,\"detail\":\"Não é possível responder a uma questão anulada\",\"instance\":\"/api/respostas/1\"}"
-                    ))),
-            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/respostas/1\"}"
-                    )))
-        }
-    )
-    @PutMapping("/{id}")
-    public ResponseEntity<RespostaComAlternativasDto> updateResposta(
-            @Parameter(description = "ID da resposta a ser atualizada", required = true) @PathVariable Long id,
-            @Valid @RequestBody RespostaUpdateRequest respostaUpdateRequest) {
-        RespostaComAlternativasDto updatedResposta = respostaService.updateRespostaWithAlternativas(id, respostaUpdateRequest);
-        return ResponseEntity.ok(updatedResposta);
-    }
-
-    @Operation(
         summary = "Excluir resposta",
-        description = "Remove o registro de resposta de uma questão",
+        description = "Remove o registro de uma tentativa de resposta específica",
         responses = {
             @ApiResponse(responseCode = "204", description = "Resposta excluída com sucesso"),
             @ApiResponse(responseCode = "404", description = "Resposta não encontrada",

@@ -23,7 +23,7 @@ public class RespostaComAlternativasDto {
     private Boolean correta;
 
     @Schema(description = "Data e hora em que a resposta foi registrada (gerada automaticamente)", example = "2023-06-15T10:30:00", accessMode = Schema.AccessMode.READ_ONLY)
-    private LocalDateTime respondidaEm;
+    private LocalDateTime createdAt;
 
     @Schema(description = "Lista de alternativas associadas à questão", implementation = AlternativaDto.class)
     private List<AlternativaDto> alternativas;

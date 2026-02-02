@@ -37,7 +37,7 @@ public interface QuestaoMapper {
     @Mapping(target = "subtemas", ignore = true)
     @Mapping(target = "questaoCargos", ignore = true)
     @Mapping(target = "alternativas", ignore = true)
-    @Mapping(target = "resposta", ignore = true)
+    @Mapping(target = "respostas", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Questao toEntity(QuestaoDto questaoDto);
@@ -47,7 +47,7 @@ public interface QuestaoMapper {
     @Mapping(target = "subtemas", ignore = true)
     @Mapping(target = "questaoCargos", ignore = true)
     @Mapping(target = "alternativas", ignore = true)
-    @Mapping(target = "resposta", ignore = true)
+    @Mapping(target = "respostas", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     void updateEntityFromDto(QuestaoDto questaoDto, @MappingTarget Questao questao);

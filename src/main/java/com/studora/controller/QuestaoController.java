@@ -248,6 +248,23 @@ public class QuestaoController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(
+        summary = "Alternar status de desatualizada",
+        description = "Inverte o valor do campo 'desatualizada' da questão (true para false, false para true).",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Status alternado com sucesso",
+                content = @Content(schema = @Schema(implementation = QuestaoDto.class))),
+            @ApiResponse(responseCode = "404", description = "Questão não encontrada"),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor")
+        }
+    )
+    @PatchMapping("/{id}/desatualizada")
+    public ResponseEntity<QuestaoDto> toggleDesatualizada(
+            @Parameter(description = "ID da questão para alternar o status", required = true) @PathVariable Long id) {
+        QuestaoDto updatedQuestao = questaoService.toggleDesatualizada(id);
+        return ResponseEntity.ok(updatedQuestao);
+    }
+
     // Endpoints for managing cargo associations
     @Operation(
         summary = "Obter cargos por questão",
