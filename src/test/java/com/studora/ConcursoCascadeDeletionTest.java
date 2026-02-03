@@ -122,6 +122,8 @@ class ConcursoCascadeDeletionTest {
         RespostaCreateRequest respReq = new RespostaCreateRequest();
         respReq.setQuestaoId(questaoId);
         respReq.setAlternativaId(alternativaId);
+        respReq.setJustificativa("Test justification");
+        respReq.setDificuldadeId(1);
         respostaService.createResposta(respReq);
 
         // Verify setup

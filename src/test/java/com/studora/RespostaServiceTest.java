@@ -141,6 +141,8 @@ class RespostaServiceTest {
         RespostaCreateRequest respostaCreateRequest = new RespostaCreateRequest();
         respostaCreateRequest.setQuestaoId(1L);
         respostaCreateRequest.setAlternativaId(1L);
+        respostaCreateRequest.setJustificativa("Test reasoning");
+        respostaCreateRequest.setDificuldadeId(1);
 
         Questao questao = new Questao();
         questao.setId(1L);
@@ -192,6 +194,8 @@ class RespostaServiceTest {
     private void confirmCreateRequest(RespostaCreateRequest req) {
         req.setQuestaoId(1L);
         req.setAlternativaId(1L);
+        req.setJustificativa("Test reasoning");
+        req.setDificuldadeId(1);
     }
 
     @Test

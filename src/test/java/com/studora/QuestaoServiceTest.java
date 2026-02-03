@@ -60,6 +60,7 @@ class QuestaoServiceTest {
     private QuestaoMapper questaoMapper;
     private AlternativaMapper alternativaMapper;
     private QuestaoCargoMapper questaoCargoMapper;
+    private com.studora.mapper.RespostaMapper respostaMapper;
 
     private QuestaoService questaoService;
 
@@ -71,6 +72,7 @@ class QuestaoServiceTest {
         alternativaMapper = Mappers.getMapper(AlternativaMapper.class);
         questaoCargoMapper = Mappers.getMapper(QuestaoCargoMapper.class);
         questaoMapper = Mappers.getMapper(QuestaoMapper.class);
+        respostaMapper = Mappers.getMapper(com.studora.mapper.RespostaMapper.class);
 
         // Inject dependencies into mappers if necessary (MapStruct 'spring' component model uses fields)
         // We use reflection to set the field 'alternativaMapper' in QuestaoMapperImpl
@@ -95,7 +97,8 @@ class QuestaoServiceTest {
             respostaRepository,
             questaoMapper,
             alternativaMapper,
-            questaoCargoMapper
+            questaoCargoMapper,
+            respostaMapper
         );
     }
 

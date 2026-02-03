@@ -15,6 +15,8 @@ import com.studora.repository.specification.QuestaoSpecification;
 import com.studora.util.QuestaoValidationConstants;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,20 +42,25 @@ public class QuestaoService {
     private final QuestaoMapper questaoMapper;
     private final AlternativaMapper alternativaMapper;
     private final QuestaoCargoMapper questaoCargoMapper;
+    private final com.studora.mapper.RespostaMapper respostaMapper;
 
     @Transactional(readOnly = true)
     public List<QuestaoDto> getAllQuestoes() {
-        return questaoRepository
+        List<QuestaoDto> dtos = questaoRepository
             .findAllWithDetails()
             .stream()
             .map(questaoMapper::toDto)
             .collect(Collectors.toList());
+        attachRespostas(dtos);
+        return dtos;
     }
 
     @Transactional(readOnly = true)
     public Page<QuestaoDto> search(QuestaoFilter filter, Pageable pageable) {
-        return questaoRepository.findAll(QuestaoSpecification.withFilter(filter), pageable)
+        Page<QuestaoDto> page = questaoRepository.findAll(QuestaoSpecification.withFilter(filter), pageable)
                 .map(questaoMapper::toDto);
+        attachRespostas(page.getContent());
+        return page;
     }
 
     @Transactional(readOnly = true)
@@ -63,7 +70,33 @@ public class QuestaoService {
             .orElseThrow(() ->
                 new ResourceNotFoundException("Questão", "ID", id)
             );
-        return questaoMapper.toDto(questao);
+        QuestaoDto dto = questaoMapper.toDto(questao);
+        attachRespostas(List.of(dto));
+        return dto;
+    }
+
+    public void attachRespostas(List<QuestaoDto> dtos) {
+        if (dtos == null || dtos.isEmpty()) return;
+
+        List<Long> ids = dtos.stream().map(QuestaoDto::getId).collect(Collectors.toList());
+        List<Resposta> allRespostas = respostaRepository.findByQuestaoIdInWithDetails(ids);
+
+        Map<Long, List<com.studora.dto.RespostaDto>> grouped = allRespostas.stream()
+            .map(respostaMapper::toDto)
+            .collect(Collectors.groupingBy(com.studora.dto.RespostaDto::getQuestaoId));
+
+        dtos.forEach(dto -> {
+            List<com.studora.dto.RespostaDto> history = grouped.getOrDefault(dto.getId(), new ArrayList<>());
+            dto.setRespostas(history);
+
+            // Dynamic visibility: if no history, hide correction details
+            if (history.isEmpty() && dto.getAlternativas() != null) {
+                dto.getAlternativas().forEach(a -> {
+                    a.setCorreta(null);
+                    a.setJustificativa(null);
+                });
+            }
+        });
     }
 
     @Transactional

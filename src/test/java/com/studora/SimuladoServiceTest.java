@@ -86,6 +86,7 @@ class SimuladoServiceTest {
             questoes.add(q);
         }
         when(questaoRepository.findAllById(any())).thenReturn(questoes);
+        when(questaoMapper.toDto(any(com.studora.entity.Questao.class))).thenReturn(new com.studora.dto.QuestaoDto());
         
         when(simuladoRepository.save(any())).thenAnswer(i -> {
             Simulado s = i.getArgument(0);
@@ -127,7 +128,13 @@ class SimuladoServiceTest {
         Questao q1 = new Questao(); q1.setId(10L);
         simulado.setQuestoes(new java.util.LinkedHashSet<>(List.of(q1)));
 
-        when(simuladoRepository.findById(1L)).thenReturn(Optional.of(simulado));
+        when(simuladoRepository.findByIdWithQuestoes(1L)).thenReturn(Optional.of(simulado));
+        when(questaoMapper.toDto(q1)).thenReturn(new com.studora.dto.QuestaoDto());
+        
+        com.studora.entity.Resposta resp1 = new com.studora.entity.Resposta();
+        resp1.setQuestao(q1);
+        when(respostaRepository.findBySimuladoId(1L)).thenReturn(List.of(resp1));
+        
         when(simuladoRepository.save(any())).thenReturn(simulado);
         
         // Act
@@ -135,7 +142,34 @@ class SimuladoServiceTest {
 
         // Assert
         assertNotNull(simulado.getFinishedAt());
-        // Score logic moved out of DTO, so we don't verify it here anymore
+    }
+
+    @Test
+    void testFinalizarSimulado_FailsWithUnansweredQuestions() {
+        // Arrange
+        Simulado simulado = new Simulado();
+        simulado.setId(1L);
+        simulado.setStartedAt(java.time.LocalDateTime.now().minusHours(1));
+        
+        Questao q1 = new Questao(); q1.setId(10L);
+        Questao q2 = new Questao(); q2.setId(11L);
+        simulado.setQuestoes(new java.util.LinkedHashSet<>(List.of(q1, q2)));
+
+        when(simuladoRepository.findByIdWithQuestoes(1L)).thenReturn(Optional.of(simulado));
+        
+        // Only one question answered
+        com.studora.entity.Resposta resp1 = new com.studora.entity.Resposta();
+        resp1.setQuestao(q1);
+        when(respostaRepository.findBySimuladoId(1L)).thenReturn(List.of(resp1));
+
+        // Act & Assert
+        com.studora.exception.ValidationException exception = assertThrows(
+            com.studora.exception.ValidationException.class,
+            () -> simuladoService.finalizarSimulado(1L)
+        );
+
+        assertTrue(exception.getMessage().contains("questões sem resposta"));
+        verify(simuladoRepository, never()).save(any());
     }
 
     @Test

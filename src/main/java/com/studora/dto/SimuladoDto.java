@@ -19,14 +19,14 @@ public class SimuladoDto {
     private String nome;
 
     @Schema(description = "Data e hora de início", example = "2023-06-15T10:30:00")
-    @JsonView(Views.SimuladoIniciado.class)
+    @JsonView(Views.RespostaOculta.class)
     private LocalDateTime startedAt;
 
     @Schema(description = "Data e hora de término", example = "2023-06-15T12:30:00")
-    @JsonView(Views.SimuladoIniciado.class)
+    @JsonView(Views.RespostaOculta.class)
     private LocalDateTime finishedAt;
 
     @Schema(description = "Questões do simulado")
-    @JsonView(Views.SimuladoIniciado.class)
+    @JsonView(Views.RespostaOculta.class)
     private List<QuestaoDto> questoes;
 }

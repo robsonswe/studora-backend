@@ -88,6 +88,8 @@ class RespostaControllerTest {
         RespostaCreateRequest respostaCreateRequest = new RespostaCreateRequest();
         respostaCreateRequest.setQuestaoId(questao.getId());
         respostaCreateRequest.setAlternativaId(alternativa.getId());
+        respostaCreateRequest.setJustificativa("Test reasoning");
+        respostaCreateRequest.setDificuldadeId(2);
 
         mockMvc
             .perform(
@@ -233,6 +235,8 @@ class RespostaControllerTest {
         RespostaCreateRequest respostaCreateRequest = new RespostaCreateRequest();
         respostaCreateRequest.setQuestaoId(annulledQuestao.getId());
         respostaCreateRequest.setAlternativaId(alternativaAnulada.getId());
+        respostaCreateRequest.setJustificativa("Irrelevant");
+        respostaCreateRequest.setDificuldadeId(1);
 
         mockMvc
             .perform(

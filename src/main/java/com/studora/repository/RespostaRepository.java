@@ -9,13 +9,15 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
+import java.util.List;
+import java.util.Collection;
 
 @Repository
 public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     
     Optional<Resposta> findFirstByQuestaoIdOrderByCreatedAtDesc(Long questaoId);
 
-    java.util.List<Resposta> findByQuestaoIdOrderByCreatedAtDesc(Long questaoId);
+    List<Resposta> findByQuestaoIdOrderByCreatedAtDesc(Long questaoId);
     
     @Transactional
     @Modifying
@@ -28,32 +30,24 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
            "WHERE r.id = :id")
     Optional<Resposta> findByIdWithDetails(@Param("id") Long id);
 
-        @Query("SELECT r FROM Resposta r " +
+    @Query("SELECT r FROM Resposta r " +
+           "JOIN FETCH r.questao " +
+           "JOIN FETCH r.alternativaEscolhida " +
+           "WHERE r.questao.id = :questaoId " +
+           "ORDER BY r.createdAt DESC")
+    List<Resposta> findByQuestaoIdWithDetails(@Param("questaoId") Long questaoId);
 
-               "JOIN FETCH r.questao " +
+    @Query("SELECT r FROM Resposta r " +
+           "JOIN FETCH r.questao " +
+           "JOIN FETCH r.alternativaEscolhida " +
+           "WHERE r.questao.id IN :questaoIds " +
+           "ORDER BY r.createdAt DESC")
+    List<Resposta> findByQuestaoIdInWithDetails(@Param("questaoIds") Collection<Long> questaoIds);
 
-               "JOIN FETCH r.alternativaEscolhida " +
+    List<Resposta> findBySimuladoId(Long simuladoId);
 
-               "WHERE r.questao.id = :questaoId " +
-
-               "ORDER BY r.createdAt DESC")
-
-        java.util.List<Resposta> findByQuestaoIdWithDetails(@Param("questaoId") Long questaoId);
-
-    
-
-        java.util.List<Resposta> findBySimuladoId(Long simuladoId);
-
-    
-
-        @Transactional
-
-        @Modifying
-
-        @Query("UPDATE Resposta r SET r.simulado = null WHERE r.simulado.id = :simuladoId")
-
-        void detachSimulado(@Param("simuladoId") Long simuladoId);
-
-    }
-
-    
+    @Transactional
+    @Modifying
+    @Query("UPDATE Resposta r SET r.simulado = null WHERE r.simulado.id = :simuladoId")
+    void detachSimulado(@Param("simuladoId") Long simuladoId);
+}

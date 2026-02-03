@@ -129,7 +129,6 @@ public class SimuladoController {
                               "id": 101,
                               "concursoId": 1,
                               "enunciado": "Qual o princípio constitucional da publicidade?",
-                              "anulada": false,
                               "desatualizada": false,
                               "alternativas": [
                                 {
@@ -182,7 +181,7 @@ public class SimuladoController {
         }
     )
     @PatchMapping("/{id}/iniciar")
-    @JsonView(Views.SimuladoIniciado.class)
+    @JsonView(Views.RespostaOculta.class)
     public ResponseEntity<SimuladoDto> iniciarSimulado(
             @Parameter(description = "ID do simulado a iniciar", required = true) @PathVariable Long id) {
         SimuladoDto simulado = simuladoService.iniciarSimulado(id);
@@ -209,7 +208,6 @@ public class SimuladoController {
                               "id": 101,
                               "concursoId": 1,
                               "enunciado": "Qual o princípio constitucional da publicidade?",
-                              "anulada": false,
                               "desatualizada": false,
                               "alternativas": [
                                 {
@@ -266,7 +264,7 @@ public class SimuladoController {
         }
     )
     @PatchMapping("/{id}/finalizar")
-    @JsonView(Views.SimuladoFinalizado.class)
+    @JsonView(Views.RespostaVisivel.class)
     public ResponseEntity<SimuladoDto> finalizarSimulado(
             @Parameter(description = "ID do simulado a finalizar", required = true) @PathVariable Long id) {
         SimuladoDto simulado = simuladoService.finalizarSimulado(id);
@@ -295,7 +293,6 @@ public class SimuladoController {
                                   "id": 101,
                                   "concursoId": 1,
                                   "enunciado": "Qual o princípio constitucional da publicidade?",
-                                  "anulada": false,
                                   "desatualizada": false,
                                   "alternativas": [
                                     {
@@ -329,6 +326,7 @@ public class SimuladoController {
                                   "id": 101,
                                   "concursoId": 1,
                                   "enunciado": "...",
+                                  "desatualizada": false,
                                   "alternativas": [
                                     {
                                       "id": 501,
@@ -370,9 +368,9 @@ public class SimuladoController {
         MappingJacksonValue wrapper = new MappingJacksonValue(simulado);
         
         if (simulado.getFinishedAt() != null) {
-            wrapper.setSerializationView(Views.SimuladoFinalizado.class);
+            wrapper.setSerializationView(Views.RespostaVisivel.class);
         } else {
-            wrapper.setSerializationView(Views.SimuladoIniciado.class);
+            wrapper.setSerializationView(Views.RespostaOculta.class);
         }
         
         return wrapper;

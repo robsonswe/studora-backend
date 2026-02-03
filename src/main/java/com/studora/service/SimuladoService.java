@@ -212,7 +212,7 @@ public class SimuladoService {
 
     @Transactional
     public SimuladoDto finalizarSimulado(Long id) {
-        Simulado simulado = simuladoRepository.findById(id)
+        Simulado simulado = simuladoRepository.findByIdWithQuestoes(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Simulado", "ID", id));
         
         if (simulado.getStartedAt() == null) {
@@ -221,6 +221,16 @@ public class SimuladoService {
         
         if (simulado.getFinishedAt() != null) {
             throw new ValidationException("Este simulado já foi finalizado.");
+        }
+
+        // Validate that all questions have been answered
+        List<Resposta> respostas = respostaRepository.findBySimuladoId(id);
+        Set<Long> answeredQuestaoIds = respostas.stream()
+                .map(r -> r.getQuestao().getId())
+                .collect(Collectors.toSet());
+
+        if (answeredQuestaoIds.size() < simulado.getQuestoes().size()) {
+            throw new ValidationException("Não é possível finalizar o simulado: existem questões sem resposta.");
         }
 
         simulado.setFinishedAt(LocalDateTime.now());
@@ -263,8 +273,18 @@ public class SimuladoService {
             dto.setQuestoes(simulado.getQuestoes().stream()
                     .map(q -> {
                         QuestaoDto qDto = questaoMapper.toDto(q);
+                        boolean answered = false;
                         if (simulado.getFinishedAt() != null && respostaMap.containsKey(q.getId())) {
                             qDto.setResposta(respostaMapper.toDto(respostaMap.get(q.getId())));
+                            answered = true;
+                        }
+                        
+                        // Dynamic visibility within Simulado: hide correction details if not answered IN THIS simulado
+                        if (!answered && qDto.getAlternativas() != null) {
+                            qDto.getAlternativas().forEach(a -> {
+                                a.setCorreta(null);
+                                a.setJustificativa(null);
+                            });
                         }
                         return qDto;
                     })

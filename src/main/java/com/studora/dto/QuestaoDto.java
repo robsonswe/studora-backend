@@ -13,29 +13,29 @@ import java.util.List;
 public class QuestaoDto {
 
     @Schema(description = "ID único da questão (gerado automaticamente)", example = "1", accessMode = Schema.AccessMode.READ_ONLY)
-    @JsonView(Views.SimuladoIniciado.class)
+    @JsonView(Views.RespostaOculta.class)
     private Long id;
 
     @NotNull(message = "ID do concurso é obrigatório")
     @Schema(description = "ID do concurso ao qual a questão pertence", example = "1", required = true)
-    @JsonView(Views.SimuladoIniciado.class)
+    @JsonView(Views.RespostaOculta.class)
     private Long concursoId;
 
     @NotBlank(message = "Enunciado da questão é obrigatório")
     @Schema(description = "Texto do enunciado da questão", example = "Qual é a capital do Brasil?", required = true)
-    @JsonView(Views.SimuladoIniciado.class)
+    @JsonView(Views.RespostaOculta.class)
     private String enunciado;
 
     @Schema(description = "Indica se a questão foi anulada", example = "false", defaultValue = "false")
-    @JsonView(Views.SimuladoIniciado.class)
+    @JsonView(Views.QuestaoOculta.class)
     private Boolean anulada = false;
 
     @Schema(description = "Indica se a questão está desatualizada", example = "false", defaultValue = "false")
-    @JsonView(Views.SimuladoIniciado.class)
+    @JsonView(Views.RespostaOculta.class)
     private Boolean desatualizada = false;
 
     @Schema(description = "URL da imagem associada à questão", example = "https://exemplo.com/imagem.jpg")
-    @JsonView(Views.SimuladoIniciado.class)
+    @JsonView(Views.RespostaOculta.class)
     private String imageUrl;
 
     public String getImageUrl() {
@@ -47,20 +47,24 @@ public class QuestaoDto {
     }
 
     @Schema(description = "IDs dos subtemas associados à questão")
-    @JsonView(Views.SimuladoIniciado.class)
+    @JsonView(Views.RespostaOculta.class)
     private List<Long> subtemaIds; // IDs of associated subtemas
 
     @Schema(description = "IDs dos cargos do concurso associados à questão")
-    @JsonView(Views.SimuladoIniciado.class)
+    @JsonView(Views.RespostaOculta.class)
     private List<Long> concursoCargoIds; // IDs of associated ConcursoCargo records
 
     @Schema(description = "Alternativas da questão")
-    @JsonView(Views.SimuladoIniciado.class)
+    @JsonView(Views.RespostaOculta.class)
     private List<AlternativaDto> alternativas; // Alternativas associated with the question
 
     @Schema(description = "Resposta do usuário para esta questão dentro do contexto do simulado")
-    @JsonView(Views.SimuladoFinalizado.class)
+    @JsonView(Views.RespostaVisivel.class)
     private RespostaDto resposta;
+
+    @Schema(description = "Histórico de respostas para esta questão")
+    @JsonView(Views.RespostaVisivel.class)
+    private List<RespostaDto> respostas;
 
     // Constructors
     public QuestaoDto() {}

@@ -2,6 +2,7 @@ package com.studora.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 @Schema(description = "Request DTO para criação de uma resposta")
@@ -16,10 +17,12 @@ public class RespostaCreateRequest {
     @Schema(description = "ID da alternativa selecionada como resposta", example = "1", required = true)
     private Long alternativaId;
 
-    @Schema(description = "Raciocínio ou comentário do usuário para esta tentativa", example = "Achei que era a B por causa de...")
+    @NotBlank(message = "O raciocínio/justificativa é obrigatório")
+    @Schema(description = "Raciocínio ou comentário do usuário para esta tentativa", example = "Achei que era a B por causa de...", required = true)
     private String justificativa;
 
-    @Schema(description = "ID do grau de dificuldade percebido (1=Fácil, 2=Média, 3=Difícil, 4=Chute)", example = "2")
+    @NotNull(message = "O grau de dificuldade é obrigatório")
+    @Schema(description = "ID do grau de dificuldade percebido (1=Fácil, 2=Média, 3=Difícil, 4=Chute)", example = "2", required = true)
     private Integer dificuldadeId;
 
     @Schema(description = "Duração da tentativa em segundos", example = "45")

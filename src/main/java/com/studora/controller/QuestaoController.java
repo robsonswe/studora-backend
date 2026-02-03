@@ -30,6 +30,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.json.MappingJacksonValue;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -115,10 +116,18 @@ public class QuestaoController {
         }
     )
     @GetMapping("/{id}")
-    public ResponseEntity<QuestaoDto> getQuestaoById(
+    public MappingJacksonValue getQuestaoById(
             @Parameter(description = "ID da questão a ser buscada", required = true) @PathVariable Long id) {
         QuestaoDto questao = questaoService.getQuestaoById(id);
-        return ResponseEntity.ok(questao);
+        MappingJacksonValue wrapper = new MappingJacksonValue(questao);
+        
+        if (questao.getRespostas() != null && !questao.getRespostas().isEmpty()) {
+            wrapper.setSerializationView(com.studora.dto.Views.QuestaoVisivel.class);
+        } else {
+            wrapper.setSerializationView(com.studora.dto.Views.QuestaoOculta.class);
+        }
+        
+        return wrapper;
     }
 
     @Operation(
