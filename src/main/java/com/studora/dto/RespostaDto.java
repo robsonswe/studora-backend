@@ -30,6 +30,9 @@ public class RespostaDto {
     @Schema(description = "ID do grau de dificuldade percebido (1=Fácil, 2=Média, 3=Difícil, 4=Chute)", example = "2")
     private Integer dificuldadeId;
 
+    @Schema(description = "ID do simulado ao qual esta resposta pertence", example = "1")
+    private Long simuladoId;
+
     @Schema(description = "Duração da tentativa em segundos", example = "45")
     private Integer tempoRespostaSegundos;
 

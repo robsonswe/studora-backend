@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface QuestaoRepository extends JpaRepository<Questao, Long>, JpaSpecificationExecutor<Questao> {
+public interface QuestaoRepository extends JpaRepository<Questao, Long>, JpaSpecificationExecutor<Questao>, QuestaoRepositoryCustom {
     boolean existsByConcursoId(Long concursoId);
     boolean existsBySubtemasId(Long subtemaId);
 
@@ -29,6 +29,7 @@ public interface QuestaoRepository extends JpaRepository<Questao, Long>, JpaSpec
            "LEFT JOIN FETCH q.subtemas " +
            "LEFT JOIN FETCH q.questaoCargos qc " +
            "LEFT JOIN FETCH qc.concursoCargo " +
+           "LEFT JOIN FETCH q.concurso " +
            "WHERE q.id = :id")
     Optional<Questao> findByIdWithDetails(@Param("id") Long id);
 }

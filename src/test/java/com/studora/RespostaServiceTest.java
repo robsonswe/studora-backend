@@ -32,6 +32,9 @@ class RespostaServiceTest {
     @Mock
     private AlternativaRepository alternativaRepository;
 
+    @Mock
+    private com.studora.repository.SimuladoRepository simuladoRepository;
+
     @InjectMocks
     private RespostaService respostaService;
 
@@ -46,6 +49,7 @@ class RespostaServiceTest {
             respostaRepository,
             questaoRepository,
             alternativaRepository,
+            simuladoRepository,
             realRespostaMapper
         );
     }

@@ -49,6 +49,11 @@ public class Resposta extends BaseEntity {
     @Schema(description = "Duração da tentativa em segundos", example = "45")
     private Integer tempoRespostaSegundos;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "simulado_id")
+    @Schema(description = "Simulado ao qual esta resposta pertence (opcional)")
+    private Simulado simulado;
+
     // Constructors
     public Resposta() {}
 
@@ -104,5 +109,13 @@ public class Resposta extends BaseEntity {
 
     public void setTempoRespostaSegundos(Integer tempoRespostaSegundos) {
         this.tempoRespostaSegundos = tempoRespostaSegundos;
+    }
+
+    public Simulado getSimulado() {
+        return simulado;
+    }
+
+    public void setSimulado(Simulado simulado) {
+        this.simulado = simulado;
     }
 }

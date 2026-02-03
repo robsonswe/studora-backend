@@ -6,12 +6,14 @@ import com.studora.dto.request.RespostaCreateRequest;
 import com.studora.entity.Alternativa;
 import com.studora.entity.Questao;
 import com.studora.entity.Resposta;
+import com.studora.entity.Simulado;
 import com.studora.exception.ResourceNotFoundException;
 import com.studora.exception.ValidationException;
 import com.studora.mapper.RespostaMapper;
 import com.studora.repository.AlternativaRepository;
 import com.studora.repository.QuestaoRepository;
 import com.studora.repository.RespostaRepository;
+import com.studora.repository.SimuladoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -30,6 +32,7 @@ public class RespostaService {
     private final RespostaRepository respostaRepository;
     private final QuestaoRepository questaoRepository;
     private final AlternativaRepository alternativaRepository;
+    private final SimuladoRepository simuladoRepository;
     private final RespostaMapper respostaMapper;
 
     public Page<RespostaDto> findAll(Pageable pageable) {
@@ -75,6 +78,12 @@ public class RespostaService {
         resposta.setQuestao(questao);
         resposta.setAlternativaEscolhida(alternativa);
 
+        if (request.getSimuladoId() != null) {
+            Simulado simulado = simuladoRepository.findById(request.getSimuladoId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Simulado", "ID", request.getSimuladoId()));
+            resposta.setSimulado(simulado);
+        }
+
         Resposta savedResposta = respostaRepository.save(resposta);
         return respostaMapper.toDto(savedResposta);
     }
@@ -98,6 +107,12 @@ public class RespostaService {
         Resposta resposta = respostaMapper.toEntity(request);
         resposta.setQuestao(questao);
         resposta.setAlternativaEscolhida(alternativa);
+
+        if (request.getSimuladoId() != null) {
+            Simulado simulado = simuladoRepository.findById(request.getSimuladoId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Simulado", "ID", request.getSimuladoId()));
+            resposta.setSimulado(simulado);
+        }
 
         Resposta savedResposta = respostaRepository.save(resposta);
         return respostaMapper.toComAlternativasDto(savedResposta);

@@ -28,10 +28,32 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
            "WHERE r.id = :id")
     Optional<Resposta> findByIdWithDetails(@Param("id") Long id);
 
-    @Query("SELECT r FROM Resposta r " +
-           "JOIN FETCH r.questao " +
-           "JOIN FETCH r.alternativaEscolhida " +
-           "WHERE r.questao.id = :questaoId " +
-           "ORDER BY r.createdAt DESC")
-    java.util.List<Resposta> findByQuestaoIdWithDetails(@Param("questaoId") Long questaoId);
-}
+        @Query("SELECT r FROM Resposta r " +
+
+               "JOIN FETCH r.questao " +
+
+               "JOIN FETCH r.alternativaEscolhida " +
+
+               "WHERE r.questao.id = :questaoId " +
+
+               "ORDER BY r.createdAt DESC")
+
+        java.util.List<Resposta> findByQuestaoIdWithDetails(@Param("questaoId") Long questaoId);
+
+    
+
+        java.util.List<Resposta> findBySimuladoId(Long simuladoId);
+
+    
+
+        @Transactional
+
+        @Modifying
+
+        @Query("UPDATE Resposta r SET r.simulado = null WHERE r.simulado.id = :simuladoId")
+
+        void detachSimulado(@Param("simuladoId") Long simuladoId);
+
+    }
+
+    

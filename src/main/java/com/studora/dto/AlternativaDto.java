@@ -1,5 +1,7 @@
 package com.studora.dto;
 
+import com.studora.dto.Views;
+import com.fasterxml.jackson.annotation.JsonView;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -9,25 +11,31 @@ import jakarta.validation.constraints.Positive;
 public class AlternativaDto {
     
     @Schema(description = "ID da alternativa (gerado automaticamente)", example = "1", accessMode = Schema.AccessMode.READ_ONLY)
+    @JsonView(Views.SimuladoIniciado.class)
     private Long id;
 
     @Schema(description = "ID da questão à qual a alternativa pertence (definido pelo parâmetro da URL)", example = "1", accessMode = Schema.AccessMode.READ_ONLY)
+    @JsonView(Views.SimuladoIniciado.class)
     private Long questaoId;
 
     @Schema(description = "Ordem da alternativa na lista", example = "1", required = true)
     @NotNull(message = "Ordem é obrigatória")
     @Positive(message = "Ordem deve ser um número positivo")
+    @JsonView(Views.SimuladoIniciado.class)
     private Integer ordem;
 
     @Schema(description = "Texto da alternativa", example = "A resposta correta é a opção A", required = true)
     @NotBlank(message = "Texto da alternativa é obrigatório")
+    @JsonView(Views.SimuladoIniciado.class)
     private String texto;
 
     @Schema(description = "Indica se a alternativa é a correta", example = "true", required = true)
     @NotNull(message = "Indicação de correta é obrigatória")
+    @JsonView(Views.SimuladoFinalizado.class)
     private Boolean correta;
 
     @Schema(description = "Justificativa da alternativa", example = "Esta é a alternativa correta porque...")
+    @JsonView(Views.SimuladoFinalizado.class)
     private String justificativa;
     
     // Constructors

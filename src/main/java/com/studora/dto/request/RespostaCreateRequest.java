@@ -25,6 +25,9 @@ public class RespostaCreateRequest {
     @Schema(description = "Duração da tentativa em segundos", example = "45")
     private Integer tempoRespostaSegundos;
 
+    @Schema(description = "ID do simulado ao qual esta resposta pertence", example = "1")
+    private Long simuladoId;
+
     // Constructors
     public RespostaCreateRequest() {}
 

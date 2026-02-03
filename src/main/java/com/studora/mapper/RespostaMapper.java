@@ -13,17 +13,21 @@ public interface RespostaMapper {
     @Mapping(target = "alternativaId", source = "alternativaEscolhida.id")
     @Mapping(target = "correta", source = "alternativaEscolhida.correta")
     @Mapping(target = "dificuldadeId", source = "dificuldade.id")
+    @Mapping(target = "simuladoId", source = "simulado.id")
     RespostaDto toDto(Resposta resposta);
 
     @Mapping(target = "questaoId", source = "questao.id")
     @Mapping(target = "alternativaId", source = "alternativaEscolhida.id")
     @Mapping(target = "correta", source = "alternativaEscolhida.correta")
     @Mapping(target = "alternativas", source = "questao.alternativas")
+    @Mapping(target = "dificuldadeId", source = "dificuldade.id")
+    @Mapping(target = "simuladoId", source = "simulado.id")
     RespostaComAlternativasDto toComAlternativasDto(Resposta resposta);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "questao", ignore = true)
     @Mapping(target = "alternativaEscolhida", ignore = true)
+    @Mapping(target = "simulado", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "dificuldade", source = "dificuldadeId")
@@ -32,6 +36,7 @@ public interface RespostaMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "questao", ignore = true)
     @Mapping(target = "alternativaEscolhida", ignore = true)
+    @Mapping(target = "simulado", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "dificuldade", source = "dificuldadeId")

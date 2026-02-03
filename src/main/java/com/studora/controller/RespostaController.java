@@ -55,7 +55,7 @@ public class RespostaController {
                     mediaType = "application/json",
                     schema = @Schema(implementation = PageResponse.class),
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"createdAt\": \"2023-06-15T10:30:00\"}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"justificativa\": \"Raciocínio...\", \"dificuldadeId\": 2, \"tempoRespostaSegundos\": 45, \"createdAt\": \"2023-06-15T10:30:00\"}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -89,7 +89,7 @@ public class RespostaController {
                 content = @Content(
                     schema = @Schema(implementation = RespostaDto.class),
                     examples = @ExampleObject(
-                        value = "{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"createdAt\": \"2023-06-15T10:30:00\"}"
+                        value = "{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"justificativa\": \"Raciocínio...\", \"dificuldadeId\": 2, \"tempoRespostaSegundos\": 45, \"createdAt\": \"2023-06-15T10:30:00\"}"
                     )
                 )),
             @ApiResponse(responseCode = "404", description = "Resposta não encontrada",
@@ -121,7 +121,7 @@ public class RespostaController {
                 content = @Content(
                     array = @ArraySchema(schema = @Schema(implementation = RespostaDto.class)),
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"createdAt\": \"2023-06-15T10:30:00\"}]"
+                        value = "[{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"justificativa\": \"Raciocínio...\", \"dificuldadeId\": 2, \"tempoRespostaSegundos\": 45, \"createdAt\": \"2023-06-15T10:30:00\"}]"
                     )
                 )),
             @ApiResponse(responseCode = "404", description = "Questão não encontrada",
@@ -162,7 +162,7 @@ public class RespostaController {
                 content = @Content(
                     schema = @Schema(implementation = RespostaComAlternativasDto.class),
                     examples = @ExampleObject(
-                        value = "{\"id\": 2, \"questaoId\": 1, \"alternativaId\": 2, \"correta\": true, \"createdAt\": \"2023-06-15T10:30:00\", \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Alternativa A\", \"justificativa\": \"Justificativa A\", \"correta\": false}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Alternativa B\", \"justificativa\": \"Justificativa B\", \"correta\": true}]}"
+                        value = "{\"id\": 2, \"questaoId\": 1, \"alternativaId\": 2, \"correta\": true, \"justificativa\": \"Achei que era B...\", \"dificuldadeId\": 2, \"tempoRespostaSegundos\": 30, \"simuladoId\": 1, \"createdAt\": \"2023-06-15T10:30:00\", \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Alternativa A\", \"justificativa\": \"Justificativa A\", \"correta\": false}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Alternativa B\", \"justificativa\": \"Justificativa B\", \"correta\": true}]}"
                     )
                 )),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
