@@ -10,6 +10,7 @@ import com.studora.dto.request.QuestaoUpdateRequest;
 import com.studora.dto.request.AlternativaCreateRequest;
 import com.studora.dto.request.AlternativaUpdateRequest;
 import com.studora.dto.request.QuestaoCargoCreateRequest;
+import com.studora.common.constants.AppConstants;
 import com.studora.service.QuestaoService;
 import com.studora.util.PaginationUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -56,8 +57,8 @@ public class QuestaoController {
         summary = "Obter questões",
         description = "Retorna uma página de questões com base nos filtros fornecidos. Suporta paginação e ordenação prioritária.",
         parameters = {
-            @Parameter(name = "page", description = "Número da página (0..N)", schema = @Schema(type = "integer", defaultValue = "0")),
-            @Parameter(name = "size", description = "Tamanho da página", schema = @Schema(type = "integer", defaultValue = "20")),
+            @Parameter(name = "page", description = "Número da página (0..N)", schema = @Schema(type = "integer", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER_STR)),
+            @Parameter(name = "size", description = "Tamanho da página", schema = @Schema(type = "integer", defaultValue = AppConstants.DEFAULT_PAGE_SIZE_STR)),
             @Parameter(name = "sort", description = "Campo para ordenação primária", schema = @Schema(type = "string", allowableValues = {"id"}, defaultValue = "id")),
             @Parameter(name = "direction", description = "Direção da ordenação primária", schema = @Schema(type = "string", allowableValues = {"ASC", "DESC"}, defaultValue = "DESC"))
         },
@@ -67,7 +68,7 @@ public class QuestaoController {
                     mediaType = "application/json",
                     schema = @Schema(implementation = PageResponse.class),
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\", \"correta\": true}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\", \"correta\": false}]}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"enunciado\": \"De acordo com a CF/88, o Brasil é uma República Federativa composta por qual união?\", \"concursoId\": 1, \"imageUrl\": \"https://exemplo.com/imagem.jpg\", \"subtemaIds\": [1, 2], \"concursoCargoIds\": [1], \"anulada\": false, \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"Opção A\", \"justificativa\": \"Justificativa A\", \"correta\": true}, {\"id\": 2, \"ordem\": 2, \"texto\": \"Opção B\", \"justificativa\": \"Justificativa B\", \"correta\": false}]}], \"pageNumber\": 0, \"pageSize\": " + AppConstants.DEFAULT_PAGE_SIZE + ", \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -81,7 +82,7 @@ public class QuestaoController {
     @GetMapping
     public ResponseEntity<PageResponse<QuestaoDto>> getQuestoes(
             @ParameterObject @Valid QuestaoFilter filter,
-            @Parameter(hidden = true) @PageableDefault(size = 20) Pageable pageable,
+            @Parameter(hidden = true) @PageableDefault(size = AppConstants.DEFAULT_PAGE_SIZE) Pageable pageable,
             @RequestParam(defaultValue = "id") String sort,
             @RequestParam(defaultValue = "DESC") String direction) {
         

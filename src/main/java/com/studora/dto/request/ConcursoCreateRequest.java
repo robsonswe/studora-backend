@@ -1,6 +1,7 @@
 package com.studora.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import com.studora.common.constants.AppConstants;
 import lombok.Data;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -18,14 +19,14 @@ public class ConcursoCreateRequest {
     private Long bancaId;
 
     @NotNull(message = "Ano é obrigatório")
-    @jakarta.validation.constraints.Min(value = 1900, message = "Ano deve ser no mínimo 1900")
-    @jakarta.validation.constraints.Max(value = 2100, message = "Ano deve ser no máximo 2100")
+    @jakarta.validation.constraints.Min(value = AppConstants.MIN_YEAR, message = "Ano deve ser no mínimo " + AppConstants.MIN_YEAR)
+    @jakarta.validation.constraints.Max(value = AppConstants.MAX_YEAR, message = "Ano deve ser no máximo " + AppConstants.MAX_YEAR)
     @Schema(description = "Ano em que o concurso foi realizado", example = "2023", required = true)
     private Integer ano;
 
     @NotNull(message = "Mês é obrigatório")
-    @jakarta.validation.constraints.Min(value = 1, message = "Mês deve ser entre 1 e 12")
-    @jakarta.validation.constraints.Max(value = 12, message = "Mês deve ser entre 1 e 12")
+    @jakarta.validation.constraints.Min(value = AppConstants.MIN_MONTH, message = "Mês deve ser entre " + AppConstants.MIN_MONTH + " e " + AppConstants.MAX_MONTH)
+    @jakarta.validation.constraints.Max(value = AppConstants.MAX_MONTH, message = "Mês deve ser entre " + AppConstants.MIN_MONTH + " e " + AppConstants.MAX_MONTH)
     @Schema(description = "Mês em que o concurso foi realizado", example = "6", required = true)
     private Integer mes;
 

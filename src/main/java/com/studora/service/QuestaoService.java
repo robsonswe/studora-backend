@@ -12,7 +12,7 @@ import com.studora.mapper.QuestaoCargoMapper;
 import com.studora.mapper.QuestaoMapper;
 import com.studora.repository.*;
 import com.studora.repository.specification.QuestaoSpecification;
-import com.studora.util.QuestaoValidationConstants;
+import com.studora.common.constants.AppConstants;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -110,13 +110,13 @@ public class QuestaoService {
         normalizeAlternativaOrders(questaoDto.getAlternativas());
 
         // Validate that the question has at least one cargo association
-        if (questaoDto.getConcursoCargoIds() == null || questaoDto.getConcursoCargoIds().size() < QuestaoValidationConstants.MIN_CARGO_ASSOCIATIONS) {
-            throw new ValidationException("Uma questão deve estar associada a pelo menos " + QuestaoValidationConstants.MIN_CARGO_ASSOCIATIONS + " cargo");
+        if (questaoDto.getConcursoCargoIds() == null || questaoDto.getConcursoCargoIds().size() < AppConstants.MIN_CARGO_ASSOCIATIONS) {
+            throw new ValidationException("Uma questão deve estar associada a pelo menos " + AppConstants.MIN_CARGO_ASSOCIATIONS + " cargo");
         }
 
         // Validate that the question has at least 2 alternatives
-        if (questaoDto.getAlternativas() == null || questaoDto.getAlternativas().size() < QuestaoValidationConstants.MIN_ALTERNATIVAS) {
-            throw new ValidationException("Uma questão deve ter pelo menos " + QuestaoValidationConstants.MIN_ALTERNATIVAS + " alternativas");
+        if (questaoDto.getAlternativas() == null || questaoDto.getAlternativas().size() < AppConstants.MIN_ALTERNATIVAS) {
+            throw new ValidationException("Uma questão deve ter pelo menos " + AppConstants.MIN_ALTERNATIVAS + " alternativas");
         }
 
         // Validate that exactly one alternative is correct, unless the question is annulled
@@ -125,8 +125,8 @@ public class QuestaoService {
                 .map(com.studora.dto.AlternativaDto::getCorreta)
                 .filter(Boolean.TRUE::equals)
                 .count();
-            if (correctCount != QuestaoValidationConstants.REQUIRED_CORRECT_ALTERNATIVAS) {
-                throw new ValidationException("Uma questão deve ter exatamente " + QuestaoValidationConstants.REQUIRED_CORRECT_ALTERNATIVAS + " alternativa correta");
+            if (correctCount != AppConstants.REQUIRED_CORRECT_ALTERNATIVAS) {
+                throw new ValidationException("Uma questão deve ter exatamente " + AppConstants.REQUIRED_CORRECT_ALTERNATIVAS + " alternativa correta");
             }
         }
 
@@ -207,8 +207,8 @@ public class QuestaoService {
 
         // Validate that the question has at least 2 alternatives
         if (questaoDto.getAlternativas() != null) {
-            if (questaoDto.getAlternativas().size() < QuestaoValidationConstants.MIN_ALTERNATIVAS) {
-                throw new ValidationException("Uma questão deve ter pelo menos " + QuestaoValidationConstants.MIN_ALTERNATIVAS + " alternativas");
+            if (questaoDto.getAlternativas().size() < AppConstants.MIN_ALTERNATIVAS) {
+                throw new ValidationException("Uma questão deve ter pelo menos " + AppConstants.MIN_ALTERNATIVAS + " alternativas");
             }
 
             if (!Boolean.TRUE.equals(questaoDto.getAnulada())) {
@@ -216,8 +216,8 @@ public class QuestaoService {
                     .map(com.studora.dto.AlternativaDto::getCorreta)
                     .filter(Boolean.TRUE::equals)
                     .count();
-                if (correctCount != QuestaoValidationConstants.REQUIRED_CORRECT_ALTERNATIVAS) {
-                    throw new ValidationException("Uma questão deve ter exatamente " + QuestaoValidationConstants.REQUIRED_CORRECT_ALTERNATIVAS + " alternativa correta");
+                if (correctCount != AppConstants.REQUIRED_CORRECT_ALTERNATIVAS) {
+                    throw new ValidationException("Uma questão deve ter exatamente " + AppConstants.REQUIRED_CORRECT_ALTERNATIVAS + " alternativa correta");
                 }
             }
         }
@@ -316,8 +316,8 @@ public class QuestaoService {
         }
 
         // Final validation: ensure at least one cargo remains
-        if (questaoCargoRepository.findByQuestaoId(id).size() < QuestaoValidationConstants.MIN_CARGO_ASSOCIATIONS) {
-            throw new ValidationException("Uma questão deve estar associada a pelo menos " + QuestaoValidationConstants.MIN_CARGO_ASSOCIATIONS + " cargo");
+        if (questaoCargoRepository.findByQuestaoId(id).size() < AppConstants.MIN_CARGO_ASSOCIATIONS) {
+            throw new ValidationException("Uma questão deve estar associada a pelo menos " + AppConstants.MIN_CARGO_ASSOCIATIONS + " cargo");
         }
 
         return questaoMapper.toDto(updatedQuestao);

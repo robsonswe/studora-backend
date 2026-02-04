@@ -6,6 +6,7 @@ import com.studora.dto.PageResponse;
 import com.studora.dto.request.ConcursoCargoCreateRequest;
 import com.studora.dto.request.ConcursoCreateRequest;
 import com.studora.dto.request.ConcursoUpdateRequest;
+import com.studora.common.constants.AppConstants;
 import com.studora.service.ConcursoService;
 import com.studora.util.PaginationUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,8 +46,8 @@ public class ConcursoController {
         summary = "Obter todos os concursos",
         description = "Retorna uma página com todos os concursos cadastrados. Suporta paginação e ordenação prioritária.",
         parameters = {
-            @Parameter(name = "page", description = "Número da página (0..N)", schema = @Schema(type = "integer", defaultValue = "0")),
-            @Parameter(name = "size", description = "Tamanho da página", schema = @Schema(type = "integer", defaultValue = "20")),
+            @Parameter(name = "page", description = "Número da página (0..N)", schema = @Schema(type = "integer", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER_STR)),
+            @Parameter(name = "size", description = "Tamanho da página", schema = @Schema(type = "integer", defaultValue = AppConstants.DEFAULT_PAGE_SIZE_STR)),
             @Parameter(name = "sort", description = "Campo para ordenação primária", schema = @Schema(type = "string", allowableValues = {"ano", "mes", "instituicao", "banca"}, defaultValue = "ano")),
             @Parameter(name = "direction", description = "Direção da ordenação primária", schema = @Schema(type = "string", allowableValues = {"ASC", "DESC"}, defaultValue = "DESC"))
         },
@@ -56,7 +57,7 @@ public class ConcursoController {
                     mediaType = "application/json",
                     schema = @Schema(implementation = PageResponse.class),
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"instituicaoId\": 1, \"bancaId\": 1, \"ano\": 2023, \"mes\": 5, \"edital\": \"https://exemplo.com/edital.pdf\"}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"instituicaoId\": 1, \"bancaId\": 1, \"ano\": 2023, \"mes\": 5, \"edital\": \"https://exemplo.com/edital.pdf\"}], \"pageNumber\": 0, \"pageSize\": " + AppConstants.DEFAULT_PAGE_SIZE + ", \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -69,7 +70,7 @@ public class ConcursoController {
     )
     @GetMapping
     public ResponseEntity<PageResponse<ConcursoDto>> getAllConcursos(
-            @Parameter(hidden = true) @PageableDefault(size = 20) Pageable pageable,
+            @Parameter(hidden = true) @PageableDefault(size = AppConstants.DEFAULT_PAGE_SIZE) Pageable pageable,
             @RequestParam(defaultValue = "ano") String sort,
             @RequestParam(defaultValue = "DESC") String direction) {
         
@@ -145,7 +146,7 @@ public class ConcursoController {
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/concursos\",\"errors\":{\"ano\":\"deve ser maior que 1900\"}}"
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/concursos\",\"errors\":{\"ano\":\"deve ser maior que " + AppConstants.MIN_YEAR + "\"}}"
                     ))),
             @ApiResponse(responseCode = "409", description = "Conflito - Já existe um concurso com esta combinação de instituição, banca, ano e mês",
                 content = @Content(mediaType = "application/problem+json",
@@ -199,7 +200,7 @@ public class ConcursoController {
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/concursos/1\",\"errors\":{\"ano\":\"deve ser maior que 1900\"}}"
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/concursos/1\",\"errors\":{\"ano\":\"deve ser maior que " + AppConstants.MIN_YEAR + "\"}}"
                     ))),
             @ApiResponse(responseCode = "404", description = "Concurso não encontrado",
                 content = @Content(mediaType = "application/problem+json",

@@ -7,6 +7,7 @@ import com.studora.entity.*;
 import com.studora.exception.ResourceNotFoundException;
 import com.studora.exception.ValidationException;
 import com.studora.mapper.QuestaoMapper;
+import com.studora.common.constants.AppConstants;
 import com.studora.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -151,8 +152,8 @@ public class SimuladoService {
             }
         }
 
-        if (allSelectedIds.size() < 20) {
-            throw new ValidationException("Não foi possível encontrar o mínimo de 20 questões que atendam aos critérios (encontradas: " + allSelectedIds.size() + ").");
+        if (allSelectedIds.size() < AppConstants.MIN_SIMULADO_QUESTIONS) {
+            throw new ValidationException("Não foi possível encontrar o mínimo de " + AppConstants.MIN_SIMULADO_QUESTIONS + " questões que atendam aos critérios (encontradas: " + allSelectedIds.size() + ").");
         }
 
         Simulado simulado = new Simulado();
@@ -180,8 +181,8 @@ public class SimuladoService {
         if (hasTemas) totalSolicitado += request.getTemas().stream().mapToInt(SimuladoGenerationRequest.ItemSelection::getQuantidade).sum();
         if (hasSubtemas) totalSolicitado += request.getSubtemas().stream().mapToInt(SimuladoGenerationRequest.ItemSelection::getQuantidade).sum();
 
-        if (totalSolicitado < 20) {
-            throw new ValidationException("O simulado deve ter no total pelo menos 20 questões solicitadas (total atual: " + totalSolicitado + ").");
+        if (totalSolicitado < AppConstants.MIN_SIMULADO_QUESTIONS) {
+            throw new ValidationException("O simulado deve ter no total pelo menos " + AppConstants.MIN_SIMULADO_QUESTIONS + " questões solicitadas (total atual: " + totalSolicitado + ").");
         }
     }
     

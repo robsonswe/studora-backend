@@ -1,6 +1,7 @@
 package com.studora.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import com.studora.common.constants.AppConstants;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,10 +20,10 @@ public class PageResponse<T> {
     @Schema(description = "Lista de elementos na página atual")
     private List<T> content;
 
-    @Schema(description = "Número da página atual (0..N)", example = "0")
+    @Schema(description = "Número da página atual (0..N)", example = AppConstants.DEFAULT_PAGE_NUMBER_STR)
     private int pageNumber;
     
-    @Schema(description = "Tamanho da página", example = "20")
+    @Schema(description = "Tamanho da página", example = AppConstants.DEFAULT_PAGE_SIZE_STR)
     private int pageSize;
 
     @Schema(description = "Total de elementos em todas as páginas", example = "100")

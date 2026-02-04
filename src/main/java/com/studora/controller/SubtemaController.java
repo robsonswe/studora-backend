@@ -4,6 +4,7 @@ import com.studora.dto.SubtemaDto;
 import com.studora.dto.PageResponse;
 import com.studora.dto.request.SubtemaCreateRequest;
 import com.studora.dto.request.SubtemaUpdateRequest;
+import com.studora.common.constants.AppConstants;
 import com.studora.service.SubtemaService;
 import com.studora.util.PaginationUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -45,8 +46,8 @@ public class SubtemaController {
         description = "Retorna uma página com todos os subtemas cadastrados. Suporta paginação, ordenação prioritária e busca por nome.",
         parameters = {
             @Parameter(name = "nome", description = "Filtro para busca por nome (fuzzy)", schema = @Schema(type = "string")),
-            @Parameter(name = "page", description = "Número da página (0..N)", schema = @Schema(type = "integer", defaultValue = "0")),
-            @Parameter(name = "size", description = "Tamanho da página", schema = @Schema(type = "integer", defaultValue = "20")),
+            @Parameter(name = "page", description = "Número da página (0..N)", schema = @Schema(type = "integer", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER_STR)),
+            @Parameter(name = "size", description = "Tamanho da página", schema = @Schema(type = "integer", defaultValue = AppConstants.DEFAULT_PAGE_SIZE_STR)),
             @Parameter(name = "sort", description = "Campo para ordenação primária", schema = @Schema(type = "string", allowableValues = {"nome", "temaId"}, defaultValue = "nome")),
             @Parameter(name = "direction", description = "Direção da ordenação primária", schema = @Schema(type = "string", allowableValues = {"ASC", "DESC"}, defaultValue = "ASC"))
         },
@@ -56,7 +57,7 @@ public class SubtemaController {
                     mediaType = "application/json",
                     schema = @Schema(implementation = PageResponse.class),
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Atos Administrativos\", \"temaId\": 5}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Atos Administrativos\", \"temaId\": 5}], \"pageNumber\": 0, \"pageSize\": " + AppConstants.DEFAULT_PAGE_SIZE + ", \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -70,7 +71,7 @@ public class SubtemaController {
     @GetMapping
     public ResponseEntity<PageResponse<SubtemaDto>> getAllSubtemas(
             @RequestParam(required = false) String nome,
-            @Parameter(hidden = true) @PageableDefault(size = 20) Pageable pageable,
+            @Parameter(hidden = true) @PageableDefault(size = AppConstants.DEFAULT_PAGE_SIZE) Pageable pageable,
             @RequestParam(defaultValue = "nome") String sort,
             @RequestParam(defaultValue = "ASC") String direction) {
         

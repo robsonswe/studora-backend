@@ -1,6 +1,7 @@
 package com.studora.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import com.studora.common.constants.AppConstants;
 import lombok.Data;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -10,7 +11,7 @@ import jakarta.validation.constraints.Size;
 public class DisciplinaCreateRequest {
 
     @NotBlank(message = "Nome da disciplina é obrigatório")
-    @Size(max = 255, message = "Nome da disciplina deve ter no máximo 255 caracteres")
+    @Size(max = AppConstants.MAX_NAME_LENGTH, message = "Nome da disciplina deve ter no máximo " + AppConstants.MAX_NAME_LENGTH + " caracteres")
     @Schema(description = "Nome da disciplina", example = "Matemática", required = true)
     private String nome;
 

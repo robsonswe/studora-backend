@@ -4,6 +4,7 @@ import com.studora.dto.PageResponse;
 import com.studora.dto.RespostaDto;
 import com.studora.dto.RespostaComAlternativasDto;
 import com.studora.dto.request.RespostaCreateRequest;
+import com.studora.common.constants.AppConstants;
 import com.studora.service.RespostaService;
 import com.studora.util.PaginationUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -44,8 +45,8 @@ public class RespostaController {
         summary = "Obter todas as respostas",
         description = "Retorna uma página com todas as respostas cadastradas. Suporta paginação e ordenação prioritária.",
         parameters = {
-            @Parameter(name = "page", description = "Número da página (0..N)", schema = @Schema(type = "integer", defaultValue = "0")),
-            @Parameter(name = "size", description = "Tamanho da página", schema = @Schema(type = "integer", defaultValue = "20")),
+            @Parameter(name = "page", description = "Número da página (0..N)", schema = @Schema(type = "integer", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER_STR)),
+            @Parameter(name = "size", description = "Tamanho da página", schema = @Schema(type = "integer", defaultValue = AppConstants.DEFAULT_PAGE_SIZE_STR)),
             @Parameter(name = "sort", description = "Campo para ordenação primária", schema = @Schema(type = "string", allowableValues = {"createdAt"}, defaultValue = "createdAt")),
             @Parameter(name = "direction", description = "Direção da ordenação primária", schema = @Schema(type = "string", allowableValues = {"ASC", "DESC"}, defaultValue = "DESC"))
         },
@@ -55,7 +56,7 @@ public class RespostaController {
                     mediaType = "application/json",
                     schema = @Schema(implementation = PageResponse.class),
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"justificativa\": \"Raciocínio...\", \"dificuldadeId\": 2, \"tempoRespostaSegundos\": 45, \"createdAt\": \"2023-06-15T10:30:00\"}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"justificativa\": \"Raciocínio...\", \"dificuldadeId\": 2, \"tempoRespostaSegundos\": 45, \"createdAt\": \"2023-06-15T10:30:00\"}], \"pageNumber\": 0, \"pageSize\": " + AppConstants.DEFAULT_PAGE_SIZE + ", \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -68,7 +69,7 @@ public class RespostaController {
     )
     @GetMapping
     public ResponseEntity<PageResponse<RespostaDto>> getAllRespostas(
-            @Parameter(hidden = true) @PageableDefault(size = 20) Pageable pageable,
+            @Parameter(hidden = true) @PageableDefault(size = AppConstants.DEFAULT_PAGE_SIZE) Pageable pageable,
             @RequestParam(defaultValue = "createdAt") String sort,
             @RequestParam(defaultValue = "DESC") String direction) {
         

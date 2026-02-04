@@ -1,6 +1,7 @@
 package com.studora.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import com.studora.common.constants.AppConstants;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -44,14 +45,14 @@ public class Concurso extends BaseEntity {
     private Banca banca;
 
     @Column(nullable = false)
-    @Min(value = 1900, message = "Ano deve ser no mínimo 1900")
-    @Max(value = 2100, message = "Ano deve ser no máximo 2100")
+    @Min(value = AppConstants.MIN_YEAR, message = "Ano deve ser no mínimo " + AppConstants.MIN_YEAR)
+    @Max(value = AppConstants.MAX_YEAR, message = "Ano deve ser no máximo " + AppConstants.MAX_YEAR)
     @Schema(description = "Ano em que o concurso foi realizado", example = "2023")
     private Integer ano;
 
     @Column(nullable = false)
-    @Min(value = 1, message = "Mês deve ser entre 1 e 12")
-    @Max(value = 12, message = "Mês deve ser entre 1 e 12")
+    @Min(value = AppConstants.MIN_MONTH, message = "Mês deve ser entre " + AppConstants.MIN_MONTH + " e " + AppConstants.MAX_MONTH)
+    @Max(value = AppConstants.MAX_MONTH, message = "Mês deve ser entre " + AppConstants.MIN_MONTH + " e " + AppConstants.MAX_MONTH)
     @Schema(description = "Mês em que o concurso foi realizado", example = "6")
     private Integer mes;
 

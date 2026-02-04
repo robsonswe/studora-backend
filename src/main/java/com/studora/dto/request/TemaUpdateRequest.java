@@ -1,6 +1,7 @@
 package com.studora.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import com.studora.common.constants.AppConstants;
 import lombok.Data;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -15,7 +16,7 @@ public class TemaUpdateRequest {
     private Long disciplinaId;
 
     @NotBlank(message = "Nome do tema é obrigatório")
-    @Size(max = 255, message = "Nome do tema deve ter no máximo 255 caracteres")
+    @Size(max = AppConstants.MAX_NAME_LENGTH, message = "Nome do tema deve ter no máximo " + AppConstants.MAX_NAME_LENGTH + " caracteres")
     @Schema(description = "Nome do tema", example = "Álgebra Linear", required = true)
     private String nome;
 
