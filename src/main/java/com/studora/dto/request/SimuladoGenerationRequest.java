@@ -16,9 +16,6 @@ public class SimuladoGenerationRequest {
     @Schema(description = "Nome do simulado", example = "Simulado Geral 2024")
     private String nome;
 
-    @Schema(description = "Ano mínimo (inclusivo). Questões de concursos deste ano até o ano atual. Se maior que o ano atual, o filtro é ignorado.", example = "2023")
-    private Integer ano;
-
     @Schema(description = "ID da banca de preferência", example = "1")
     private Long bancaId;
 

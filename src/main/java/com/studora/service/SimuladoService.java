@@ -14,7 +14,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -39,15 +38,6 @@ public class SimuladoService {
 
         List<Long> allSelectedIds = new ArrayList<>();
         
-        // Date filter logic
-        Integer minAno = request.getAno();
-        if (minAno != null) {
-            int currentYear = LocalDate.now().getYear();
-            if (minAno > currentYear) {
-                minAno = null; // Ignore filter if future
-            }
-        }
-
         // --- Stage 1: Subtemas (Highest Priority) ---
         // ... (rest of the logic remains same until the final count check)
         if (request.getSubtemas() != null) {

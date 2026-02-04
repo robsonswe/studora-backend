@@ -8,7 +8,6 @@ import jakarta.persistence.Query;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -83,10 +82,6 @@ public class QuestaoRepositoryImpl implements QuestaoRepositoryCustom {
         whereClauses.add("q.desatualizada = false");
         whereClauses.add(scopeWhere);
 
-        if (req.getAno() != null && req.getAno() <= LocalDate.now().getYear()) {
-            whereClauses.add("c.ano >= :minAno");
-        }
-        
         if (excludeIds != null && !excludeIds.isEmpty() && !excludeIds.contains(-1L)) {
             whereClauses.add("q.id NOT IN :excludeIds");
         }
@@ -168,9 +163,6 @@ public class QuestaoRepositoryImpl implements QuestaoRepositoryCustom {
 
         // Set Parameters
         query.setParameter("scopeId", scopeId);
-        if (req.getAno() != null && req.getAno() <= LocalDate.now().getYear()) {
-            query.setParameter("minAno", req.getAno());
-        }
         if (excludeIds != null && !excludeIds.isEmpty() && !excludeIds.contains(-1L)) {
             query.setParameter("excludeIds", excludeIds);
         }
