@@ -78,7 +78,7 @@ class RespostaControllerTest {
     @Test
     void testGetRespostaByQuestaoId_NotFound() throws Exception {
         mockMvc
-            .perform(get("/api/respostas/questao/{questaoId}", 99999L))
+            .perform(get("/api/v1/respostas/questao/{questaoId}", 99999L))
             .andExpect(status().isNotFound());
     }
 
@@ -92,7 +92,7 @@ class RespostaControllerTest {
 
         mockMvc
             .perform(
-                post("/api/respostas")
+                post("/api/v1/respostas")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(respostaCreateRequest))
             )
@@ -108,7 +108,7 @@ class RespostaControllerTest {
         resposta = respostaRepository.save(resposta);
 
         mockMvc
-            .perform(get("/api/respostas/{id}", resposta.getId()))
+            .perform(get("/api/v1/respostas/{id}", resposta.getId()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(resposta.getId()));
     }
@@ -116,7 +116,7 @@ class RespostaControllerTest {
     @Test
     void testGetRespostaById_NotFound() throws Exception {
         mockMvc
-            .perform(get("/api/respostas/{id}", 99999L))
+            .perform(get("/api/v1/respostas/{id}", 99999L))
             .andExpect(status().isNotFound());
     }
 
@@ -146,7 +146,7 @@ class RespostaControllerTest {
         respostaRepository.save(resposta2);
 
         mockMvc
-            .perform(get("/api/respostas"))
+            .perform(get("/api/v1/respostas"))
             .andExpect(status().isOk())
             .andExpect(
                 jsonPath("$.content.length()").value(
@@ -177,7 +177,7 @@ class RespostaControllerTest {
         // Default sort: createdAt DESC
         // Expected: r2 (newest), then r1
         mockMvc
-            .perform(get("/api/respostas"))
+            .perform(get("/api/v1/respostas"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].id").value(r2.getId()))
             .andExpect(jsonPath("$.content[1].id").value(r1.getId()));
@@ -191,7 +191,7 @@ class RespostaControllerTest {
         resposta = respostaRepository.save(resposta);
 
         mockMvc
-            .perform(get("/api/respostas/questao/{questaoId}", questao.getId()))
+            .perform(get("/api/v1/respostas/questao/{questaoId}", questao.getId()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$").isArray())
             .andExpect(jsonPath("$[0].id").value(resposta.getId()));
@@ -205,11 +205,11 @@ class RespostaControllerTest {
         resposta = respostaRepository.save(resposta);
 
         mockMvc
-            .perform(delete("/api/respostas/{id}", resposta.getId()))
+            .perform(delete("/api/v1/respostas/{id}", resposta.getId()))
             .andExpect(status().isNoContent());
 
         mockMvc
-            .perform(get("/api/respostas/{id}", resposta.getId()))
+            .perform(get("/api/v1/respostas/{id}", resposta.getId()))
             .andExpect(status().isNotFound());
     }
 
@@ -239,7 +239,7 @@ class RespostaControllerTest {
 
         mockMvc
             .perform(
-                post("/api/respostas")
+                post("/api/v1/respostas")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(respostaCreateRequest))
             )

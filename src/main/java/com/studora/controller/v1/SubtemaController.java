@@ -1,4 +1,4 @@
-package com.studora.controller;
+package com.studora.controller.v1;
 
 import com.studora.dto.subtema.SubtemaSummaryDto;
 import com.studora.dto.subtema.SubtemaDetailDto;
@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/subtemas")
+@RequestMapping("/subtemas")
 @Tag(name = "Subtemas", description = "Endpoints para gerenciamento de subtemas")
 public class SubtemaController {
 

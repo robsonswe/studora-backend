@@ -1,4 +1,4 @@
-package com.studora.controller;
+package com.studora.controller.v1;
 
 import com.studora.dto.banca.BancaSummaryDto;
 import com.studora.dto.banca.BancaDetailDto;
@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/bancas")
+@RequestMapping("/bancas")
 @Tag(name = "Bancas", description = "Endpoints para gerenciamento de bancas organizadoras")
 public class BancaController {
 

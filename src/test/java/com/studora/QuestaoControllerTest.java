@@ -129,7 +129,7 @@ class QuestaoControllerTest {
 
         mockMvc
             .perform(
-                post("/api/questoes")
+                post("/api/v1/questoes")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(questaoCreateRequest))
             )
@@ -166,7 +166,7 @@ class QuestaoControllerTest {
         questao.getAlternativas().add(alt2);
 
         mockMvc
-            .perform(get("/api/questoes/{id}", questao.getId()))
+            .perform(get("/api/v1/questoes/{id}", questao.getId()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.enunciado").value("Qual a capital do Brasil?"))
             .andExpect(jsonPath("$.alternativas.length()").value(2))
@@ -177,7 +177,7 @@ class QuestaoControllerTest {
     @Test
     void testGetQuestaoById_NotFound() throws Exception {
         mockMvc
-            .perform(get("/api/questoes/{id}", 99999L))
+            .perform(get("/api/v1/questoes/{id}", 99999L))
             .andExpect(status().isNotFound());
     }
 
@@ -195,7 +195,7 @@ class QuestaoControllerTest {
 
         // Default sort should be id DESC
         mockMvc
-            .perform(get("/api/questoes"))
+            .perform(get("/api/v1/questoes"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].id").value(questao2.getId()))
             .andExpect(jsonPath("$.content[1].id").value(questao1.getId()));
@@ -210,7 +210,7 @@ class QuestaoControllerTest {
 
         mockMvc
             .perform(
-                get("/api/questoes").param("concursoId", concurso.getId().toString())
+                get("/api/v1/questoes").param("concursoId", concurso.getId().toString())
             )
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].enunciado").value("Questao Concurso"));
@@ -225,7 +225,7 @@ class QuestaoControllerTest {
         questaoRepository.save(questao);
 
         mockMvc
-            .perform(get("/api/questoes").param("subtemaId", subtema.getId().toString()))
+            .perform(get("/api/v1/questoes").param("subtemaId", subtema.getId().toString()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].enunciado").value("Questao Subtema"));
     }
@@ -241,7 +241,7 @@ class QuestaoControllerTest {
         questaoRepository.save(qAnulada);
 
         mockMvc
-            .perform(get("/api/questoes").param("anulada", "true"))
+            .perform(get("/api/v1/questoes").param("anulada", "true"))
             .andExpect(status().isOk())
             .andExpect(
                 jsonPath("$.content.length()").value(
@@ -263,7 +263,7 @@ class QuestaoControllerTest {
         questaoRepository.save(qOther);
 
         mockMvc
-            .perform(get("/api/questoes")
+            .perform(get("/api/v1/questoes")
                 .param("concursoId", concurso.getId().toString())
                 .param("subtemaId", subtema.getId().toString())
                 .param("anulada", "true"))
@@ -294,7 +294,7 @@ class QuestaoControllerTest {
 
         mockMvc
             .perform(
-                post("/api/questoes/{id}/cargos", questao.getId())
+                post("/api/v1/questoes/{id}/cargos", questao.getId())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(questaoCargoDto))
             )
@@ -333,7 +333,7 @@ class QuestaoControllerTest {
 
         mockMvc
             .perform(
-                put("/api/questoes/{id}", questao.getId())
+                put("/api/v1/questoes/{id}", questao.getId())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(updatedRequest))
             )
@@ -369,17 +369,17 @@ class QuestaoControllerTest {
 
         // Verify the question and alternatives exist before deletion
         mockMvc
-            .perform(get("/api/questoes/{id}", questao.getId()))
+            .perform(get("/api/v1/questoes/{id}", questao.getId()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.enunciado").value("Questao to Delete"))
             .andExpect(jsonPath("$.alternativas.length()").value(2));
 
         mockMvc
-            .perform(delete("/api/questoes/{id}", questao.getId()))
+            .perform(delete("/api/v1/questoes/{id}", questao.getId()))
             .andExpect(status().isNoContent());
 
         mockMvc
-            .perform(get("/api/questoes/{id}", questao.getId()))
+            .perform(get("/api/v1/questoes/{id}", questao.getId()))
             .andExpect(status().isNotFound());
     }
 
@@ -398,7 +398,7 @@ class QuestaoControllerTest {
 
         mockMvc
             .perform(
-                post("/api/questoes/{id}/cargos", questao.getId())
+                post("/api/v1/questoes/{id}/cargos", questao.getId())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(cargoRequest))
             )
@@ -415,7 +415,7 @@ class QuestaoControllerTest {
 
         mockMvc
             .perform(
-                post("/api/questoes/{id}/cargos", 99999L) // Non-existent questao ID
+                post("/api/v1/questoes/{id}/cargos", 99999L) // Non-existent questao ID
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(cargoRequest))
             )
@@ -440,7 +440,7 @@ class QuestaoControllerTest {
 
         mockMvc
             .perform(
-                post("/api/questoes/{id}/cargos", questao.getId())
+                post("/api/v1/questoes/{id}/cargos", questao.getId())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(cargoRequest))
             )

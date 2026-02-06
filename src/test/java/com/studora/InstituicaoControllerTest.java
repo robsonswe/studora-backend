@@ -37,7 +37,7 @@ class InstituicaoControllerTest {
 
         mockMvc
             .perform(
-                post("/api/instituicoes")
+                post("/api/v1/instituicoes")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(request))
             )
@@ -54,7 +54,7 @@ class InstituicaoControllerTest {
         inst = instituicaoRepository.save(inst);
 
         mockMvc
-            .perform(get("/api/instituicoes/{id}", inst.getId()))
+            .perform(get("/api/v1/instituicoes/{id}", inst.getId()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.nome").value("UNICAMP"))
             .andExpect(jsonPath("$.area").value("Estadual"));
@@ -68,7 +68,7 @@ class InstituicaoControllerTest {
         instituicaoRepository.save(inst);
 
         mockMvc
-            .perform(get("/api/instituicoes"))
+            .perform(get("/api/v1/instituicoes"))
             .andExpect(status().isOk())
             .andExpect(
                 jsonPath("$.content.length()").value(
@@ -90,7 +90,7 @@ class InstituicaoControllerTest {
         // Default sort: nome ASC, area ASC
         // Expected: 1. A-Inst-1 Judiciaria, 2. A-Inst-2 Educação, 3. B-Inst Financeira
         mockMvc
-            .perform(get("/api/instituicoes"))
+            .perform(get("/api/v1/instituicoes"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].nome").value("A-Inst-1"))
             .andExpect(jsonPath("$.content[1].nome").value("A-Inst-2"))
@@ -108,7 +108,7 @@ class InstituicaoControllerTest {
         // Sort by area ASC
         // Expected: Educação (A-Inst), then Judiciaria (Z-Inst)
         mockMvc
-            .perform(get("/api/instituicoes").param("sort", "area").param("direction", "ASC"))
+            .perform(get("/api/v1/instituicoes").param("sort", "area").param("direction", "ASC"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].area").value("Educação"))
             .andExpect(jsonPath("$.content[1].area").value("Judiciaria"));
@@ -129,7 +129,7 @@ class InstituicaoControllerTest {
 
         mockMvc
             .perform(
-                put("/api/instituicoes/{id}", inst.getId())
+                put("/api/v1/instituicoes/{id}", inst.getId())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(request))
             )
@@ -153,7 +153,7 @@ class InstituicaoControllerTest {
 
         mockMvc
             .perform(
-                post("/api/instituicoes")
+                post("/api/v1/instituicoes")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(request))
             )
@@ -179,7 +179,7 @@ class InstituicaoControllerTest {
 
         mockMvc
             .perform(
-                post("/api/instituicoes")
+                post("/api/v1/instituicoes")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(request))
             )
@@ -200,7 +200,7 @@ class InstituicaoControllerTest {
 
         // Should return unique areas
         mockMvc
-            .perform(get("/api/instituicoes/areas"))
+            .perform(get("/api/v1/instituicoes/areas"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(2))
             .andExpect(jsonPath("$").value(org.hamcrest.Matchers.containsInAnyOrder("Educação", "Judiciária")));
@@ -217,7 +217,7 @@ class InstituicaoControllerTest {
 
         // Search for 'jud'
         mockMvc
-            .perform(get("/api/instituicoes/areas").param("search", "jud"))
+            .perform(get("/api/v1/instituicoes/areas").param("search", "jud"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1))
             .andExpect(jsonPath("$[0]").value("Judiciária"));

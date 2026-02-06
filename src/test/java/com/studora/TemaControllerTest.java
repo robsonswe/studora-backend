@@ -52,7 +52,7 @@ class TemaControllerTest {
 
         mockMvc
             .perform(
-                post("/api/temas")
+                post("/api/v1/temas")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(temaCreateRequest))
             )
@@ -70,7 +70,7 @@ class TemaControllerTest {
         tema = temaRepository.save(tema);
 
         mockMvc
-            .perform(get("/api/temas/{id}", tema.getId()))
+            .perform(get("/api/v1/temas/{id}", tema.getId()))
             .andExpect(status().isOk())
             .andExpect(
                 jsonPath("$.nome").value("Controle de Constitucionalidade")
@@ -80,7 +80,7 @@ class TemaControllerTest {
     @Test
     void testGetTemaById_NotFound() throws Exception {
         mockMvc
-            .perform(get("/api/temas/{id}", 99999L))
+            .perform(get("/api/v1/temas/{id}", 99999L))
             .andExpect(status().isNotFound());
     }
 
@@ -97,7 +97,7 @@ class TemaControllerTest {
         temaRepository.save(tema2);
 
         mockMvc
-            .perform(get("/api/temas"))
+            .perform(get("/api/v1/temas"))
             .andExpect(status().isOk())
             .andExpect(
                 jsonPath("$.content.length()").value(
@@ -120,7 +120,7 @@ class TemaControllerTest {
         // Default sort: nome ASC, disciplina.id ASC
         // Expected: 1. A-Tema (disciplina), 2. A-Tema (disc2), 3. B-Tema (disciplina)
         mockMvc
-            .perform(get("/api/temas"))
+            .perform(get("/api/v1/temas"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].nome").value("A-Tema"))
             .andExpect(jsonPath("$.content[0].disciplinaId").value(disciplina.getId()))
@@ -141,7 +141,7 @@ class TemaControllerTest {
 
         mockMvc
             .perform(
-                put("/api/temas/{id}", tema.getId())
+                put("/api/v1/temas/{id}", tema.getId())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(updateRequest))
             )
@@ -157,11 +157,11 @@ class TemaControllerTest {
         tema = temaRepository.save(tema);
 
         mockMvc
-            .perform(delete("/api/temas/{id}", tema.getId()))
+            .perform(delete("/api/v1/temas/{id}", tema.getId()))
             .andExpect(status().isNoContent());
 
         mockMvc
-            .perform(get("/api/temas/{id}", tema.getId()))
+            .perform(get("/api/v1/temas/{id}", tema.getId()))
             .andExpect(status().isNotFound());
     }
 
@@ -180,7 +180,7 @@ class TemaControllerTest {
 
         mockMvc
             .perform(
-                post("/api/temas")
+                post("/api/v1/temas")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(request))
             )

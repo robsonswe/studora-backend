@@ -1,4 +1,4 @@
-package com.studora.controller;
+package com.studora.controller.v1;
 
 import com.studora.dto.tema.TemaSummaryDto;
 import com.studora.dto.tema.TemaDetailDto;
@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/temas")
+@RequestMapping("/temas")
 @Tag(name = "Temas", description = "Endpoints para gerenciamento de temas")
 public class TemaController {
 

@@ -1,4 +1,4 @@
-package com.studora.controller;
+package com.studora.controller.v1;
 
 import com.studora.dto.PageResponse;
 import com.studora.dto.questao.QuestaoCargoDto;
@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/questoes")
+@RequestMapping("/questoes")
 @CrossOrigin(origins = "*")
 @Tag(name = "Questoes", description = "Endpoints para gerenciamento de questões")
 public class QuestaoController {

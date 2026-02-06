@@ -1,4 +1,4 @@
-package com.studora.controller;
+package com.studora.controller.v1;
 
 import com.studora.dto.PageResponse;
 import com.studora.dto.resposta.RespostaSummaryDto;
@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/respostas")
+@RequestMapping("/respostas")
 @Tag(name = "Respostas", description = "Endpoints para gerenciamento de respostas dos usuários")
 public class RespostaController {
 

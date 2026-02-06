@@ -61,7 +61,7 @@ class SubtemaControllerTest {
 
         mockMvc
             .perform(
-                post("/api/subtemas")
+                post("/api/v1/subtemas")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(subtemaCreateRequest))
             )
@@ -77,7 +77,7 @@ class SubtemaControllerTest {
         subtema = subtemaRepository.save(subtema);
 
         mockMvc
-            .perform(get("/api/subtemas/{id}", subtema.getId()))
+            .perform(get("/api/v1/subtemas/{id}", subtema.getId()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.nome").value("Espécies de Controle"));
     }
@@ -85,7 +85,7 @@ class SubtemaControllerTest {
     @Test
     void testGetSubtemaById_NotFound() throws Exception {
         mockMvc
-            .perform(get("/api/subtemas/{id}", 99999L))
+            .perform(get("/api/v1/subtemas/{id}", 99999L))
             .andExpect(status().isNotFound());
     }
 
@@ -102,7 +102,7 @@ class SubtemaControllerTest {
         subtemaRepository.save(subtema2);
 
         mockMvc
-            .perform(get("/api/subtemas"))
+            .perform(get("/api/v1/subtemas"))
             .andExpect(status().isOk())
             .andExpect(
                 jsonPath("$.content.length()").value(
@@ -126,7 +126,7 @@ class SubtemaControllerTest {
         // Default sort: nome ASC, tema.id ASC
         // Expected: 1. A-Sub (tema), 2. A-Sub (tema2), 3. B-Sub (tema)
         mockMvc
-            .perform(get("/api/subtemas"))
+            .perform(get("/api/v1/subtemas"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].nome").value("A-Sub"))
             .andExpect(jsonPath("$.content[0].temaId").value(tema.getId()))
@@ -147,7 +147,7 @@ class SubtemaControllerTest {
 
         mockMvc
             .perform(
-                put("/api/subtemas/{id}", subtema.getId())
+                put("/api/v1/subtemas/{id}", subtema.getId())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(updateRequest))
             )
@@ -163,11 +163,11 @@ class SubtemaControllerTest {
         subtema = subtemaRepository.save(subtema);
 
         mockMvc
-            .perform(delete("/api/subtemas/{id}", subtema.getId()))
+            .perform(delete("/api/v1/subtemas/{id}", subtema.getId()))
             .andExpect(status().isNoContent());
 
         mockMvc
-            .perform(get("/api/subtemas/{id}", subtema.getId()))
+            .perform(get("/api/v1/subtemas/{id}", subtema.getId()))
             .andExpect(status().isNotFound());
     }
 
@@ -186,7 +186,7 @@ class SubtemaControllerTest {
 
         mockMvc
             .perform(
-                post("/api/subtemas")
+                post("/api/v1/subtemas")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(request))
             )

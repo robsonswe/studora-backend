@@ -81,7 +81,7 @@ class SimuladoControllerTest {
         item.setQuantidade(20);
         request.setDisciplinas(List.of(item));
 
-        mockMvc.perform(post("/api/simulados/gerar")
+        mockMvc.perform(post("/api/v1/simulados/gerar")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtil.asJsonString(request)))
                 .andExpect(status().isCreated())
@@ -98,23 +98,23 @@ class SimuladoControllerTest {
         Long id = simulado.getId();
 
         // 2. Start (PATCH) - Should hide 'correta'
-        mockMvc.perform(patch("/api/simulados/{id}/iniciar", id))
+        mockMvc.perform(patch("/api/v1/simulados/{id}/iniciar", id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.startedAt").isNotEmpty())
                 .andExpect(jsonPath("$.questoes").exists());
         
         // 3. Finish (PATCH) - Should show 'correta'
-        mockMvc.perform(patch("/api/simulados/{id}/finalizar", id))
+        mockMvc.perform(patch("/api/v1/simulados/{id}/finalizar", id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.finishedAt").isNotEmpty());
         
         // 4. Get (Finished)
-        mockMvc.perform(get("/api/simulados/{id}", id))
+        mockMvc.perform(get("/api/v1/simulados/{id}", id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.finishedAt").isNotEmpty());
 
         // 5. Delete
-        mockMvc.perform(delete("/api/simulados/{id}", id))
+        mockMvc.perform(delete("/api/v1/simulados/{id}", id))
                 .andExpect(status().isNoContent());
         
         assertFalse(simuladoRepository.existsById(id));
@@ -130,7 +130,7 @@ class SimuladoControllerTest {
         item.setQuantidade(10); // Less than 20
         request.setDisciplinas(List.of(item));
 
-        mockMvc.perform(post("/api/simulados/gerar")
+        mockMvc.perform(post("/api/v1/simulados/gerar")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtil.asJsonString(request)))
                 .andExpect(status().isUnprocessableEntity())

@@ -1,4 +1,4 @@
-package com.studora.controller;
+package com.studora.controller.v1;
 
 import com.fasterxml.jackson.annotation.JsonView;
 import com.studora.dto.Views;
@@ -14,7 +14,7 @@ import org.springframework.http.converter.json.MappingJacksonValue;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/simulados")
+@RequestMapping("/simulados")
 @RequiredArgsConstructor
 @Tag(name = "Simulados", description = "Endpoints para geração e execução de simulados")
 public class SimuladoController {

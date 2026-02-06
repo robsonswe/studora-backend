@@ -31,7 +31,7 @@ class StringNormalizationIntegrationTest {
 
         mockMvc
             .perform(
-                post("/api/bancas")
+                post("/api/v1/bancas")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(request))
             )

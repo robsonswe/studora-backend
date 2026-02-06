@@ -42,7 +42,7 @@ class DisciplinaControllerTest {
 
         mockMvc
             .perform(
-                post("/api/disciplinas")
+                post("/api/v1/disciplinas")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(disciplinaCreateRequest))
             )
@@ -57,7 +57,7 @@ class DisciplinaControllerTest {
         disciplina = disciplinaRepository.save(disciplina);
 
         mockMvc
-            .perform(get("/api/disciplinas/{id}", disciplina.getId()))
+            .perform(get("/api/v1/disciplinas/{id}", disciplina.getId()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.nome").value("Direito Get Test"));
     }
@@ -65,7 +65,7 @@ class DisciplinaControllerTest {
     @Test
     void testGetDisciplinaById_NotFound() throws Exception {
         mockMvc
-            .perform(get("/api/disciplinas/{id}", 99999L))
+            .perform(get("/api/v1/disciplinas/{id}", 99999L))
             .andExpect(status().isNotFound());
     }
 
@@ -75,7 +75,7 @@ class DisciplinaControllerTest {
         disciplinaRepository.save(new Disciplina("Direito All 2"));
 
         mockMvc
-            .perform(get("/api/disciplinas"))
+            .perform(get("/api/v1/disciplinas"))
             .andExpect(status().isOk())
             .andExpect(
                 jsonPath("$.content.length()").value(
@@ -91,7 +91,7 @@ class DisciplinaControllerTest {
 
         // Default sort: nome ASC, id DESC
         mockMvc
-            .perform(get("/api/disciplinas"))
+            .perform(get("/api/v1/disciplinas"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].nome").value("Direito A"))
             .andExpect(jsonPath("$.content[1].nome").value("Direito B"));
@@ -104,7 +104,7 @@ class DisciplinaControllerTest {
 
         // Sort: nome DESC
         mockMvc
-            .perform(get("/api/disciplinas").param("direction", "DESC"))
+            .perform(get("/api/v1/disciplinas").param("direction", "DESC"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].nome").value("Direito B"))
             .andExpect(jsonPath("$.content[1].nome").value("Direito A"));
@@ -120,7 +120,7 @@ class DisciplinaControllerTest {
 
         mockMvc
             .perform(
-                put("/api/disciplinas/{id}", disciplina.getId())
+                put("/api/v1/disciplinas/{id}", disciplina.getId())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(updateRequest))
             )
@@ -134,11 +134,11 @@ class DisciplinaControllerTest {
         disciplina = disciplinaRepository.save(disciplina);
 
         mockMvc
-            .perform(delete("/api/disciplinas/{id}", disciplina.getId()))
+            .perform(delete("/api/v1/disciplinas/{id}", disciplina.getId()))
             .andExpect(status().isNoContent());
 
         mockMvc
-            .perform(get("/api/disciplinas/{id}", disciplina.getId()))
+            .perform(get("/api/v1/disciplinas/{id}", disciplina.getId()))
             .andExpect(status().isNotFound());
     }
 
@@ -154,7 +154,7 @@ class DisciplinaControllerTest {
 
         mockMvc
             .perform(
-                post("/api/disciplinas")
+                post("/api/v1/disciplinas")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(request))
             )

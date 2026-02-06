@@ -1,4 +1,4 @@
-package com.studora.controller;
+package com.studora.controller.v1;
 
 import com.studora.dto.concurso.ConcursoCargoDto;
 import com.studora.dto.concurso.ConcursoSummaryDto;
@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/concursos")
+@RequestMapping("/concursos")
 @Tag(name = "Concursos", description = "Endpoints para gerenciamento de concursos")
 public class ConcursoController {
 

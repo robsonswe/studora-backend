@@ -36,7 +36,7 @@ class BancaControllerTest {
         bancaRepository.save(banca);
 
         mockMvc
-            .perform(get("/api/bancas"))
+            .perform(get("/api/v1/bancas"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].nome").value("Vunesp"))
             .andExpect(jsonPath("$.pageNumber").value(0));
@@ -49,7 +49,7 @@ class BancaControllerTest {
         
         // Default sort: nome ASC, id DESC
         mockMvc
-            .perform(get("/api/bancas"))
+            .perform(get("/api/v1/bancas"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].nome").value("Banca A"))
             .andExpect(jsonPath("$.content[1].nome").value("Banca B"));
@@ -62,7 +62,7 @@ class BancaControllerTest {
         
         // Sort: nome DESC
         mockMvc
-            .perform(get("/api/bancas").param("direction", "DESC"))
+            .perform(get("/api/v1/bancas").param("direction", "DESC"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].nome").value("Banca B"))
             .andExpect(jsonPath("$.content[1].nome").value("Banca A"));
@@ -75,7 +75,7 @@ class BancaControllerTest {
         bancaRepository.save(banca);
 
         mockMvc
-            .perform(get("/api/bancas").param("page", "0"))
+            .perform(get("/api/v1/bancas").param("page", "0"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].nome").value("Vunesp"))
             .andExpect(jsonPath("$.pageNumber").value(0));
@@ -88,7 +88,7 @@ class BancaControllerTest {
         banca = bancaRepository.save(banca);
 
         mockMvc
-            .perform(get("/api/bancas/{id}", banca.getId()))
+            .perform(get("/api/v1/bancas/{id}", banca.getId()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.nome").value("Cespe"));
     }
@@ -100,7 +100,7 @@ class BancaControllerTest {
 
         mockMvc
             .perform(
-                post("/api/bancas")
+                post("/api/v1/bancas")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(request))
             )
@@ -119,7 +119,7 @@ class BancaControllerTest {
 
         mockMvc
             .perform(
-                put("/api/bancas/{id}", banca.getId())
+                put("/api/v1/bancas/{id}", banca.getId())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(request))
             )
@@ -134,7 +134,7 @@ class BancaControllerTest {
         banca = bancaRepository.save(banca);
 
         mockMvc
-            .perform(delete("/api/bancas/{id}", banca.getId()))
+            .perform(delete("/api/v1/bancas/{id}", banca.getId()))
             .andExpect(status().isNoContent());
     }
 
@@ -151,7 +151,7 @@ class BancaControllerTest {
 
         mockMvc
             .perform(
-                post("/api/bancas")
+                post("/api/v1/bancas")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(request))
             )
@@ -175,7 +175,7 @@ class BancaControllerTest {
 
         mockMvc
             .perform(
-                post("/api/bancas")
+                post("/api/v1/bancas")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(request))
             )

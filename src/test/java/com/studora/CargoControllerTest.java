@@ -39,7 +39,7 @@ class CargoControllerTest {
 
         mockMvc
             .perform(
-                post("/api/cargos")
+                post("/api/v1/cargos")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(request))
             )
@@ -48,7 +48,7 @@ class CargoControllerTest {
 
         // Get All
         mockMvc
-            .perform(get("/api/cargos"))
+            .perform(get("/api/v1/cargos"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].nome").exists());
     }
@@ -62,7 +62,7 @@ class CargoControllerTest {
         cargo = cargoRepository.save(cargo);
 
         mockMvc
-            .perform(get("/api/cargos/{id}", cargo.getId()))
+            .perform(get("/api/v1/cargos/{id}", cargo.getId()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.nome").value("Tecnico"));
     }
@@ -76,7 +76,7 @@ class CargoControllerTest {
         cargo = cargoRepository.save(cargo);
 
         mockMvc
-            .perform(delete("/api/cargos/{id}", cargo.getId()))
+            .perform(delete("/api/v1/cargos/{id}", cargo.getId()))
             .andExpect(status().isNoContent());
     }
 
@@ -94,7 +94,7 @@ class CargoControllerTest {
         // Default sort should be nome ASC, then area ASC
         // Expected order: Analista Administrativa, Analista TI, Tecnico Judiciaria
         mockMvc
-            .perform(get("/api/cargos"))
+            .perform(get("/api/v1/cargos"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].area").value("Administrativa"))
             .andExpect(jsonPath("$.content[1].area").value("TI"))
@@ -113,7 +113,7 @@ class CargoControllerTest {
         // Sort by area DESC
         // Expected: TI, then Administrativa
         mockMvc
-            .perform(get("/api/cargos").param("sort", "area").param("direction", "DESC"))
+            .perform(get("/api/v1/cargos").param("sort", "area").param("direction", "DESC"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].area").value("TI"))
             .andExpect(jsonPath("$.content[1].area").value("Administrativa"));
@@ -136,7 +136,7 @@ class CargoControllerTest {
 
         mockMvc
             .perform(
-                post("/api/cargos")
+                post("/api/v1/cargos")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(request))
             )
@@ -164,7 +164,7 @@ class CargoControllerTest {
 
         mockMvc
             .perform(
-                post("/api/cargos")
+                post("/api/v1/cargos")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(request))
             )
@@ -188,7 +188,7 @@ class CargoControllerTest {
 
         // Should return unique areas
         mockMvc
-            .perform(get("/api/cargos/areas"))
+            .perform(get("/api/v1/cargos/areas"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(2))
             .andExpect(jsonPath("$").value(org.hamcrest.Matchers.containsInAnyOrder("TI", "Administrativa")));
@@ -205,7 +205,7 @@ class CargoControllerTest {
 
         // Search for 'tec'
         mockMvc
-            .perform(get("/api/cargos/areas").param("search", "tec"))
+            .perform(get("/api/v1/cargos/areas").param("search", "tec"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(1))
             .andExpect(jsonPath("$[0]").value("Tecnologia"));

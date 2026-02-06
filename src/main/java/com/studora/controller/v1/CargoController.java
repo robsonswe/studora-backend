@@ -1,4 +1,4 @@
-package com.studora.controller;
+package com.studora.controller.v1;
 
 import com.studora.dto.cargo.CargoSummaryDto;
 import com.studora.dto.cargo.CargoDetailDto;
@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/cargos")
+@RequestMapping("/cargos")
 @Tag(name = "Cargos", description = "Endpoints para gerenciamento de cargos")
 public class CargoController {
 

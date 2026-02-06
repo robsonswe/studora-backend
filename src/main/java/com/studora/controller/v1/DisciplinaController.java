@@ -1,4 +1,4 @@
-package com.studora.controller;
+package com.studora.controller.v1;
 
 import com.studora.dto.disciplina.DisciplinaSummaryDto;
 import com.studora.dto.disciplina.DisciplinaDetailDto;
@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/disciplinas")
+@RequestMapping("/disciplinas")
 @Tag(name = "Disciplinas", description = "Endpoints para gerenciamento de disciplinas")
 public class DisciplinaController {
 

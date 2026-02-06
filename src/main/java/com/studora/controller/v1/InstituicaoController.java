@@ -1,4 +1,4 @@
-package com.studora.controller;
+package com.studora.controller.v1;
 
 import com.studora.dto.instituicao.InstituicaoSummaryDto;
 import com.studora.dto.instituicao.InstituicaoDetailDto;
@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/instituicoes")
+@RequestMapping("/instituicoes")
 @Tag(name = "Instituições", description = "Endpoints para gerenciamento de instituições")
 public class InstituicaoController {
 

@@ -74,7 +74,7 @@ class ConcursoControllerTest {
 
         mockMvc
             .perform(
-                post("/api/concursos")
+                post("/api/v1/concursos")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(concursoCreateRequest))
             )
@@ -109,7 +109,7 @@ class ConcursoControllerTest {
 
         mockMvc
             .perform(
-                post("/api/concursos")
+                post("/api/v1/concursos")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(request))
             )
@@ -133,7 +133,7 @@ class ConcursoControllerTest {
         concurso = concursoRepository.save(concurso);
 
         mockMvc
-            .perform(get("/api/concursos/{id}", concurso.getId()))
+            .perform(get("/api/v1/concursos/{id}", concurso.getId()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.instituicaoId").value(instituicao.getId()))
             .andExpect(jsonPath("$.bancaId").value(banca.getId()))
@@ -144,7 +144,7 @@ class ConcursoControllerTest {
     @Test
     void testGetConcursoById_NotFound() throws Exception {
         mockMvc
-            .perform(get("/api/concursos/{id}", 99999L))
+            .perform(get("/api/v1/concursos/{id}", 99999L))
             .andExpect(status().isNotFound());
     }
 
@@ -172,7 +172,7 @@ class ConcursoControllerTest {
         concursoRepository.save(new Concurso(instituicao2, banca2, 2024, 2));
 
         mockMvc
-            .perform(get("/api/concursos"))
+            .perform(get("/api/v1/concursos"))
             .andExpect(status().isOk())
             .andExpect(
                 jsonPath("$.content.length()").value(
@@ -212,7 +212,7 @@ class ConcursoControllerTest {
 
         mockMvc
             .perform(
-                put("/api/concursos/{id}", concurso.getId())
+                put("/api/v1/concursos/{id}", concurso.getId())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(concursoUpdateRequest))
             )
@@ -238,11 +238,11 @@ class ConcursoControllerTest {
         concurso = concursoRepository.save(concurso);
 
         mockMvc
-            .perform(delete("/api/concursos/{id}", concurso.getId()))
+            .perform(delete("/api/v1/concursos/{id}", concurso.getId()))
             .andExpect(status().isNoContent());
 
         mockMvc
-            .perform(get("/api/concursos/{id}", concurso.getId()))
+            .perform(get("/api/v1/concursos/{id}", concurso.getId()))
             .andExpect(status().isNotFound());
     }
 
@@ -265,7 +265,7 @@ class ConcursoControllerTest {
         // 3. 2023, 1
         // 4. 2022, 12
         mockMvc
-            .perform(get("/api/concursos"))
+            .perform(get("/api/v1/concursos"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].ano").value(2024))
             .andExpect(jsonPath("$.content[1].mes").value(5))
@@ -285,7 +285,7 @@ class ConcursoControllerTest {
         // Sort by instituicao ASC
         // Expected: A-Inst (2024), then Z-Inst (2023)
         mockMvc
-            .perform(get("/api/concursos").param("sort", "instituicao").param("direction", "ASC"))
+            .perform(get("/api/v1/concursos").param("sort", "instituicao").param("direction", "ASC"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].ano").value(2024))
             .andExpect(jsonPath("$.content[1].ano").value(2023));
@@ -307,7 +307,7 @@ class ConcursoControllerTest {
         // Try to add cargo to non-existent concurso
         mockMvc
             .perform(
-                post("/api/concursos/{id}/cargos", 99999L)
+                post("/api/v1/concursos/{id}/cargos", 99999L)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(request))
             )
@@ -339,7 +339,7 @@ class ConcursoControllerTest {
         // Try to add non-existent cargo to concurso
         mockMvc
             .perform(
-                post("/api/concursos/{id}/cargos", concurso.getId())
+                post("/api/v1/concursos/{id}/cargos", concurso.getId())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(request))
             )
@@ -381,7 +381,7 @@ class ConcursoControllerTest {
 
         // Try to remove the only cargo association (should fail with 422)
         mockMvc
-            .perform(delete("/api/concursos/{concursoId}/cargos/{cargoId}", concurso.getId(), cargo.getId()))
+            .perform(delete("/api/v1/concursos/{concursoId}/cargos/{cargoId}", concurso.getId(), cargo.getId()))
             .andExpect(status().isUnprocessableEntity())
             .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
             .andExpect(jsonPath("$.title").value("Entidade não processável"))
