@@ -32,7 +32,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/questoes")
-@CrossOrigin(origins = "*")
 @Tag(name = "Questoes", description = "Endpoints para gerenciamento de questões")
 public class QuestaoController {
 
