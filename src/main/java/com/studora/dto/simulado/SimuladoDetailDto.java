@@ -1,14 +1,16 @@
-package com.studora.dto;
+package com.studora.dto.simulado;
 
 import com.fasterxml.jackson.annotation.JsonView;
+import com.studora.dto.Views;
+import com.studora.dto.questao.QuestaoSummaryDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Schema(description = "DTO para representar um simulado e seu resultado")
+@Schema(description = "DTO detalhado para um simulado e suas questões")
 @Data
-public class SimuladoDto {
+public class SimuladoDetailDto {
 
     @Schema(description = "ID único do simulado", example = "1")
     @JsonView(Views.Summary.class)
@@ -26,7 +28,7 @@ public class SimuladoDto {
     @JsonView(Views.RespostaOculta.class)
     private LocalDateTime finishedAt;
 
-    @Schema(description = "Questões do simulado")
+    @Schema(description = "Questões associadas ao simulado")
     @JsonView(Views.RespostaOculta.class)
-    private List<QuestaoDto> questoes;
+    private List<QuestaoSummaryDto> questoes;
 }

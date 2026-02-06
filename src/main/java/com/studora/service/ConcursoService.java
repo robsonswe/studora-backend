@@ -1,7 +1,11 @@
 package com.studora.service;
 
-import com.studora.dto.ConcursoCargoDto;
-import com.studora.dto.ConcursoDto;
+import com.studora.dto.concurso.ConcursoCargoDto;
+import com.studora.dto.concurso.ConcursoDetailDto;
+import com.studora.dto.concurso.ConcursoSummaryDto;
+import com.studora.dto.request.ConcursoCargoCreateRequest;
+import com.studora.dto.request.ConcursoCreateRequest;
+import com.studora.dto.request.ConcursoUpdateRequest;
 import com.studora.entity.Banca;
 import com.studora.entity.Cargo;
 import com.studora.entity.Concurso;
@@ -11,24 +15,21 @@ import com.studora.exception.ResourceNotFoundException;
 import com.studora.exception.ValidationException;
 import com.studora.mapper.ConcursoCargoMapper;
 import com.studora.mapper.ConcursoMapper;
-import com.studora.repository.BancaRepository;
-import com.studora.repository.CargoRepository;
-import com.studora.repository.ConcursoCargoRepository;
-import com.studora.repository.ConcursoRepository;
-import com.studora.repository.InstituicaoRepository;
-import com.studora.util.StringUtils;
+import com.studora.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class ConcursoService {
 
     private final ConcursoRepository concursoRepository;
@@ -36,152 +37,132 @@ public class ConcursoService {
     private final BancaRepository bancaRepository;
     private final CargoRepository cargoRepository;
     private final ConcursoCargoRepository concursoCargoRepository;
-    private final com.studora.repository.QuestaoCargoRepository questaoCargoRepository;
+    private final QuestaoCargoRepository questaoCargoRepository;
     private final ConcursoMapper concursoMapper;
     private final ConcursoCargoMapper concursoCargoMapper;
 
-    public Page<ConcursoDto> findAll(Pageable pageable) {
+    @Transactional(readOnly = true)
+    public Page<ConcursoSummaryDto> findAll(Pageable pageable) {
         return concursoRepository.findAll(pageable)
-                .map(concursoMapper::toDto);
+                .map(concursoMapper::toSummaryDto);
     }
 
-    public ConcursoDto findById(Long id) {
+    @Transactional(readOnly = true)
+    public ConcursoDetailDto getConcursoDetailById(Long id) {
         Concurso concurso = concursoRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Concurso", "ID", id));
-        return concursoMapper.toDto(concurso);
+        return concursoMapper.toDetailDto(concurso);
     }
 
-    public ConcursoDto save(ConcursoDto concursoDto) {
-        if (concursoDto == null) {
-            throw new IllegalArgumentException("ConcursoDto não pode ser nulo.");
+    public ConcursoDetailDto create(ConcursoCreateRequest request) {
+        log.info("Criando novo concurso: Inst {}, Banca {}, Ano {}", 
+                request.getInstituicaoId(), request.getBancaId(), request.getAno());
+        
+        if (concursoRepository.existsByInstituicaoIdAndBancaIdAndAnoAndMes(
+                request.getInstituicaoId(), request.getBancaId(), request.getAno(), request.getMes())) {
+            throw new com.studora.exception.ConflictException("Já existe um concurso cadastrado para esta instituição, banca, ano e mês.");
         }
 
-        // Check for duplicate combination (excluding the record being updated)
-        if (concursoDto.getId() == null) {
-            // New record: simple exists check
-            if (concursoRepository.existsByInstituicaoIdAndBancaIdAndAnoAndMes(
-                    concursoDto.getInstituicaoId(), concursoDto.getBancaId(), concursoDto.getAno(), concursoDto.getMes())) {
+        Instituicao instituicao = instituicaoRepository.findById(request.getInstituicaoId())
+                .orElseThrow(() -> new ResourceNotFoundException("Instituição", "ID", request.getInstituicaoId()));
+        
+        Banca banca = bancaRepository.findById(request.getBancaId())
+                .orElseThrow(() -> new ResourceNotFoundException("Banca", "ID", request.getBancaId()));
+
+        Concurso concurso = concursoMapper.toEntity(request);
+        concurso.setInstituicao(instituicao);
+        concurso.setBanca(banca);
+
+        return concursoMapper.toDetailDto(concursoRepository.save(concurso));
+    }
+
+    public ConcursoDetailDto update(Long id, ConcursoUpdateRequest request) {
+        log.info("Atualizando concurso ID: {}", id);
+        
+        Concurso concurso = concursoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Concurso", "ID", id));
+
+        Long instId = request.getInstituicaoId() != null ? request.getInstituicaoId() : concurso.getInstituicao().getId();
+        Long bancaId = request.getBancaId() != null ? request.getBancaId() : concurso.getBanca().getId();
+        Integer ano = request.getAno() != null ? request.getAno() : concurso.getAno();
+        Integer mes = request.getMes() != null ? request.getMes() : concurso.getMes();
+
+        // Complex uniqueness check for update
+        concursoRepository.findByIdWithDetails(id); // Ensure loaded
+        if (! (instId.equals(concurso.getInstituicao().getId()) && 
+               bancaId.equals(concurso.getBanca().getId()) && 
+               ano.equals(concurso.getAno()) && 
+               mes.equals(concurso.getMes()))) {
+            
+            if (concursoRepository.existsByInstituicaoIdAndBancaIdAndAnoAndMes(instId, bancaId, ano, mes)) {
                 throw new com.studora.exception.ConflictException("Já existe um concurso cadastrado para esta instituição, banca, ano e mês.");
             }
-        } else {
-            // Update: check if changes create a conflict with ANOTHER record
-            Concurso existing = concursoRepository.findById(concursoDto.getId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Concurso", "ID", concursoDto.getId()));
-            
-            // If any of the identifying fields changed, check if the new combination already exists elsewhere
-            boolean changed = !existing.getInstituicao().getId().equals(concursoDto.getInstituicaoId()) ||
-                              !existing.getBanca().getId().equals(concursoDto.getBancaId()) ||
-                              !existing.getAno().equals(concursoDto.getAno()) ||
-                              !existing.getMes().equals(concursoDto.getMes());
-            
-            if (changed && concursoRepository.existsByInstituicaoIdAndBancaIdAndAnoAndMes(
-                    concursoDto.getInstituicaoId(), concursoDto.getBancaId(), concursoDto.getAno(), concursoDto.getMes())) {
-                throw new com.studora.exception.ConflictException("As alterações entram em conflito com outro concurso já cadastrado para esta mesma instituição, banca, ano e mês.");
-            }
         }
 
-        Concurso concurso;
-        if (concursoDto.getId() != null) {
-            // Update existing concurso
-            concurso = concursoRepository.findById(concursoDto.getId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Concurso", "ID", concursoDto.getId()));
+        if (request.getInstituicaoId() != null) {
+            Instituicao inst = instituicaoRepository.findById(request.getInstituicaoId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Instituição", "ID", request.getInstituicaoId()));
+            concurso.setInstituicao(inst);
+        }
 
-            // Update the existing entity with new values
-            Instituicao instituicao = instituicaoRepository.findById(concursoDto.getInstituicaoId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Instituição", "ID", concursoDto.getInstituicaoId()));
-            Banca banca = bancaRepository.findById(concursoDto.getBancaId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Banca", "ID", concursoDto.getBancaId()));
-
-            concursoMapper.updateEntityFromDto(concursoDto, concurso);
-            concurso.setInstituicao(instituicao);
-            concurso.setBanca(banca);
-        } else {
-            // Create new concurso
-            Instituicao instituicao = instituicaoRepository.findById(concursoDto.getInstituicaoId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Instituição", "ID", concursoDto.getInstituicaoId()));
-
-            Banca banca = bancaRepository.findById(concursoDto.getBancaId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Banca", "ID", concursoDto.getBancaId()));
-
-            concurso = concursoMapper.toEntity(concursoDto);
-            concurso.setInstituicao(instituicao);
+        if (request.getBancaId() != null) {
+            Banca banca = bancaRepository.findById(request.getBancaId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Banca", "ID", request.getBancaId()));
             concurso.setBanca(banca);
         }
 
-        Concurso savedConcurso = concursoRepository.save(concurso);
-
-        return concursoMapper.toDto(savedConcurso);
+        concursoMapper.updateEntityFromDto(request, concurso);
+        return concursoMapper.toDetailDto(concursoRepository.save(concurso));
     }
 
-    @Transactional
-    public void deleteById(Long id) {
+    public void delete(Long id) {
+        log.info("Excluindo concurso ID: {}", id);
         if (!concursoRepository.existsById(id)) {
             throw new ResourceNotFoundException("Concurso", "ID", id);
         }
-
         concursoRepository.deleteById(id);
-        concursoRepository.flush();
     }
 
-    // Methods for managing cargo associations
+    @Transactional(readOnly = true)
     public List<ConcursoCargoDto> getCargosByConcursoId(Long concursoId) {
-        List<ConcursoCargo> concursoCargos = concursoCargoRepository.findByConcursoId(concursoId);
-        return concursoCargos.stream()
+        return concursoCargoRepository.findByConcursoId(concursoId).stream()
                 .map(concursoCargoMapper::toDto)
                 .collect(Collectors.toList());
     }
 
-    @Transactional
-    public ConcursoCargoDto addCargoToConcurso(ConcursoCargoDto concursoCargoDto) {
-        // Check if the association already exists
-        List<ConcursoCargo> existingAssociations = concursoCargoRepository
-                .findByConcursoIdAndCargoId(concursoCargoDto.getConcursoId(), concursoCargoDto.getCargoId());
-
-        if (!existingAssociations.isEmpty()) {
-            throw new ValidationException("Cargo já associado ao concurso");
+    public ConcursoCargoDto addCargoToConcurso(Long concursoId, ConcursoCargoCreateRequest request) {
+        if (concursoCargoRepository.existsByConcursoIdAndCargoId(concursoId, request.getCargoId())) {
+            throw new com.studora.exception.ConflictException("Este cargo já está associado a este concurso.");
         }
 
-        Concurso concurso = concursoRepository.findById(concursoCargoDto.getConcursoId())
-                .orElseThrow(() -> new ResourceNotFoundException("Concurso", "ID", concursoCargoDto.getConcursoId()));
+        Concurso concurso = concursoRepository.findById(concursoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Concurso", "ID", concursoId));
+        
+        Cargo cargo = cargoRepository.findById(request.getCargoId())
+                .orElseThrow(() -> new ResourceNotFoundException("Cargo", "ID", request.getCargoId()));
 
-        Cargo cargo = cargoRepository.findById(concursoCargoDto.getCargoId())
-                .orElseThrow(() -> new ResourceNotFoundException("Cargo", "ID", concursoCargoDto.getCargoId()));
+        ConcursoCargo cc = new ConcursoCargo();
+        cc.setConcurso(concurso);
+        cc.setCargo(cargo);
 
-        ConcursoCargo concursoCargo = new ConcursoCargo();
-        concurso.addConcursoCargo(concursoCargo);
-        concursoCargo.setCargo(cargo);
-
-        ConcursoCargo savedConcursoCargo = concursoCargoRepository.save(concursoCargo);
-        return concursoCargoMapper.toDto(savedConcursoCargo);
+        return concursoCargoMapper.toDto(concursoCargoRepository.save(cc));
     }
 
-    @Transactional
     public void removeCargoFromConcurso(Long concursoId, Long cargoId) {
-        List<ConcursoCargo> concursoCargos = concursoCargoRepository
-                .findByConcursoIdAndCargoId(concursoId, cargoId);
-
-        if (concursoCargos.isEmpty()) {
-            throw new ResourceNotFoundException("Associação entre concurso e cargo não encontrada");
+        List<ConcursoCargo> ccs = concursoCargoRepository.findByConcursoIdAndCargoId(concursoId, cargoId);
+        if (ccs.isEmpty()) {
+            throw new ResourceNotFoundException("Associação Concurso-Cargo", "IDs", concursoId + "-" + cargoId);
+        }
+        ConcursoCargo cc = ccs.get(0);
+        
+        if (!questaoCargoRepository.findByConcursoCargoId(cc.getId()).isEmpty()) {
+            throw new ValidationException("Não é possível remover o cargo pois existem questões associadas a ele neste concurso.");
         }
 
-        // Validate if any question depends solely on this ConcursoCargo
-        for (ConcursoCargo cc : concursoCargos) {
-            List<com.studora.entity.QuestaoCargo> questaoCargos = questaoCargoRepository.findByConcursoCargoId(cc.getId());
-            for (com.studora.entity.QuestaoCargo qc : questaoCargos) {
-                long count = questaoCargoRepository.countByQuestaoId(qc.getQuestao().getId());
-                if (count <= 1) {
-                    throw new ValidationException("Não é possível remover o cargo do concurso pois ele é a única associação para a questão ID: " + qc.getQuestao().getId());
-                }
-            }
+        if (concursoCargoRepository.countByConcursoId(concursoId) <= 1) {
+            throw new ValidationException("Um concurso deve estar associado a pelo menos um cargo");
         }
 
-        // Check if removing this association would leave the concurso with no cargo associations
-        List<ConcursoCargo> currentAssociations = concursoCargoRepository.findByConcursoId(concursoId);
-        if (currentAssociations.size() <= concursoCargos.size()) {
-             throw new ValidationException("Um concurso deve estar associado a pelo menos um cargo");
-        }
-
-        // Delete the association
-        concursoCargoRepository.deleteAll(concursoCargos);
+        concursoCargoRepository.delete(cc);
     }
 }

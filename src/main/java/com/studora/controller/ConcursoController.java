@@ -1,7 +1,8 @@
 package com.studora.controller;
 
-import com.studora.dto.ConcursoCargoDto;
-import com.studora.dto.ConcursoDto;
+import com.studora.dto.concurso.ConcursoCargoDto;
+import com.studora.dto.concurso.ConcursoSummaryDto;
+import com.studora.dto.concurso.ConcursoDetailDto;
 import com.studora.dto.PageResponse;
 import com.studora.dto.request.ConcursoCargoCreateRequest;
 import com.studora.dto.request.ConcursoCreateRequest;
@@ -17,10 +18,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
-import org.springdoc.core.annotations.ParameterObject;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -30,7 +28,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -39,37 +36,22 @@ import java.util.Map;
 @Tag(name = "Concursos", description = "Endpoints para gerenciamento de concursos")
 public class ConcursoController {
 
-    @Autowired
-    private ConcursoService concursoService;
+    private final ConcursoService concursoService;
+
+    public ConcursoController(ConcursoService concursoService) {
+        this.concursoService = concursoService;
+    }
 
     @Operation(
         summary = "Obter todos os concursos",
-        description = "Retorna uma página com todos os concursos cadastrados. Suporta paginação e ordenação prioritária.",
-        parameters = {
-            @Parameter(name = "page", description = "Número da página (0..N)", schema = @Schema(type = "integer", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER_STR)),
-            @Parameter(name = "size", description = "Tamanho da página", schema = @Schema(type = "integer", defaultValue = AppConstants.DEFAULT_PAGE_SIZE_STR)),
-            @Parameter(name = "sort", description = "Campo para ordenação primária", schema = @Schema(type = "string", allowableValues = {"ano", "mes", "instituicao", "banca"}, defaultValue = "ano")),
-            @Parameter(name = "direction", description = "Direção da ordenação primária", schema = @Schema(type = "string", allowableValues = {"ASC", "DESC"}, defaultValue = "DESC"))
-        },
+        description = "Retorna uma página com todos os concursos cadastrados.",
         responses = {
             @ApiResponse(responseCode = "200", description = "Página de concursos retornada com sucesso",
-                content = @Content(
-                    mediaType = "application/json",
-                    schema = @Schema(implementation = PageResponse.class),
-                    examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"instituicaoId\": 1, \"bancaId\": 1, \"ano\": 2023, \"mes\": 5, \"edital\": \"https://exemplo.com/edital.pdf\"}], \"pageNumber\": 0, \"pageSize\": " + AppConstants.DEFAULT_PAGE_SIZE + ", \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
-                    )
-                )),
-            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/concursos\"}"
-                    )))
+                content = @Content(mediaType = "application/json", schema = @Schema(implementation = PageResponse.class)))
         }
     )
     @GetMapping
-    public ResponseEntity<PageResponse<ConcursoDto>> getAllConcursos(
+    public ResponseEntity<PageResponse<ConcursoSummaryDto>> getAllConcursos(
             @Parameter(hidden = true) @PageableDefault(size = AppConstants.DEFAULT_PAGE_SIZE) Pageable pageable,
             @RequestParam(defaultValue = "ano") String sort,
             @RequestParam(defaultValue = "DESC") String direction) {
@@ -87,7 +69,7 @@ public class ConcursoController {
         );
 
         Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, mapping, tieBreakers);
-        Page<ConcursoDto> concursos = concursoService.findAll(finalPageable);
+        Page<ConcursoSummaryDto> concursos = concursoService.findAll(finalPageable);
         return ResponseEntity.ok(new PageResponse<>(concursos));
     }
 
@@ -95,296 +77,49 @@ public class ConcursoController {
         summary = "Obter concurso por ID",
         description = "Retorna um concurso específico com base no ID fornecido",
         responses = {
-            @ApiResponse(responseCode = "200", description = "Concurso encontrado e retornado com sucesso",
-                content = @Content(
-                    schema = @Schema(implementation = ConcursoDto.class),
-                    examples = @ExampleObject(
-                        value = "{\"id\": 1, \"instituicaoId\": 1, \"bancaId\": 1, \"ano\": 2023, \"mes\": 6, \"edital\": \"Edital 01/2023\"}"
-                    )
-                )),
-            @ApiResponse(responseCode = "404", description = "Concurso não encontrado",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Concurso com ID: '123'\",\"instance\":\"/api/concursos/123\"}"
-                    ))),
-            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/concursos/123\"}"
-                    )))
+            @ApiResponse(responseCode = "200", description = "Concurso encontrado", content = @Content(schema = @Schema(implementation = ConcursoDetailDto.class))),
+            @ApiResponse(responseCode = "404", description = "Concurso não encontrado")
         }
     )
     @GetMapping("/{id}")
-    public ResponseEntity<ConcursoDto> getConcursoById(
-            @Parameter(description = "ID do concurso a ser buscado", required = true) @PathVariable Long id) {
-        ConcursoDto concurso = concursoService.findById(id);
-        return ResponseEntity.ok(concurso);
+    public ResponseEntity<ConcursoDetailDto> getConcursoById(@PathVariable Long id) {
+        return ResponseEntity.ok(concursoService.getConcursoDetailById(id));
     }
 
-    @Operation(
-        summary = "Criar novo concurso",
-        description = "Cria um novo concurso com base nos dados fornecidos",
-        requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            description = "Dados do novo concurso a ser criado",
-            required = true,
-            content = @Content(
-                mediaType = "application/json",
-                schema = @Schema(implementation = ConcursoCreateRequest.class)
-            )
-        ),
-        responses = {
-            @ApiResponse(responseCode = "201", description = "Novo concurso criado com sucesso",
-                content = @Content(
-                    schema = @Schema(implementation = ConcursoDto.class),
-                    examples = @ExampleObject(
-                        value = "{\"id\": 2, \"instituicaoId\": 2, \"bancaId\": 2, \"ano\": 2024, \"mes\": 1, \"edital\": \"Edital 01/2024\"}"
-                    )
-                )),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/concursos\",\"errors\":{\"ano\":\"deve ser maior que " + AppConstants.MIN_YEAR + "\"}}"
-                    ))),
-            @ApiResponse(responseCode = "409", description = "Conflito - Já existe um concurso com esta combinação de instituição, banca, ano e mês",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Já existe um concurso cadastrado para esta instituição, banca, ano e mês.\",\"instance\":\"/api/concursos\"}"
-                    ))),
-            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/concursos\"}"
-                    )))
-        }
-    )
+    @Operation(summary = "Criar novo concurso")
     @PostMapping
-    public ResponseEntity<ConcursoDto> createConcurso(
-            @jakarta.validation.Valid @RequestBody ConcursoCreateRequest concursoCreateRequest) {
-        // Convert the request DTO to the regular DTO for processing
-        ConcursoDto concursoDto = new ConcursoDto();
-        concursoDto.setInstituicaoId(concursoCreateRequest.getInstituicaoId());
-        concursoDto.setBancaId(concursoCreateRequest.getBancaId());
-        concursoDto.setAno(concursoCreateRequest.getAno());
-        concursoDto.setMes(concursoCreateRequest.getMes());
-        concursoDto.setEdital(concursoCreateRequest.getEdital());
-
-        ConcursoDto createdConcurso = concursoService.save(concursoDto);
-        return new ResponseEntity<>(createdConcurso, HttpStatus.CREATED);
+    public ResponseEntity<ConcursoDetailDto> createConcurso(@Valid @RequestBody ConcursoCreateRequest request) {
+        return new ResponseEntity<>(concursoService.create(request), HttpStatus.CREATED);
     }
 
-    @Operation(
-        summary = "Atualizar concurso",
-        description = "Atualiza os dados de um concurso existente",
-        requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            description = "Dados atualizados do concurso",
-            required = true,
-            content = @Content(
-                mediaType = "application/json",
-                schema = @Schema(implementation = ConcursoUpdateRequest.class)
-            )
-        ),
-        responses = {
-            @ApiResponse(responseCode = "200", description = "Concurso atualizado com sucesso",
-                content = @Content(
-                    schema = @Schema(implementation = ConcursoDto.class),
-                    examples = @ExampleObject(
-                        value = "{\"id\": 1, \"instituicaoId\": 1, \"bancaId\": 1, \"ano\": 2023, \"mes\": 6, \"edital\": \"Edital 01/2023 - Atualizado\"}"
-                    )
-                )),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/concursos/1\",\"errors\":{\"ano\":\"deve ser maior que " + AppConstants.MIN_YEAR + "\"}}"
-                    ))),
-            @ApiResponse(responseCode = "404", description = "Concurso não encontrado",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Concurso com ID: '1'\",\"instance\":\"/api/concursos/1\"}"
-                    ))),
-            @ApiResponse(responseCode = "409", description = "Conflito - As alterações entram em conflito com outro concurso existente",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"As alterações entram em conflito com outro concurso já cadastrado para esta mesma instituição, banca, ano e mês.\",\"instance\":\"/api/concursos/1\"}"
-                    ))),
-            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/concursos/1\"}"
-                    )))
-        }
-    )
+    @Operation(summary = "Atualizar concurso")
     @PutMapping("/{id}")
-    public ResponseEntity<ConcursoDto> updateConcurso(
-            @Parameter(description = "ID do concurso a ser atualizado", required = true) @PathVariable Long id,
-            @jakarta.validation.Valid @RequestBody ConcursoUpdateRequest concursoUpdateRequest) {
-        // Convert the request DTO to the regular DTO for processing
-        ConcursoDto concursoDto = new ConcursoDto();
-        concursoDto.setId(id); // Set the ID from the path parameter
-        concursoDto.setInstituicaoId(concursoUpdateRequest.getInstituicaoId());
-        concursoDto.setBancaId(concursoUpdateRequest.getBancaId());
-        concursoDto.setAno(concursoUpdateRequest.getAno());
-        concursoDto.setMes(concursoUpdateRequest.getMes());
-        concursoDto.setEdital(concursoUpdateRequest.getEdital());
-
-        ConcursoDto updatedConcurso = concursoService.save(concursoDto);
-        return ResponseEntity.ok(updatedConcurso);
+    public ResponseEntity<ConcursoDetailDto> updateConcurso(@PathVariable Long id, @Valid @RequestBody ConcursoUpdateRequest request) {
+        return ResponseEntity.ok(concursoService.update(id, request));
     }
 
-    @Operation(
-        summary = "Excluir um concurso",
-        description = "Remove um concurso existente com base no ID fornecido. Esta operação removerá em cascata todas as questões associadas, associações de cargos, alternativas e a resposta vinculada.",
-        responses = {
-            @ApiResponse(responseCode = "204", description = "Concurso excluído com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Concurso não encontrado",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Concurso com ID: '1'\",\"instance\":\"/api/concursos/1\"}"
-                    ))),
-            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/concursos/1\"}"
-                    )))
-        }
-    )
+    @Operation(summary = "Excluir concurso")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteConcurso(
-            @Parameter(description = "ID do concurso a ser excluído", required = true) @PathVariable Long id) {
-        concursoService.deleteById(id);
+    public ResponseEntity<Void> deleteConcurso(@PathVariable Long id) {
+        concursoService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
-    // Endpoints for managing cargo associations
-    @Operation(
-        summary = "Obter cargos por concurso",
-        description = "Retorna uma lista de cargos associados a um concurso específico",
-        responses = {
-            @ApiResponse(responseCode = "200", description = "Lista de cargos retornada com sucesso",
-                content = @Content(
-                    array = @ArraySchema(schema = @Schema(implementation = ConcursoCargoDto.class)),
-                    examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"concursoId\": 1, \"cargoId\": 1}]"
-                    )
-                )),
-            @ApiResponse(responseCode = "404", description = "Concurso não encontrado",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Concurso com ID: '1'\",\"instance\":\"/api/concursos/1/cargos\"}"
-                    ))),
-            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/concursos/1/cargos\"}"
-                    )))
-        }
-    )
+    @Operation(summary = "Obter cargos por concurso")
     @GetMapping("/{id}/cargos")
-    public ResponseEntity<List<ConcursoCargoDto>> getCargosByConcurso(
-            @Parameter(description = "ID do concurso para filtrar cargos", required = true) @PathVariable Long id) {
-        List<ConcursoCargoDto> cargos = concursoService.getCargosByConcursoId(id);
-        return ResponseEntity.ok(cargos);
+    public ResponseEntity<List<ConcursoCargoDto>> getCargosByConcurso(@PathVariable Long id) {
+        return ResponseEntity.ok(concursoService.getCargosByConcursoId(id));
     }
 
-    @Operation(
-        summary = "Adicionar cargo ao concurso",
-        description = "Associa um cargo existente a um concurso específico",
-        requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            description = "Dados do cargo a ser adicionado ao concurso",
-            required = true,
-            content = @Content(
-                mediaType = "application/json",
-                schema = @Schema(implementation = ConcursoCargoCreateRequest.class)
-            )
-        ),
-        responses = {
-            @ApiResponse(responseCode = "201", description = "Cargo adicionado ao concurso com sucesso",
-                content = @Content(
-                    schema = @Schema(implementation = ConcursoCargoDto.class),
-                    examples = @ExampleObject(
-                        value = "{\"id\": 5, \"concursoId\": 1, \"cargoId\": 2}"
-                    )
-                )),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/concursos/1/cargos\",\"errors\":{\"cargoId\":\"não deve ser nulo\"}}"
-                    ))),
-            @ApiResponse(responseCode = "404", description = "Concurso ou Cargo não encontrado",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Concurso com ID: '1'\",\"instance\":\"/api/concursos/1/cargos\"}"
-                    ))),
-            @ApiResponse(responseCode = "422", description = "Entidade não processável - Cargo já associado ao concurso",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Entidade não processável\",\"status\":422,\"detail\":\"Cargo já associado ao concurso\",\"instance\":\"/api/concursos/1/cargos\"}"
-                    ))),
-            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/concursos/1/cargos\"}"
-                    )))
-        }
-    )
+    @Operation(summary = "Adicionar cargo ao concurso")
     @PostMapping("/{id}/cargos")
-    public ResponseEntity<ConcursoCargoDto> addCargoToConcurso(
-            @Parameter(description = "ID do concurso ao qual o cargo será adicionado", required = true) @PathVariable Long id,
-            @RequestBody ConcursoCargoCreateRequest concursoCargoCreateRequest) {
-        // Convert the request DTO to the regular DTO for processing
-        ConcursoCargoDto concursoCargoDto = new ConcursoCargoDto();
-        concursoCargoDto.setConcursoId(id); // Use the path variable, not the request body
-        concursoCargoDto.setCargoId(concursoCargoCreateRequest.getCargoId());
-
-        ConcursoCargoDto createdConcursoCargo = concursoService.addCargoToConcurso(concursoCargoDto);
-        return new ResponseEntity<>(createdConcursoCargo, HttpStatus.CREATED);
+    public ResponseEntity<ConcursoCargoDto> addCargoToConcurso(@PathVariable Long id, @Valid @RequestBody ConcursoCargoCreateRequest request) {
+        return new ResponseEntity<>(concursoService.addCargoToConcurso(id, request), HttpStatus.CREATED);
     }
 
-    @Operation(
-        summary = "Remover cargo do concurso",
-        description = "Desassocia um cargo de um concurso específico. A remoção será impedida se este for o único cargo do concurso ou se houver questões que dependam exclusivamente desta associação.",
-        responses = {
-            @ApiResponse(responseCode = "204", description = "Cargo removido do concurso com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Recurso não encontrado",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Associação entre concurso e cargo não encontrada\",\"instance\":\"/api/concursos/1/cargos/1\"}"
-                    ))),
-            @ApiResponse(responseCode = "422", description = "Entidade não processável - Regras de negócio violadas",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Entidade não processável\",\"status\":422,\"detail\":\"Um concurso deve estar associado a pelo menos um cargo\",\"instance\":\"/api/concursos/1/cargos/1\"}"
-                    ))),
-            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/concursos/1/cargos/1\"}"
-                    )))
-        }
-    )
+    @Operation(summary = "Remover cargo do concurso")
     @DeleteMapping("/{concursoId}/cargos/{cargoId}")
-    public ResponseEntity<Void> removeCargoFromConcurso(
-            @Parameter(description = "ID do concurso do qual o cargo será removido", required = true) @PathVariable Long concursoId,
-            @Parameter(description = "ID do cargo a ser removido do concurso", required = true) @PathVariable Long cargoId) {
+    public ResponseEntity<Void> removeCargoFromConcurso(@PathVariable Long concursoId, @PathVariable Long cargoId) {
         concursoService.removeCargoFromConcurso(concursoId, cargoId);
         return ResponseEntity.noContent().build();
     }

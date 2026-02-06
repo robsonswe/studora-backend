@@ -1,6 +1,6 @@
 package com.studora.repository.specification;
 
-import com.studora.dto.QuestaoFilter;
+import com.studora.dto.questao.QuestaoFilter;
 import com.studora.entity.Questao;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;

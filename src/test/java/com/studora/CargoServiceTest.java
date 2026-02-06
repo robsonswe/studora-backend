@@ -2,19 +2,17 @@ package com.studora;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-import com.studora.dto.CargoDto;
+import com.studora.dto.cargo.CargoDetailDto;
+import com.studora.dto.request.CargoCreateRequest;
 import com.studora.entity.Cargo;
 import com.studora.entity.NivelCargo;
-import com.studora.exception.ConflictException;
 import com.studora.repository.CargoRepository;
 import com.studora.service.CargoService;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -36,55 +34,68 @@ class CargoServiceTest {
     }
 
     @Test
-    void testSaveAndGet() {
+    void testFindById() {
         Cargo cargo = new Cargo();
         cargo.setId(1L);
-        cargo.setNome("Juiz");
+        cargo.setNome("Analista");
         cargo.setNivel(NivelCargo.SUPERIOR);
-        cargo.setArea("Judiciário");
 
-        CargoDto cargoDto = new CargoDto();
-        cargoDto.setNome("Juiz");
-        cargoDto.setNivel(NivelCargo.SUPERIOR);
-        cargoDto.setArea("Judiciário");
+        when(cargoRepository.findById(1L)).thenReturn(Optional.of(cargo));
 
+        CargoDetailDto result = cargoService.getCargoDetailById(1L);
+        assertNotNull(result);
+        assertEquals("Analista", result.getNome());
+    }
+
+    @Test
+    void testCreate_Success() {
+        CargoCreateRequest request = new CargoCreateRequest();
+        request.setNome("Novo Cargo");
+        request.setNivel(NivelCargo.SUPERIOR);
+        request.setArea("TI");
+
+        when(cargoRepository.findByNomeAndNivelAndArea("Novo Cargo", NivelCargo.SUPERIOR, "TI")).thenReturn(Optional.empty());
         when(cargoRepository.save(any(Cargo.class))).thenAnswer(i -> {
             Cargo c = i.getArgument(0);
             c.setId(1L);
             return c;
         });
-        when(cargoRepository.findById(1L)).thenReturn(Optional.of(cargo));
 
-        CargoDto saved = cargoService.save(cargoDto);
-        assertNotNull(saved);
-        assertEquals(1L, saved.getId());
-
-        CargoDto found = cargoService.findById(1L);
-        assertEquals("Juiz", found.getNome());
+        CargoDetailDto result = cargoService.create(request);
+        assertEquals(1L, result.getId());
+        assertEquals("Novo Cargo", result.getNome());
     }
 
     @Test
-    void testSave_CaseInsensitiveDuplicate() {
-        // Test that case-insensitive duplicates are caught
-        CargoDto dto = new CargoDto();
-        dto.setId(1L);
-        dto.setNome("analista de sistemas"); // lowercase
-        dto.setNivel(NivelCargo.SUPERIOR);
-        dto.setArea("tecnologia"); // lowercase
+    void testCreate_Conflict_Duplicate() {
+        CargoCreateRequest request = new CargoCreateRequest();
+        request.setNome("analista");
+        request.setNivel(NivelCargo.SUPERIOR);
+        request.setArea("tecnologia");
 
-        Cargo existingCargo = new Cargo();
-        existingCargo.setId(2L);
-        existingCargo.setNome("ANALISTA DE SISTEMAS"); // uppercase
-        existingCargo.setNivel(NivelCargo.SUPERIOR);
-        existingCargo.setArea("TECNOLOGIA"); // uppercase
+        Cargo existing = new Cargo();
+        existing.setId(2L);
+        existing.setNome("ANALISTA");
+        existing.setNivel(NivelCargo.SUPERIOR);
+        existing.setArea("TECNOLOGIA");
 
-        when(cargoRepository.findByNomeAndNivelAndArea(eq("analista de sistemas"), eq(NivelCargo.SUPERIOR), eq("tecnologia")))
-            .thenReturn(Optional.of(existingCargo));
+        when(cargoRepository.findByNomeAndNivelAndArea(any(), any(), any())).thenReturn(Optional.of(existing));
 
-        ConflictException exception = assertThrows(ConflictException.class, () -> {
-            cargoService.save(dto);
+        assertThrows(com.studora.exception.ConflictException.class, () -> {
+            cargoService.create(request);
         });
+    }
 
-        assertTrue(exception.getMessage().contains("Já existe um cargo com o nome 'analista de sistemas'"));
+    @Test
+    void testDelete_FailsWithAssociatedExams() {
+        when(cargoRepository.existsById(1L)).thenReturn(true);
+        when(concursoCargoRepository.existsByCargoId(1L)).thenReturn(true);
+
+        com.studora.exception.ValidationException exception = assertThrows(
+            com.studora.exception.ValidationException.class, 
+            () -> cargoService.delete(1L)
+        );
+
+        assertTrue(exception.getMessage().contains("possui concursos associados"));
     }
 }

@@ -1,6 +1,9 @@
 package com.studora.mapper;
 
-import com.studora.dto.BancaDto;
+import com.studora.dto.banca.BancaDetailDto;
+import com.studora.dto.banca.BancaSummaryDto;
+import com.studora.dto.request.BancaCreateRequest;
+import com.studora.dto.request.BancaUpdateRequest;
 import com.studora.entity.Banca;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -9,15 +12,17 @@ import org.mapstruct.MappingTarget;
 @Mapper(componentModel = "spring")
 public interface BancaMapper {
 
-    BancaDto toDto(Banca banca);
+    BancaSummaryDto toSummaryDto(Banca banca);
+
+    BancaDetailDto toDetailDto(Banca banca);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    Banca toEntity(BancaDto bancaDto);
+    Banca toEntity(BancaCreateRequest request);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    void updateEntityFromDto(BancaDto bancaDto, @MappingTarget Banca banca);
+    void updateEntityFromDto(BancaUpdateRequest request, @MappingTarget Banca banca);
 }

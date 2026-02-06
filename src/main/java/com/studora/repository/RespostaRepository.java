@@ -46,6 +46,8 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
 
     List<Resposta> findBySimuladoId(Long simuladoId);
 
+    int countBySimuladoId(Long simuladoId);
+
     @Transactional
     @Modifying
     @Query("UPDATE Resposta r SET r.simulado = null WHERE r.simulado.id = :simuladoId")

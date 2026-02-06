@@ -4,14 +4,14 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import com.studora.dto.InstituicaoDto;
+import com.studora.dto.instituicao.InstituicaoDetailDto;
+import com.studora.dto.request.InstituicaoCreateRequest;
 import com.studora.entity.Instituicao;
 import com.studora.repository.InstituicaoRepository;
 import com.studora.service.InstituicaoService;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -34,38 +34,38 @@ class InstituicaoServiceTest {
 
     @Test
     void testFindById() {
-        Instituicao instituicao = new Instituicao();
-        instituicao.setId(1L);
-        instituicao.setNome("Test");
+        Instituicao inst = new Instituicao();
+        inst.setId(1L);
+        inst.setNome("USP");
 
-        when(instituicaoRepository.findById(1L)).thenReturn(Optional.of(instituicao));
+        when(instituicaoRepository.findById(1L)).thenReturn(Optional.of(inst));
 
-        InstituicaoDto result = instituicaoService.findById(1L);
+        InstituicaoDetailDto result = instituicaoService.getInstituicaoDetailById(1L);
         assertNotNull(result);
-        assertEquals("Test", result.getNome());
+        assertEquals("USP", result.getNome());
     }
 
     @Test
-    void testSave() {
-        InstituicaoDto dto = new InstituicaoDto();
-        dto.setNome("Test");
+    void testCreate_Success() {
+        InstituicaoCreateRequest request = new InstituicaoCreateRequest();
+        request.setNome("UNICAMP");
 
+        when(instituicaoRepository.findByNomeIgnoreCase("UNICAMP")).thenReturn(Optional.empty());
         when(instituicaoRepository.save(any(Instituicao.class))).thenAnswer(i -> {
             Instituicao inst = i.getArgument(0);
             inst.setId(1L);
             return inst;
         });
 
-        InstituicaoDto result = instituicaoService.save(dto);
+        InstituicaoDetailDto result = instituicaoService.create(request);
         assertEquals(1L, result.getId());
-        assertEquals("Test", result.getNome());
+        assertEquals("UNICAMP", result.getNome());
     }
 
     @Test
-    void testSave_Conflict_DuplicateName_CaseInsensitive() {
-        InstituicaoDto dto = new InstituicaoDto();
-        dto.setNome("banco central");
-        dto.setArea("Financeira");
+    void testCreate_Conflict_DuplicateName_CaseInsensitive() {
+        InstituicaoCreateRequest req = new InstituicaoCreateRequest();
+        req.setNome("banco central");
 
         Instituicao existing = new Instituicao();
         existing.setId(1L);
@@ -74,7 +74,38 @@ class InstituicaoServiceTest {
         when(instituicaoRepository.findByNomeIgnoreCase("banco central")).thenReturn(Optional.of(existing));
 
         assertThrows(com.studora.exception.ConflictException.class, () -> {
-            instituicaoService.save(dto);
+            instituicaoService.create(req);
         });
+    }
+
+    @Test
+    void testUpdate_Success() {
+        Long id = 1L;
+        Instituicao inst = new Instituicao();
+        inst.setId(id);
+        inst.setNome("Old Name");
+
+        com.studora.dto.request.InstituicaoUpdateRequest req = new com.studora.dto.request.InstituicaoUpdateRequest();
+        req.setNome("New Name");
+
+        when(instituicaoRepository.findById(id)).thenReturn(Optional.of(inst));
+        when(instituicaoRepository.findByNomeIgnoreCase("New Name")).thenReturn(Optional.empty());
+        when(instituicaoRepository.save(any(Instituicao.class))).thenAnswer(i -> i.getArgument(0));
+
+        InstituicaoDetailDto result = instituicaoService.update(id, req);
+        assertEquals("New Name", result.getNome());
+    }
+
+    @Test
+    void testDelete_FailsWithAssociatedExams() {
+        when(instituicaoRepository.existsById(1L)).thenReturn(true);
+        when(concursoRepository.existsByInstituicaoId(1L)).thenReturn(true);
+
+        com.studora.exception.ValidationException exception = assertThrows(
+            com.studora.exception.ValidationException.class, 
+            () -> instituicaoService.delete(1L)
+        );
+
+        assertTrue(exception.getMessage().contains("possui concursos associados"));
     }
 }

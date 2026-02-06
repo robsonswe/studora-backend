@@ -3,7 +3,6 @@ package com.studora;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import com.studora.dto.SubtemaDto;
 import com.studora.dto.request.SubtemaCreateRequest;
 import com.studora.dto.request.SubtemaUpdateRequest;
 import com.studora.entity.Disciplina;

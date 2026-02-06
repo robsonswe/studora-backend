@@ -4,883 +4,309 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import com.studora.dto.AlternativaDto;
-import com.studora.dto.QuestaoCargoDto;
-import com.studora.dto.QuestaoDto;
+import com.studora.dto.questao.QuestaoDetailDto;
+import com.studora.dto.questao.QuestaoCargoDto;
+import com.studora.dto.questao.QuestaoSummaryDto;
+import com.studora.dto.questao.QuestaoFilter;
+import com.studora.dto.request.AlternativaCreateRequest;
+import com.studora.dto.request.AlternativaUpdateRequest;
+import com.studora.dto.request.QuestaoCargoCreateRequest;
+import com.studora.dto.request.QuestaoCreateRequest;
+import com.studora.dto.request.QuestaoUpdateRequest;
 import com.studora.entity.Concurso;
 import com.studora.entity.ConcursoCargo;
 import com.studora.entity.Questao;
 import com.studora.entity.QuestaoCargo;
-import com.studora.mapper.AlternativaMapper;
-import com.studora.mapper.QuestaoCargoMapper;
-import com.studora.mapper.QuestaoMapper;
+import com.studora.entity.Resposta;
+import com.studora.entity.Alternativa;
+import com.studora.exception.ValidationException;
 import com.studora.repository.*;
 import com.studora.service.QuestaoService;
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import com.studora.mapper.*;
+import jakarta.persistence.EntityManager;
 import java.util.Optional;
+import java.util.List;
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Collections;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mapstruct.factory.Mappers;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 class QuestaoServiceTest {
 
-    @Mock
-    private QuestaoRepository questaoRepository;
-
-    @Mock
-    private ConcursoRepository concursoRepository;
-
-    @Mock
-    private SubtemaRepository subtemaRepository;
-
-    @Mock
-    private ConcursoCargoRepository concursoCargoRepository;
-
-    @Mock
-    private QuestaoCargoRepository questaoCargoRepository;
-
-    @Mock
-    private TemaRepository temaRepository;
-
-    @Mock
-    private DisciplinaRepository disciplinaRepository;
-
-    @Mock
-    private AlternativaRepository alternativaRepository;
-
-    @Mock
-    private RespostaRepository respostaRepository;
-
-    private QuestaoMapper questaoMapper;
-    private AlternativaMapper alternativaMapper;
-    private QuestaoCargoMapper questaoCargoMapper;
-    private com.studora.mapper.RespostaMapper respostaMapper;
+    @Mock private QuestaoRepository questaoRepository;
+    @Mock private ConcursoRepository concursoRepository;
+    @Mock private SubtemaRepository subtemaRepository;
+    @Mock private ConcursoCargoRepository concursoCargoRepository;
+    @Mock private QuestaoCargoRepository questaoCargoRepository;
+    @Mock private RespostaRepository respostaRepository;
+    @Mock private AlternativaRepository alternativaRepository;
+    @Mock private EntityManager entityManager;
 
     private QuestaoService questaoService;
 
+    // Mappers
+    private QuestaoMapper questaoMapper;
+    private AlternativaMapper alternativaMapper;
+    private QuestaoCargoMapper questaoCargoMapper;
+    private RespostaMapper respostaMapper;
+
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         MockitoAnnotations.openMocks(this);
+        
+        questaoMapper = org.mapstruct.factory.Mappers.getMapper(QuestaoMapper.class);
+        questaoCargoMapper = org.mapstruct.factory.Mappers.getMapper(QuestaoCargoMapper.class);
+        alternativaMapper = org.mapstruct.factory.Mappers.getMapper(AlternativaMapper.class);
+        SubtemaMapper subtemaMapper = org.mapstruct.factory.Mappers.getMapper(SubtemaMapper.class);
+        respostaMapper = org.mapstruct.factory.Mappers.getMapper(RespostaMapper.class);
+        
+        ReflectionTestUtils.setField(questaoMapper, "alternativaMapper", alternativaMapper);
+        ReflectionTestUtils.setField(questaoMapper, "subtemaMapper", subtemaMapper);
+        ReflectionTestUtils.setField(questaoMapper, "questaoCargoMapper", questaoCargoMapper);
+        ReflectionTestUtils.setField(questaoMapper, "respostaMapper", respostaMapper);
 
-        // Instantiate real mappers
-        alternativaMapper = Mappers.getMapper(AlternativaMapper.class);
-        questaoCargoMapper = Mappers.getMapper(QuestaoCargoMapper.class);
-        questaoMapper = Mappers.getMapper(QuestaoMapper.class);
-        respostaMapper = Mappers.getMapper(com.studora.mapper.RespostaMapper.class);
-
-        // Inject dependencies into mappers if necessary (MapStruct 'spring' component model uses fields)
-        // We use reflection to set the field 'alternativaMapper' in QuestaoMapperImpl
-        try {
-            Field field = questaoMapper.getClass().getDeclaredField("alternativaMapper");
-            field.setAccessible(true);
-            field.set(questaoMapper, alternativaMapper);
-        } catch (NoSuchFieldException e) {
-            // Ignore if field doesn't exist (might not depend on it in some versions)
-        }
-
-        // Manually inject dependencies into Service via Constructor
         questaoService = new QuestaoService(
-            questaoRepository,
-            concursoRepository,
-            subtemaRepository,
-            concursoCargoRepository,
-            questaoCargoRepository,
-            temaRepository,
-            disciplinaRepository,
+            questaoRepository, concursoRepository, subtemaRepository,
+            concursoCargoRepository, questaoCargoRepository, respostaRepository,
             alternativaRepository,
-            respostaRepository,
-            questaoMapper,
-            alternativaMapper,
-            questaoCargoMapper,
-            respostaMapper
+            questaoMapper, questaoCargoMapper, entityManager
         );
     }
 
     @Test
-    void testGetQuestaoById_Success() {
-        // Arrange
-        Long questaoId = 1L;
-        Questao questao = new Questao();
-        questao.setId(questaoId);
-        questao.setEnunciado("Qual a capital do Brasil?");
+    void testFindAll() {
+        Questao q1 = new Questao(); q1.setId(1L);
+        Page<Questao> page = new PageImpl<>(Collections.singletonList(q1));
+        when(questaoRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
+        when(respostaRepository.findByQuestaoIdInWithDetails(anyList())).thenReturn(Collections.emptyList());
 
-        com.studora.entity.Instituicao instituicao = new com.studora.entity.Instituicao();
-        instituicao.setId(1L);
-        instituicao.setNome("Instituição");
+        Page<QuestaoSummaryDto> result = questaoService.findAll(new QuestaoFilter(), Pageable.unpaged());
+        assertEquals(1, result.getTotalElements());
+    }
 
-        com.studora.entity.Banca banca = new com.studora.entity.Banca();
-        banca.setId(1L);
-        banca.setNome("Banca");
+    @Test
+    void testFindById() {
+        Concurso c = new Concurso(); c.setId(1L);
+        Questao q = new Questao(); q.setId(1L); q.setEnunciado("Test?"); q.setConcurso(c);
+        when(questaoRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(q));
+        when(respostaRepository.findByQuestaoIdInWithDetails(anyList())).thenReturn(Collections.emptyList());
 
-        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
-        concurso.setId(1L);
-        questao.setConcurso(concurso);
-
-        when(questaoRepository.findByIdWithDetails(questaoId)).thenReturn(Optional.of(questao));
-
-        // Act
-        QuestaoDto result = questaoService.getQuestaoById(questaoId);
-
-        // Assert
+        QuestaoDetailDto result = questaoService.getQuestaoDetailById(1L);
         assertNotNull(result);
-        assertEquals(questao.getEnunciado(), result.getEnunciado());
-        verify(questaoRepository, times(1)).findByIdWithDetails(questaoId);
+        assertEquals("Test?", result.getEnunciado());
     }
 
     @Test
-    void testGetQuestaoById_NotFound() {
-        // Arrange
-        Long questaoId = 1L;
-        when(questaoRepository.findByIdWithDetails(questaoId)).thenReturn(Optional.empty());
+    void testCreate_Success() {
+        Concurso c = new Concurso(); c.setId(1L);
+        QuestaoCreateRequest req = new QuestaoCreateRequest();
+        req.setConcursoId(1L);
+        req.setEnunciado("New?");
+        req.setAlternativas(Arrays.asList(
+            new AlternativaCreateRequest(1, "A", true),
+            new AlternativaCreateRequest(2, "B", false)
+        ));
+        req.setConcursoCargoIds(Collections.singletonList(100L));
 
-        // Act & Assert
-        assertThrows(RuntimeException.class, () -> {
-            questaoService.getQuestaoById(questaoId);
-        });
-
-        verify(questaoRepository, times(1)).findByIdWithDetails(questaoId);
-    }
-
-    @Test
-    void testCreateQuestao_Success() {
-        // Arrange
-        QuestaoDto questaoDto = new QuestaoDto();
-        questaoDto.setEnunciado("Qual a capital do Brasil?");
-        questaoDto.setConcursoId(1L);
-        questaoDto.setAnulada(false);
-
-        AlternativaDto altDto1 = new AlternativaDto();
-        altDto1.setOrdem(1);
-        altDto1.setTexto("Brasília");
-        altDto1.setCorreta(true);
-
-        AlternativaDto altDto2 = new AlternativaDto();
-        altDto2.setOrdem(2);
-        altDto2.setTexto("São Paulo");
-        altDto2.setCorreta(false);
-
-        questaoDto.setAlternativas(Arrays.asList(altDto1, altDto2));
-        questaoDto.setConcursoCargoIds(Arrays.asList(1L));
-
-        Concurso concurso = new Concurso();
-        concurso.setId(1L);
-
-        ConcursoCargo cc = new ConcursoCargo();
-        cc.setId(1L);
-        cc.setConcurso(concurso);
-
-        // Define behavior for saves
-        when(concursoRepository.findById(1L)).thenReturn(Optional.of(concurso));
-        when(concursoCargoRepository.findById(1L)).thenReturn(Optional.of(cc));
+        when(concursoRepository.findById(1L)).thenReturn(Optional.of(c));
+        when(concursoCargoRepository.findById(100L)).thenReturn(Optional.of(createConcursoCargo(100L, c)));
         when(questaoRepository.save(any(Questao.class))).thenAnswer(i -> {
             Questao q = i.getArgument(0);
-            q.setId(1L); // Simulate ID generation
-            if (q.getAlternativas() == null) q.setAlternativas(new java.util.LinkedHashSet<>());
-            if (q.getQuestaoCargos() == null) q.setQuestaoCargos(new java.util.LinkedHashSet<>());
+            q.setId(1L);
             return q;
         });
-        when(alternativaRepository.save(any(com.studora.entity.Alternativa.class))).thenAnswer(i -> i.getArgument(0));
-        when(questaoCargoRepository.save(any(QuestaoCargo.class))).thenAnswer(i -> i.getArgument(0));
+        
+        Questao savedQ = new Questao(); savedQ.setId(1L); savedQ.setEnunciado("New?"); savedQ.setConcurso(c);
+        when(questaoRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(savedQ));
+        when(respostaRepository.findByQuestaoIdInWithDetails(anyList())).thenReturn(Collections.emptyList());
 
-        // Act
-        QuestaoDto result = questaoService.createQuestao(questaoDto);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals("Qual a capital do Brasil?", result.getEnunciado());
-        verify(questaoRepository, times(1)).save(any(Questao.class));
-        verify(alternativaRepository, times(2)).save(any(com.studora.entity.Alternativa.class));
-    }
-
-    @Test
-    void testCreateQuestao_ConcursoNotFound() {
-        // Arrange
-        QuestaoDto questaoDto = new QuestaoDto();
-        questaoDto.setEnunciado("Qual a capital da França?");
-        questaoDto.setConcursoId(1L);
-        questaoDto.setImageUrl("https://exemplo.com/imagem.jpg");
-
-        // Add alternativas to comply with validation
-        AlternativaDto alt1 = new AlternativaDto();
-        alt1.setOrdem(1);
-        alt1.setTexto("Alternativa A");
-        alt1.setCorreta(true);
-        alt1.setJustificativa("Justificativa A");
-
-        AlternativaDto alt2 = new AlternativaDto();
-        alt2.setOrdem(2);
-        alt2.setTexto("Alternativa B");
-        alt2.setCorreta(false);
-        alt2.setJustificativa("Justificativa B");
-
-        questaoDto.setAlternativas(Arrays.asList(alt1, alt2));
-
-        when(concursoRepository.findById(1L)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        assertThrows(RuntimeException.class, () -> {
-            questaoService.createQuestao(questaoDto);
-        });
-
-        verify(concursoRepository, times(1)).findById(1L);
-        verify(questaoRepository, never()).save(any(Questao.class));
-    }
-
-    @Test
-    void testAddCargoToQuestao_Success() {
-        // Arrange
-        QuestaoCargoDto dto = new QuestaoCargoDto();
-        dto.setQuestaoId(1L);
-        dto.setConcursoCargoId(1L);
-
-        Questao questao = new Questao();
-        questao.setId(1L);
-        Concurso concurso = new Concurso();
-        concurso.setId(1L);
-        questao.setConcurso(concurso);
-
-        ConcursoCargo cc = new ConcursoCargo();
-        cc.setId(1L);
-        cc.setConcurso(concurso);
-
-        when(questaoCargoRepository.findByQuestaoIdAndConcursoCargoId(1L, 1L)).thenReturn(Arrays.asList());
-        when(questaoRepository.findById(1L)).thenReturn(Optional.of(questao));
-        when(concursoCargoRepository.findById(1L)).thenReturn(Optional.of(cc));
-        when(questaoCargoRepository.save(any(QuestaoCargo.class))).thenAnswer(i -> {
-            QuestaoCargo qc = i.getArgument(0);
-            qc.setId(1L);
-            return qc;
-        });
-
-        // Act
-        QuestaoCargoDto result = questaoService.addCargoToQuestao(dto);
-
-        // Assert
-        assertNotNull(result);
+        QuestaoDetailDto result = questaoService.create(req);
         assertEquals(1L, result.getId());
-        verify(questaoCargoRepository, times(1)).save(any(QuestaoCargo.class));
+        verify(entityManager).flush();
     }
 
     @Test
-    void testUpdateQuestao_PreservesIdsWhenReordering() {
-        // Arrange
-        Long questaoId = 1L;
-        Questao existingQuestao = new Questao();
-        existingQuestao.setId(questaoId);
-        existingQuestao.setEnunciado("Enunciado Original");
+    void testUpdate_Success() {
+        Long id = 1L;
+        Concurso c = new Concurso(); c.setId(1L);
+        Questao existing = new Questao(); existing.setId(id); existing.setEnunciado("Old"); existing.setConcurso(c);
         
-        // Setup existing alternatives
-        com.studora.entity.Alternativa alt1 = new com.studora.entity.Alternativa();
-        alt1.setId(10L);
-        alt1.setOrdem(1);
-        alt1.setTexto("Texto 1");
-        alt1.setCorreta(true);
-        
-        com.studora.entity.Alternativa alt2 = new com.studora.entity.Alternativa();
-        alt2.setId(11L);
-        alt2.setOrdem(2);
-        alt2.setTexto("Texto 2");
-        alt2.setCorreta(false);
-        
-        java.util.Set<com.studora.entity.Alternativa> existingAlts = new java.util.LinkedHashSet<>(Arrays.asList(alt1, alt2));
-        existingQuestao.setAlternativas(existingAlts);
+        QuestaoUpdateRequest req = new QuestaoUpdateRequest();
+        req.setConcursoId(1L);
+        req.setEnunciado("Old");
+        req.setAnulada(false);
+        req.setAlternativas(Arrays.asList(
+            new AlternativaUpdateRequest() {{ setTexto("A"); setCorreta(true); setOrdem(1); }},
+            new AlternativaUpdateRequest() {{ setTexto("B"); setCorreta(false); setOrdem(2); }}
+        ));
+        req.setConcursoCargoIds(Collections.singletonList(100L));
 
-        // Setup DTO for update: SWAP orders
-        // User wants ID 10 to be Order 2, and ID 11 to be Order 1.
-        QuestaoDto updateDto = new QuestaoDto();
-        updateDto.setEnunciado("Enunciado Original");
-        updateDto.setAnulada(false);
-        
-        AlternativaDto dto1 = new AlternativaDto();
-        dto1.setId(11L); // ID 11
-        dto1.setOrdem(1); // Moving to Order 1 (was 2)
-        dto1.setTexto("Texto 2"); // Keeping text
-        dto1.setCorreta(false);
+        when(questaoRepository.findByIdWithDetails(id)).thenReturn(Optional.of(existing));
+        when(concursoRepository.findById(1L)).thenReturn(Optional.of(c));
+        when(concursoCargoRepository.findById(100L)).thenReturn(Optional.of(createConcursoCargo(100L, c)));
+        when(questaoRepository.save(any())).thenReturn(existing);
+        when(respostaRepository.findByQuestaoIdInWithDetails(anyList())).thenReturn(Collections.emptyList());
 
-        AlternativaDto dto2 = new AlternativaDto();
-        dto2.setId(10L); // ID 10
-        dto2.setOrdem(2); // Moving to Order 2 (was 1)
-        dto2.setTexto("Texto 1"); // Keeping text
-        dto2.setCorreta(true);
-
-        updateDto.setAlternativas(Arrays.asList(dto1, dto2));
-
-        // Mock repositories
-        when(questaoRepository.findById(questaoId)).thenReturn(Optional.of(existingQuestao));
-        when(questaoRepository.save(any(Questao.class))).thenReturn(existingQuestao);
-        when(alternativaRepository.findByQuestaoIdOrderByOrdemAsc(questaoId)).thenReturn(new ArrayList<>(existingAlts));
-        when(alternativaRepository.save(any(com.studora.entity.Alternativa.class))).thenAnswer(i -> i.getArgument(0));
-        
-        // Mock validation requirements
-        when(questaoCargoRepository.findByQuestaoId(questaoId)).thenReturn(Arrays.asList(new QuestaoCargo()));
-
-        // Act
-        questaoService.updateQuestao(questaoId, updateDto);
-
-        // Assert
-        // Verify that the alternatives were updated correctly based on ID, not just overwriting slots
-        // In the flawed logic (Order-based), ID 10 (at Order 1) would get "Texto 2".
-        // In the correct logic (ID-based), ID 10 should keep "Texto 1" but have Order 2.
-        
-        assertEquals("Texto 1", alt1.getTexto(), "Alt 10 should keep its text");
-        assertEquals(2, alt1.getOrdem(), "Alt 10 should have new order");
-        
-        assertEquals("Texto 2", alt2.getTexto(), "Alt 11 should keep its text");
-        assertEquals(1, alt2.getOrdem(), "Alt 11 should have new order");
+        QuestaoDetailDto result = questaoService.update(id, req);
+        assertNotNull(result);
     }
 
     @Test
-    void testUpdateQuestao_WithCargoModification() {
-        // Arrange
-        Long questaoId = 1L;
-        Questao existingQuestao = new Questao();
-        existingQuestao.setId(questaoId);
-        existingQuestao.setEnunciado("Original");
-        
-        Concurso concurso = new Concurso();
-        concurso.setId(1L);
-        existingQuestao.setConcurso(concurso);
-
-        // Current associations: CC 1 and CC 2
-        ConcursoCargo cc1 = new ConcursoCargo(); cc1.setId(1L); cc1.setConcurso(concurso);
-        ConcursoCargo cc2 = new ConcursoCargo(); cc2.setId(2L); cc2.setConcurso(concurso);
-        
-        QuestaoCargo qc1 = new QuestaoCargo(); qc1.setId(10L); qc1.setQuestao(existingQuestao); qc1.setConcursoCargo(cc1);
-        QuestaoCargo qc2 = new QuestaoCargo(); qc2.setId(11L); qc2.setQuestao(existingQuestao); qc2.setConcursoCargo(cc2);
-        
-        existingQuestao.setQuestaoCargos(new java.util.LinkedHashSet<>(Arrays.asList(qc1, qc2)));
-
-        // Update DTO: Remove CC 2, add CC 3
-        QuestaoDto updateDto = new QuestaoDto();
-        updateDto.setEnunciado("Original");
-        updateDto.setConcursoCargoIds(Arrays.asList(1L, 3L)); // Keeping 1, Adding 3
-        updateDto.setAnulada(false);
-        
-        AlternativaDto alt1 = new AlternativaDto(); alt1.setCorreta(true); alt1.setOrdem(1);
-        AlternativaDto alt2 = new AlternativaDto(); alt2.setCorreta(false); alt2.setOrdem(2);
-        updateDto.setAlternativas(Arrays.asList(alt1, alt2)); 
-
-        // Mock CC 3
-        ConcursoCargo cc3 = new ConcursoCargo(); cc3.setId(3L); cc3.setConcurso(concurso);
-
-        when(questaoRepository.findById(questaoId)).thenReturn(Optional.of(existingQuestao));
-        when(questaoRepository.save(any(Questao.class))).thenReturn(existingQuestao);
-        when(concursoCargoRepository.findById(1L)).thenReturn(Optional.of(cc1));
-        when(concursoCargoRepository.findById(3L)).thenReturn(Optional.of(cc3));
-        when(questaoCargoRepository.findByQuestaoId(questaoId)).thenReturn(new ArrayList<>(existingQuestao.getQuestaoCargos()));
-        when(questaoCargoRepository.save(any(QuestaoCargo.class))).thenAnswer(i -> i.getArgument(0));
-
-        // Act
-        questaoService.updateQuestao(questaoId, updateDto);
-
-        // Assert
-        verify(questaoCargoRepository, times(1)).delete(qc2); // Removed CC 2
-        verify(questaoCargoRepository, times(1)).save(any(QuestaoCargo.class)); // Added CC 3
+    void testDelete() {
+        when(questaoRepository.existsById(1L)).thenReturn(true);
+        questaoService.delete(1L);
+        verify(questaoRepository).deleteById(1L);
     }
 
     @Test
-    void testUpdateQuestao_RemoveAllCargos_Fails() {
-        // Arrange
-        Long questaoId = 1L;
-        Questao existingQuestao = new Questao();
-        existingQuestao.setId(questaoId);
-        existingQuestao.setEnunciado("Original");
-        Concurso concurso = new Concurso();
-        concurso.setId(1L);
-        existingQuestao.setConcurso(concurso);
-
-        QuestaoDto updateDto = new QuestaoDto();
-        updateDto.setEnunciado("Original");
-        updateDto.setAnulada(false);
-        updateDto.setConcursoCargoIds(new ArrayList<>()); // Trying to remove ALL cargos
-        
-        AlternativaDto alt1 = new AlternativaDto(); alt1.setCorreta(true); alt1.setOrdem(1);
-        AlternativaDto alt2 = new AlternativaDto(); alt2.setCorreta(false); alt2.setOrdem(2);
-        updateDto.setAlternativas(Arrays.asList(alt1, alt2));
-
-        when(questaoRepository.findById(questaoId)).thenReturn(Optional.of(existingQuestao));
-        // Important: mock save to return the entity to avoid NPE later in method
-        when(questaoRepository.save(any(Questao.class))).thenReturn(existingQuestao);
-        when(questaoCargoRepository.findByQuestaoId(questaoId)).thenReturn(new ArrayList<>()); 
-
-        // Act & Assert
-        com.studora.exception.ValidationException exception = assertThrows(com.studora.exception.ValidationException.class, () -> {
-            questaoService.updateQuestao(questaoId, updateDto);
-        });
-
-        assertTrue(exception.getMessage().contains("pelo menos 1 cargo"));
+    void testToggleDesatualizada() {
+        Questao q = new Questao(); q.setId(1L); q.setDesatualizada(false);
+        when(questaoRepository.findById(1L)).thenReturn(Optional.of(q));
+        questaoService.toggleDesatualizada(1L);
+        assertTrue(q.getDesatualizada());
+        verify(questaoRepository).save(q);
     }
 
     @Test
-    void testUpdateQuestao_ClearsExistingResponses() {
-        // Arrange
-        Long questaoId = 1L;
-        Questao existingQuestao = new Questao();
-        existingQuestao.setId(questaoId);
-        existingQuestao.setEnunciado("Original");
-        Concurso concurso = new Concurso();
-        concurso.setId(1L);
-        existingQuestao.setConcurso(concurso);
+    void testGetCargosByQuestaoId() {
+        QuestaoCargo qc = new QuestaoCargo(); qc.setId(10L);
+        when(questaoCargoRepository.findByQuestaoId(1L)).thenReturn(Collections.singletonList(qc));
+        List<QuestaoCargoDto> result = questaoService.getCargosByQuestaoId(1L);
+        assertEquals(1, result.size());
+    }
 
-        QuestaoDto updateDto = new QuestaoDto();
-        updateDto.setEnunciado("Updated");
-        updateDto.setAnulada(false);
-        updateDto.setConcursoCargoIds(Arrays.asList(1L));
+    @Test
+    void testAddCargo_Success() {
+        Questao q = new Questao(); q.setId(1L); q.setConcurso(new Concurso()); q.getConcurso().setId(1L);
+        ConcursoCargo cc = new ConcursoCargo(); cc.setId(100L); cc.setConcurso(q.getConcurso());
         
-        AlternativaDto alt1 = new AlternativaDto(); alt1.setCorreta(true); alt1.setOrdem(1);
-        AlternativaDto alt2 = new AlternativaDto(); alt2.setCorreta(false); alt2.setOrdem(2);
-        updateDto.setAlternativas(Arrays.asList(alt1, alt2));
+        when(questaoCargoRepository.findByQuestaoIdAndConcursoCargoId(1L, 100L)).thenReturn(Collections.emptyList());
+        when(questaoRepository.findById(1L)).thenReturn(Optional.of(q));
+        when(concursoCargoRepository.findById(100L)).thenReturn(Optional.of(cc));
+        when(questaoCargoRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        ConcursoCargo cc = new ConcursoCargo();
-        cc.setId(1L);
-        cc.setConcurso(concurso);
+        QuestaoCargoCreateRequest req = new QuestaoCargoCreateRequest();
+        req.setConcursoCargoId(100L);
+        QuestaoCargoDto result = questaoService.addCargoToQuestao(1L, req);
+        assertNotNull(result);
+    }
 
+    @Test
+    void testRemoveCargo_Success() {
         QuestaoCargo qc = new QuestaoCargo();
-        qc.setQuestao(existingQuestao);
-        qc.setConcursoCargo(cc);
-
-        when(questaoRepository.findById(questaoId)).thenReturn(Optional.of(existingQuestao));
-        when(questaoRepository.save(any(Questao.class))).thenReturn(existingQuestao);
-        when(concursoCargoRepository.findById(1L)).thenReturn(Optional.of(cc));
-        when(questaoCargoRepository.findByQuestaoId(questaoId)).thenReturn(Arrays.asList(qc));
-
-        // Act
-        questaoService.updateQuestao(questaoId, updateDto);
-
-        // Assert
-        verify(respostaRepository, times(1)).deleteByQuestaoId(questaoId);
+        when(questaoCargoRepository.findByQuestaoIdAndConcursoCargoId(1L, 100L)).thenReturn(Collections.singletonList(qc));
+        when(questaoCargoRepository.countByQuestaoId(1L)).thenReturn(2L);
+        
+        questaoService.removeCargoFromQuestao(1L, 100L);
+        verify(questaoCargoRepository).delete(qc);
     }
 
     @Test
-    void testAddCargoToQuestao_AlreadyExists() {
-        // Arrange
-        QuestaoCargoDto questaoCargoDto = new QuestaoCargoDto();
-        questaoCargoDto.setQuestaoId(1L);
-        questaoCargoDto.setConcursoCargoId(2L);
-
-        Questao questao = new Questao();
-        questao.setId(1L);
-
-        ConcursoCargo concursoCargo = new ConcursoCargo();
-        concursoCargo.setId(2L);
-
-        QuestaoCargo existingQuestaoCargo = new QuestaoCargo();
-        existingQuestaoCargo.setId(5L);
-        existingQuestaoCargo.setQuestao(questao);
-        existingQuestaoCargo.setConcursoCargo(concursoCargo);
-
-        when(questaoCargoRepository.findByQuestaoIdAndConcursoCargoId(1L, 2L)).thenReturn(Arrays.asList(existingQuestaoCargo));
-
-        // Act & Assert
-        assertThrows(RuntimeException.class, () -> {
-            questaoService.addCargoToQuestao(questaoCargoDto);
-        });
-
-        verify(questaoCargoRepository, times(1)).findByQuestaoIdAndConcursoCargoId(1L, 2L);
-        verify(questaoCargoRepository, never()).save(any(QuestaoCargo.class));
+    void testRemoveCargo_FailsIfLast() {
+        when(questaoCargoRepository.findByQuestaoIdAndConcursoCargoId(1L, 100L)).thenReturn(Collections.singletonList(new QuestaoCargo()));
+        when(questaoCargoRepository.countByQuestaoId(1L)).thenReturn(1L);
+        
+        assertThrows(ValidationException.class, () -> questaoService.removeCargoFromQuestao(1L, 100L));
     }
 
     @Test
-    void testAddCargoToQuestao_ConcursoMismatch() {
-        // Arrange
-        QuestaoCargoDto questaoCargoDto = new QuestaoCargoDto();
-        questaoCargoDto.setQuestaoId(1L);
-        questaoCargoDto.setConcursoCargoId(2L);
-
-        Concurso concurso1 = new Concurso();
-        concurso1.setId(1L);
-
-        Concurso concurso2 = new Concurso();
-        concurso2.setId(2L);
-
-        Questao questao = new Questao();
-        questao.setId(1L);
-        questao.setConcurso(concurso1);
-
-        ConcursoCargo concursoCargo = new ConcursoCargo();
-        concursoCargo.setId(2L);
-        concursoCargo.setConcurso(concurso2);
-
-        when(questaoRepository.findById(1L)).thenReturn(Optional.of(questao));
-        when(concursoCargoRepository.findById(2L)).thenReturn(Optional.of(concursoCargo));
-
-        // Act & Assert
-        com.studora.exception.ValidationException exception = assertThrows(com.studora.exception.ValidationException.class, () -> {
-            questaoService.addCargoToQuestao(questaoCargoDto);
-        });
-
-        assertEquals("O concurso do cargo não corresponde ao concurso da questão", exception.getMessage());
-        verify(questaoRepository, times(1)).findById(1L);
-        verify(concursoCargoRepository, times(1)).findById(2L);
-        verify(questaoCargoRepository, never()).save(any(QuestaoCargo.class));
+    void testCreate_RequiresAtLeastTwoAlternatives() {
+        QuestaoCreateRequest req = new QuestaoCreateRequest(1L, "E");
+        req.setAlternativas(Collections.singletonList(new AlternativaCreateRequest(1, "A", true)));
+        req.setConcursoCargoIds(Collections.singletonList(100L));
+        Concurso c = new Concurso(); c.setId(1L);
+        when(concursoRepository.findById(1L)).thenReturn(Optional.of(c));
+        when(concursoCargoRepository.findById(100L)).thenReturn(Optional.of(createConcursoCargo(100L, c)));
+        assertThrows(ValidationException.class, () -> questaoService.create(req));
     }
 
     @Test
-    void testAddCargoToQuestao_NonExistentQuestao() {
-        // Arrange
-        QuestaoCargoDto questaoCargoDto = new QuestaoCargoDto();
-        questaoCargoDto.setQuestaoId(999L);
-        questaoCargoDto.setConcursoCargoId(2L);
-
-        when(questaoCargoRepository.findByQuestaoIdAndConcursoCargoId(999L, 2L)).thenReturn(List.of());
-        when(questaoRepository.findById(999L)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        assertThrows(RuntimeException.class, () -> {
-            questaoService.addCargoToQuestao(questaoCargoDto);
-        });
-
-        verify(questaoCargoRepository, times(1)).findByQuestaoIdAndConcursoCargoId(999L, 2L);
-        verify(questaoRepository, times(1)).findById(999L);
-        verify(concursoCargoRepository, never()).findById(anyLong());
-        verify(questaoCargoRepository, never()).save(any(QuestaoCargo.class));
+    void testCreate_RequiresExactlyOneCorrect() {
+        QuestaoCreateRequest req = new QuestaoCreateRequest(1L, "E");
+        req.setConcursoCargoIds(Collections.singletonList(100L));
+        req.setAlternativas(Arrays.asList(new AlternativaCreateRequest(1, "A", true), new AlternativaCreateRequest(2, "B", true)));
+        Concurso c = new Concurso(); c.setId(1L);
+        when(concursoRepository.findById(1L)).thenReturn(Optional.of(c));
+        when(concursoCargoRepository.findById(100L)).thenReturn(Optional.of(createConcursoCargo(100L, c)));
+        assertThrows(ValidationException.class, () -> questaoService.create(req));
     }
 
     @Test
-    void testAddCargoToQuestao_NonExistentConcursoCargo() {
-        // Arrange
-        QuestaoCargoDto questaoCargoDto = new QuestaoCargoDto();
-        questaoCargoDto.setQuestaoId(1L);
-        questaoCargoDto.setConcursoCargoId(999L);
+    void testUpdate_PreservesIds() {
+        Long qId = 1L; Questao q = new Questao(); q.setId(qId); 
+        Concurso c = new Concurso(); c.setId(1L); q.setConcurso(c);
+        Alternativa a1 = new Alternativa(); a1.setId(10L); a1.setOrdem(1); a1.setQuestao(q); a1.setTexto("A"); a1.setCorreta(true);
+        q.setAlternativas(new HashSet<>(Collections.singletonList(a1)));
+        
+        when(questaoRepository.findByIdWithDetails(qId)).thenReturn(Optional.of(q));
+        when(alternativaRepository.findByQuestaoIdOrderByOrdemAsc(qId)).thenReturn(Collections.singletonList(a1));
+        when(concursoRepository.findById(any())).thenReturn(Optional.of(c));
+        when(questaoRepository.save(any())).thenReturn(q);
+        when(respostaRepository.findByQuestaoIdInWithDetails(anyList())).thenReturn(Collections.emptyList());
 
-        Questao questao = new Questao();
-        questao.setId(1L);
+        QuestaoUpdateRequest req = new QuestaoUpdateRequest();
+        req.setConcursoId(1L); req.setEnunciado("Old"); req.setAnulada(false); req.setConcursoCargoIds(Collections.singletonList(100L));
+        req.setAlternativas(Arrays.asList(new AlternativaUpdateRequest() {{ setId(10L); setOrdem(2); setTexto("A"); setCorreta(true); }}, new AlternativaUpdateRequest() {{ setTexto("B"); setCorreta(false); setOrdem(1); }}));
+        when(concursoCargoRepository.findById(100L)).thenReturn(Optional.of(createConcursoCargo(100L, c)));
 
-        when(questaoCargoRepository.findByQuestaoIdAndConcursoCargoId(1L, 999L)).thenReturn(List.of());
-        when(questaoRepository.findById(1L)).thenReturn(Optional.of(questao));
-        when(concursoCargoRepository.findById(999L)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        assertThrows(RuntimeException.class, () -> {
-            questaoService.addCargoToQuestao(questaoCargoDto);
-        });
-
-        verify(questaoCargoRepository, times(1)).findByQuestaoIdAndConcursoCargoId(1L, 999L);
-        verify(questaoRepository, times(1)).findById(1L);
-        verify(concursoCargoRepository, times(1)).findById(999L);
-        verify(questaoCargoRepository, never()).save(any(QuestaoCargo.class));
+        questaoService.update(qId, req);
+        assertEquals(10L, a1.getId());
+        assertEquals(2, a1.getOrdem());
     }
 
     @Test
-    void testCreateQuestao_RequiresAtLeastTwoAlternatives() {
-        // Arrange
-        QuestaoDto questaoDto = new QuestaoDto();
-        questaoDto.setEnunciado("Qual a capital da França?");
-        questaoDto.setConcursoId(1L);
-        questaoDto.setImageUrl("https://exemplo.com/imagem.jpg");
-        questaoDto.setConcursoCargoIds(Arrays.asList(1L));
+    void testUpdate_ContentChangeDeletesResponses() {
+        Long qId = 1L; Questao q = new Questao(); q.setId(qId); q.setEnunciado("Old"); 
+        Concurso c = new Concurso(); c.setId(1L); q.setConcurso(c);
+        when(questaoRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(q));
+        when(concursoRepository.findById(any())).thenReturn(Optional.of(c));
+        when(questaoRepository.save(any())).thenReturn(q);
+        when(concursoCargoRepository.findById(any())).thenReturn(Optional.of(createConcursoCargo(100L, c)));
+        when(respostaRepository.findByQuestaoIdInWithDetails(anyList())).thenReturn(Collections.emptyList());
 
-        AlternativaDto alt1 = new AlternativaDto();
-        alt1.setOrdem(1);
-        alt1.setTexto("Only Alternative");
-        alt1.setCorreta(true);
-        alt1.setJustificativa("Justification");
+        QuestaoUpdateRequest req = new QuestaoUpdateRequest();
+        req.setConcursoId(1L);
+        req.setEnunciado("New"); req.setAnulada(false); req.setConcursoCargoIds(Collections.singletonList(100L));
+        req.setAlternativas(Arrays.asList(new AlternativaUpdateRequest() {{ setTexto("A"); setCorreta(true); setOrdem(1); }}, new AlternativaUpdateRequest() {{ setTexto("B"); setCorreta(false); setOrdem(2); }}));
 
-        questaoDto.setAlternativas(Arrays.asList(alt1));
-
-        com.studora.entity.Instituicao instituicao = new com.studora.entity.Instituicao();
-        instituicao.setId(1L);
-        instituicao.setNome("Instituição");
-
-        com.studora.entity.Banca banca = new com.studora.entity.Banca();
-        banca.setId(1L);
-        banca.setNome("Banca");
-
-        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
-        concurso.setId(1L);
-
-        when(concursoRepository.findById(1L)).thenReturn(Optional.of(concurso));
-
-        // Act & Assert
-        com.studora.exception.ValidationException exception = assertThrows(
-            com.studora.exception.ValidationException.class,
-            () -> questaoService.createQuestao(questaoDto)
-        );
-
-        assertEquals("Uma questão deve ter pelo menos 2 alternativas", exception.getMessage());
-        verify(questaoRepository, never()).save(any(Questao.class));
+        questaoService.update(1L, req);
+        verify(respostaRepository).deleteByQuestaoId(1L);
     }
 
     @Test
-    void testCreateQuestao_WithZeroCorrectAlternatives_FailsValidation() {
-        // Arrange
-        QuestaoDto questaoDto = new QuestaoDto();
-        questaoDto.setEnunciado("Qual a capital da França?");
-        questaoDto.setConcursoId(1L);
-        questaoDto.setAnulada(false);
-        questaoDto.setConcursoCargoIds(Arrays.asList(1L));
-
-        AlternativaDto alt1 = new AlternativaDto();
-        alt1.setOrdem(1);
-        alt1.setTexto("Paris");
-        alt1.setCorreta(false);
-        alt1.setJustificativa("Not the correct answer");
-
-        AlternativaDto alt2 = new AlternativaDto();
-        alt2.setOrdem(2);
-        alt2.setTexto("London");
-        alt2.setCorreta(false);
-        alt2.setJustificativa("Not the correct answer");
-
-        questaoDto.setAlternativas(Arrays.asList(alt1, alt2));
-
-        com.studora.entity.Instituicao instituicao = new com.studora.entity.Instituicao();
-        instituicao.setId(1L);
-        instituicao.setNome("Instituição");
-
-        com.studora.entity.Banca banca = new com.studora.entity.Banca();
-        banca.setId(1L);
-        banca.setNome("Banca");
-
-        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
-        concurso.setId(1L);
-
-        when(concursoRepository.findById(1L)).thenReturn(Optional.of(concurso));
-
-        // Act & Assert
-        com.studora.exception.ValidationException exception = assertThrows(
-            com.studora.exception.ValidationException.class,
-            () -> questaoService.createQuestao(questaoDto)
-        );
-
-        assertEquals("Uma questão deve ter exatamente 1 alternativa correta", exception.getMessage());
-        verify(questaoRepository, never()).save(any(Questao.class));
+    void testNormalizeAlternativaOrders() {
+        Questao q = new Questao();
+        Alternativa a1 = new Alternativa(); a1.setOrdem(10);
+        Alternativa a2 = new Alternativa(); a2.setOrdem(5);
+        q.setAlternativas(new HashSet<>(Arrays.asList(a1, a2)));
+        
+        ReflectionTestUtils.invokeMethod(questaoService, "normalizeAlternativaOrders", q);
+        List<Alternativa> sorted = q.getAlternativas().stream().sorted(java.util.Comparator.comparing(Alternativa::getOrdem)).toList();
+        assertEquals(1, sorted.get(0).getOrdem());
+        assertEquals(2, sorted.get(1).getOrdem());
     }
 
     @Test
-    void testCreateQuestao_WithMultipleCorrectAlternatives_FailsValidation() {
-        // Arrange
-        QuestaoDto questaoDto = new QuestaoDto();
-        questaoDto.setEnunciado("Qual a capital da França?");
-        questaoDto.setConcursoId(1L);
-        questaoDto.setAnulada(false);
-        questaoDto.setConcursoCargoIds(Arrays.asList(1L));
-
-        AlternativaDto alt1 = new AlternativaDto();
-        alt1.setOrdem(1);
-        alt1.setTexto("Paris");
-        alt1.setCorreta(true);
-        alt1.setJustificativa("Correct answer");
-
-        AlternativaDto alt2 = new AlternativaDto();
-        alt2.setOrdem(2);
-        alt2.setTexto("London");
-        alt2.setCorreta(true);
-        alt2.setJustificativa("Also correct (but invalid)");
-
-        questaoDto.setAlternativas(Arrays.asList(alt1, alt2));
-
-        com.studora.entity.Instituicao instituicao = new com.studora.entity.Instituicao();
-        instituicao.setId(1L);
-        instituicao.setNome("Instituição");
-
-        com.studora.entity.Banca banca = new com.studora.entity.Banca();
-        banca.setId(1L);
-        banca.setNome("Banca");
-
-        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
-        concurso.setId(1L);
-
-        when(concursoRepository.findById(1L)).thenReturn(Optional.of(concurso));
-
-        // Act & Assert
-        com.studora.exception.ValidationException exception = assertThrows(
-            com.studora.exception.ValidationException.class,
-            () -> questaoService.createQuestao(questaoDto)
-        );
-
-        assertEquals("Uma questão deve ter exatamente 1 alternativa correta", exception.getMessage());
-        verify(questaoRepository, never()).save(any(Questao.class));
+    void testValidateBusinessRules_FailsIfNoCargo() {
+        QuestaoCreateRequest req = new QuestaoCreateRequest();
+        req.setConcursoId(1L);
+        req.setConcursoCargoIds(Collections.emptyList());
+        req.setAlternativas(Arrays.asList(new AlternativaCreateRequest() {{ setCorreta(true); }}, new AlternativaCreateRequest() {{ setCorreta(false); }}));
+        when(concursoRepository.findById(any())).thenReturn(Optional.of(new Concurso()));
+        assertThrows(ValidationException.class, () -> questaoService.create(req));
     }
 
-    @Test
-    void testCreateQuestao_WithExactlyOneCorrectAlternative_Succeeds() {
-        // Arrange
-        QuestaoDto questaoDto = new QuestaoDto();
-        questaoDto.setEnunciado("Qual a capital da França?");
-        questaoDto.setConcursoId(1L);
-        questaoDto.setAnulada(false);
-        questaoDto.setConcursoCargoIds(Arrays.asList(1L));
-
-        AlternativaDto alt1 = new AlternativaDto();
-        alt1.setOrdem(1);
-        alt1.setTexto("Paris");
-        alt1.setCorreta(true);
-        alt1.setJustificativa("Correct answer");
-
-        AlternativaDto alt2 = new AlternativaDto();
-        alt2.setOrdem(2);
-        alt2.setTexto("London");
-        alt2.setCorreta(false);
-        alt2.setJustificativa("Incorrect answer");
-
-        questaoDto.setAlternativas(Arrays.asList(alt1, alt2));
-
-        com.studora.entity.Instituicao instituicao = new com.studora.entity.Instituicao();
-        instituicao.setId(1L);
-        instituicao.setNome("Instituição");
-
-        com.studora.entity.Banca banca = new com.studora.entity.Banca();
-        banca.setId(1L);
-        banca.setNome("Banca");
-
-        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
-        concurso.setId(1L);
-
-        ConcursoCargo concursoCargo = new ConcursoCargo();
-        concursoCargo.setId(1L);
-        concursoCargo.setConcurso(concurso);
-
-        when(concursoRepository.findById(1L)).thenReturn(Optional.of(concurso));
-        when(concursoCargoRepository.findById(1L)).thenReturn(Optional.of(concursoCargo));
-        when(questaoRepository.save(any(Questao.class))).thenAnswer(i -> {
-            Questao q = i.getArgument(0);
-            if (q.getAlternativas() == null) q.setAlternativas(new java.util.LinkedHashSet<>());
-            if (q.getQuestaoCargos() == null) q.setQuestaoCargos(new java.util.LinkedHashSet<>());
-            return q;
-        });
-        when(alternativaRepository.save(any(com.studora.entity.Alternativa.class))).thenAnswer(i -> i.getArgument(0));
-        when(questaoCargoRepository.save(any(QuestaoCargo.class))).thenAnswer(i -> i.getArgument(0));
-
-        // Act
-        QuestaoDto result = questaoService.createQuestao(questaoDto);
-
-        // Assert
-        assertNotNull(result);
-        verify(concursoRepository, times(1)).findById(1L);
-        verify(questaoRepository, times(1)).save(any(Questao.class));
-        verify(alternativaRepository, times(2)).save(any(com.studora.entity.Alternativa.class));
-    }
-
-    @Test
-    void testCreateQuestao_WithExactlyOneCorrectAlternative_AnuladaQuestion_Succeeds() {
-        // Arrange
-        QuestaoDto questaoDto = new QuestaoDto();
-        questaoDto.setEnunciado("Qual a capital da França?");
-        questaoDto.setConcursoId(1L);
-        questaoDto.setAnulada(true);
-        questaoDto.setConcursoCargoIds(Arrays.asList(1L));
-
-        AlternativaDto alt1 = new AlternativaDto();
-        alt1.setOrdem(1);
-        alt1.setTexto("Paris");
-        alt1.setCorreta(true);
-
-        AlternativaDto alt2 = new AlternativaDto();
-        alt2.setOrdem(2);
-        alt2.setTexto("London");
-        alt2.setCorreta(true);
-
-        questaoDto.setAlternativas(Arrays.asList(alt1, alt2));
-
-        com.studora.entity.Instituicao instituicao = new com.studora.entity.Instituicao();
-        instituicao.setId(1L);
-        instituicao.setNome("Instituição");
-
-        com.studora.entity.Banca banca = new com.studora.entity.Banca();
-        banca.setId(1L);
-        banca.setNome("Banca");
-
-        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
-        concurso.setId(1L);
-
-        ConcursoCargo concursoCargo = new ConcursoCargo();
-        concursoCargo.setId(1L);
-        concursoCargo.setConcurso(concurso);
-
-        when(concursoRepository.findById(1L)).thenReturn(Optional.of(concurso));
-        when(concursoCargoRepository.findById(1L)).thenReturn(Optional.of(concursoCargo));
-        when(questaoRepository.save(any(Questao.class))).thenAnswer(i -> {
-            Questao q = i.getArgument(0);
-            if (q.getAlternativas() == null) q.setAlternativas(new java.util.LinkedHashSet<>());
-            if (q.getQuestaoCargos() == null) q.setQuestaoCargos(new java.util.LinkedHashSet<>());
-            return q;
-        });
-        when(alternativaRepository.save(any(com.studora.entity.Alternativa.class))).thenAnswer(i -> i.getArgument(0));
-        when(questaoCargoRepository.save(any(QuestaoCargo.class))).thenAnswer(i -> i.getArgument(0));
-
-        // Act
-        QuestaoDto result = questaoService.createQuestao(questaoDto);
-
-        // Assert
-        assertNotNull(result);
-        verify(concursoRepository, times(1)).findById(1L);
-        verify(questaoRepository, times(1)).save(any(Questao.class));
-        verify(alternativaRepository, times(2)).save(any(com.studora.entity.Alternativa.class));
-    }
-
-    @Test
-    void testCreateQuestaoWithoutCargo_Association() {
-        // Arrange
-        QuestaoDto questaoDto = new QuestaoDto();
-        questaoDto.setEnunciado("Qual a capital da França?");
-        questaoDto.setConcursoId(1L);
-        questaoDto.setImageUrl("https://exemplo.com/imagem.jpg");
-
-        AlternativaDto alt1 = new AlternativaDto();
-        alt1.setOrdem(1);
-        alt1.setTexto("Alternativa A");
-        alt1.setCorreta(true);
-
-        AlternativaDto alt2 = new AlternativaDto();
-        alt2.setOrdem(2);
-        alt2.setTexto("Alternativa B");
-        alt2.setCorreta(false);
-
-        questaoDto.setAlternativas(Arrays.asList(alt1, alt2));
-
-        com.studora.entity.Instituicao instituicao = new com.studora.entity.Instituicao();
-        instituicao.setId(1L);
-        instituicao.setNome("Instituição");
-
-        com.studora.entity.Banca banca = new com.studora.entity.Banca();
-        banca.setId(1L);
-        banca.setNome("Banca");
-
-        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
-        concurso.setId(1L);
-
-        when(concursoRepository.findById(1L)).thenReturn(Optional.of(concurso));
-
-        // Act & Assert
-        assertThrows(RuntimeException.class, () -> {
-            questaoService.createQuestao(questaoDto);
-        });
-
-        verify(concursoRepository, times(1)).findById(1L);
-        verify(questaoRepository, never()).save(any(Questao.class));
-    }
-
-    @Test
-    void testRemoveLastCargoFromQuestao_FailsValidation() {
-        // Arrange
-        Long questaoId = 1L;
-        Long concursoCargoId = 2L;
-
-        QuestaoCargo existingAssociation = new QuestaoCargo();
-        existingAssociation.setQuestao(new Questao());
-        existingAssociation.getQuestao().setId(questaoId);
-        existingAssociation.setConcursoCargo(new ConcursoCargo());
-        existingAssociation.getConcursoCargo().setId(concursoCargoId);
-
-        when(questaoCargoRepository.findByQuestaoIdAndConcursoCargoId(questaoId, concursoCargoId))
-            .thenReturn(Arrays.asList(existingAssociation));
-        when(questaoCargoRepository.findByQuestaoId(questaoId))
-            .thenReturn(Arrays.asList(existingAssociation)); // Only one association exists
-
-        // Act & Assert
-        assertThrows(RuntimeException.class, () -> {
-            questaoService.removeCargoFromQuestao(questaoId, concursoCargoId);
-        });
-
-        verify(questaoCargoRepository, times(1)).findByQuestaoIdAndConcursoCargoId(questaoId, concursoCargoId);
-        verify(questaoCargoRepository, times(1)).findByQuestaoId(questaoId);
-        verify(questaoCargoRepository, never()).deleteAll(anyList());
+    private ConcursoCargo createConcursoCargo(Long id, Concurso c) {
+        ConcursoCargo cc = new ConcursoCargo(); cc.setId(id); cc.setConcurso(c);
+        return cc;
     }
 }

@@ -1,6 +1,6 @@
 package com.studora.mapper;
 
-import com.studora.dto.QuestaoCargoDto;
+import com.studora.dto.questao.QuestaoCargoDto;
 import com.studora.entity.QuestaoCargo;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

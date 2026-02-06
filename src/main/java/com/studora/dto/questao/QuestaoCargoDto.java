@@ -1,4 +1,4 @@
-package com.studora.dto;
+package com.studora.dto.questao;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;

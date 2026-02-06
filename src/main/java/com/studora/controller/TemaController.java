@@ -1,7 +1,8 @@
 package com.studora.controller;
 
+import com.studora.dto.tema.TemaSummaryDto;
+import com.studora.dto.tema.TemaDetailDto;
 import com.studora.dto.PageResponse;
-import com.studora.dto.TemaDto;
 import com.studora.dto.request.TemaCreateRequest;
 import com.studora.dto.request.TemaUpdateRequest;
 import com.studora.common.constants.AppConstants;
@@ -9,289 +10,73 @@ import com.studora.service.TemaService;
 import com.studora.util.PaginationUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
-import org.springdoc.core.annotations.ParameterObject;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/temas")
-@CrossOrigin(origins = "*")
 @Tag(name = "Temas", description = "Endpoints para gerenciamento de temas")
 public class TemaController {
 
-    @Autowired
-    private TemaService temaService;
+    private final TemaService temaService;
 
-    @Operation(
-        summary = "Obter todos os temas",
-        description = "Retorna uma página com todas as temas cadastrados. Suporta paginação, ordenação prioritária e busca por nome.",
-        parameters = {
-            @Parameter(name = "nome", description = "Filtro para busca por nome (fuzzy)", schema = @Schema(type = "string")),
-            @Parameter(name = "page", description = "Número da página (0..N)", schema = @Schema(type = "integer", defaultValue = AppConstants.DEFAULT_PAGE_NUMBER_STR)),
-            @Parameter(name = "size", description = "Tamanho da página", schema = @Schema(type = "integer", defaultValue = AppConstants.DEFAULT_PAGE_SIZE_STR)),
-            @Parameter(name = "sort", description = "Campo para ordenação primária", schema = @Schema(type = "string", allowableValues = {"nome", "disciplinaId"}, defaultValue = "nome")),
-            @Parameter(name = "direction", description = "Direção da ordenação primária", schema = @Schema(type = "string", allowableValues = {"ASC", "DESC"}, defaultValue = "ASC"))
-        },
-        responses = {
-            @ApiResponse(responseCode = "200", description = "Página de temas retornada com sucesso",
-                content = @Content(
-                    mediaType = "application/json",
-                    schema = @Schema(implementation = PageResponse.class),
-                    examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1}], \"pageNumber\": 0, \"pageSize\": " + AppConstants.DEFAULT_PAGE_SIZE + ", \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
-                    )
-                )),
-            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/temas\"}"
-                    )))
-        }
-    )
+    public TemaController(TemaService temaService) {
+        this.temaService = temaService;
+    }
+
+    @Operation(summary = "Obter todos os temas")
     @GetMapping
-    public ResponseEntity<PageResponse<TemaDto>> getAllTemas(
+    public ResponseEntity<PageResponse<TemaSummaryDto>> getAllTemas(
             @RequestParam(required = false) String nome,
             @Parameter(hidden = true) @PageableDefault(size = AppConstants.DEFAULT_PAGE_SIZE) Pageable pageable,
             @RequestParam(defaultValue = "nome") String sort,
             @RequestParam(defaultValue = "ASC") String direction) {
         
-        Map<String, String> mapping = Map.of("disciplinaId", "disciplina.id");
-
         List<Sort.Order> tieBreakers = List.of(
             Sort.Order.asc("nome"),
-            Sort.Order.asc("disciplina.id")
+            Sort.Order.asc("disciplina_id")
         );
-
-        Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, mapping, tieBreakers);
-        Page<TemaDto> temas = temaService.getAllTemas(nome, finalPageable);
+        Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, Map.of(), tieBreakers);
+        
+        Page<TemaSummaryDto> temas = temaService.findAll(nome, finalPageable);
         return ResponseEntity.ok(new PageResponse<>(temas));
     }
 
-    @Operation(
-        summary = "Obter tema por ID",
-        description = "Retorna um tema específico com base no ID fornecido",
-        responses = {
-            @ApiResponse(responseCode = "200", description = "Tema encontrado e retornado com sucesso",
-                content = @Content(
-                    schema = @Schema(implementation = TemaDto.class),
-                    examples = @ExampleObject(
-                        value = "{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1}"
-                    )
-                )),
-            @ApiResponse(responseCode = "404", description = "Tema não encontrado",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Tema com ID: '123'\",\"instance\":\"/api/temas/123\"}"
-                    ))),
-            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/temas/123\"}"
-                    )))
-        }
-    )
+    @Operation(summary = "Obter tema por ID")
     @GetMapping("/{id}")
-    public ResponseEntity<TemaDto> getTemaById(
-            @Parameter(description = "ID do tema a ser buscada", required = true) @PathVariable Long id) {
-        TemaDto tema = temaService.getTemaById(id);
-        return ResponseEntity.ok(tema);
+    public ResponseEntity<TemaDetailDto> getTemaById(@PathVariable Long id) {
+        return ResponseEntity.ok(temaService.getTemaDetailById(id));
     }
 
-    @Operation(
-        summary = "Obter temas por disciplina",
-        description = "Retorna uma página de temas associados a uma disciplina específica. Suporta paginação.",
-        responses = {
-            @ApiResponse(responseCode = "200", description = "Página de temas retornada com sucesso",
-                content = @Content(
-                    mediaType = "application/json",
-                    schema = @Schema(implementation = PageResponse.class),
-                    examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1}], \"pageNumber\": 0, \"pageSize\": " + AppConstants.DEFAULT_PAGE_SIZE + ", \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
-                    )
-                )),
-            @ApiResponse(responseCode = "404", description = "Disciplina não encontrada",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Disciplina com ID: '1'\",\"instance\":\"/api/temas/disciplina/1\"}"
-                    ))),
-            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/temas/disciplina/1\"}"
-                    )))
-        }
-    )
-    @GetMapping("/disciplina/{disciplinaId}")
-    public ResponseEntity<PageResponse<TemaDto>> getTemasByDisciplinaId(
-            @Parameter(description = "ID da disciplina para filtrar temas", required = true) @PathVariable Long disciplinaId,
-            @ParameterObject @PageableDefault(size = AppConstants.DEFAULT_PAGE_SIZE) Pageable pageable) {
-        Page<TemaDto> temas = temaService.getTemasByDisciplinaId(disciplinaId, pageable);
-        return ResponseEntity.ok(new PageResponse<>(temas));
-    }
-
-    @Operation(
-        summary = "Criar novo tema",
-        description = "Cria um novo tema com base nos dados fornecidos",
-        requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            description = "Dados do novo tema a ser criado",
-            required = true,
-            content = @Content(
-                mediaType = "application/json",
-                schema = @Schema(implementation = TemaCreateRequest.class)
-            )
-        ),
-        responses = {
-            @ApiResponse(responseCode = "201", description = "Novo tema criado com sucesso",
-                content = @Content(
-                    schema = @Schema(implementation = TemaDto.class),
-                    examples = @ExampleObject(
-                        value = "{\"id\": 2, \"nome\": \"Organização do Estado\", \"disciplinaId\": 1}"
-                    )
-                )),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/temas\",\"errors\":{\"nome\":\"não deve estar em branco\"}}"
-                    ))),
-            @ApiResponse(responseCode = "409", description = "Conflito - Já existe um tema com este nome na mesma disciplina",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Já existe um tema com o nome 'Direitos Fundamentais' na disciplina com ID: 1\",\"instance\":\"/api/temas\"}"
-                    ))),
-            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/temas\"}"
-                    )))
-        }
-    )
+    @Operation(summary = "Criar novo tema")
     @PostMapping
-    public ResponseEntity<TemaDto> createTema(
-            @Valid @RequestBody TemaCreateRequest temaCreateRequest) {
-        // Convert the request DTO to the regular DTO for processing
-        TemaDto temaDto = new TemaDto();
-        temaDto.setDisciplinaId(temaCreateRequest.getDisciplinaId());
-        temaDto.setNome(temaCreateRequest.getNome());
-
-        TemaDto createdTema = temaService.createTema(temaDto);
-        return new ResponseEntity<>(createdTema, HttpStatus.CREATED);
+    public ResponseEntity<TemaDetailDto> createTema(@Valid @RequestBody TemaCreateRequest request) {
+        return new ResponseEntity<>(temaService.create(request), HttpStatus.CREATED);
     }
 
-    @Operation(
-        summary = "Atualizar tema",
-        description = "Atualiza os dados de um tema existente. As regras de validação de nome único dentro da disciplina também se aplicam na atualização.",
-        requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
-            description = "Dados atualizados do tema",
-            required = true,
-            content = @Content(
-                mediaType = "application/json",
-                schema = @Schema(implementation = TemaUpdateRequest.class)
-            )
-        ),
-        responses = {
-            @ApiResponse(responseCode = "200", description = "Tema atualizado com sucesso",
-                content = @Content(
-                    schema = @Schema(implementation = TemaDto.class),
-                    examples = @ExampleObject(
-                        value = "{\"id\": 1, \"nome\": \"Direitos Fundamentais Atualizado\", \"disciplinaId\": 1}"
-                    )
-                )),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/temas/1\",\"errors\":{\"nome\":\"não deve estar em branco\"}}"
-                    ))),
-            @ApiResponse(responseCode = "404", description = "Tema não encontrado",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Tema com ID: '1'\",\"instance\":\"/api/temas/1\"}"
-                    ))),
-            @ApiResponse(responseCode = "409", description = "Conflito - Já existe um tema com este nome na mesma disciplina",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Já existe um tema com o nome 'Direitos Fundamentais' na disciplina com ID: 1\",\"instance\":\"/api/temas/1\"}"
-                    ))),
-            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/temas/1\"}"
-                    )))
-        }
-    )
+    @Operation(summary = "Atualizar tema")
     @PutMapping("/{id}")
-    public ResponseEntity<TemaDto> updateTema(
-            @Parameter(description = "ID do tema a ser atualizado", required = true) @PathVariable Long id,
-            @Valid @RequestBody TemaUpdateRequest temaUpdateRequest) {
-        // Convert the request DTO to the regular DTO for processing
-        TemaDto temaDto = new TemaDto();
-        temaDto.setId(id); // Set the ID from the path parameter
-        temaDto.setDisciplinaId(temaUpdateRequest.getDisciplinaId());
-        temaDto.setNome(temaUpdateRequest.getNome());
-
-        TemaDto updatedTema = temaService.updateTema(id, temaDto);
-        return ResponseEntity.ok(updatedTema);
+    public ResponseEntity<TemaDetailDto> updateTema(@PathVariable Long id, @Valid @RequestBody TemaUpdateRequest request) {
+        return ResponseEntity.ok(temaService.update(id, request));
     }
 
-    @Operation(
-        summary = "Excluir tema",
-        description = "Remove um tema existente with base no ID fornecido. A exclusão será impedida se houver subtemas associados a este tema.",
-        responses = {
-            @ApiResponse(responseCode = "204", description = "Tema excluído com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Tema não encontrado",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Tema com ID: '1'\",\"instance\":\"/api/temas/1\"}"
-                    ))),
-            @ApiResponse(responseCode = "409", description = "Conflito - Existem subtemas vinculados a este tema",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Não é possível excluir o tema pois existem subtemas associados a ele.\",\"instance\":\"/api/temas/1\"}"
-                    ))),
-            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/temas/1\"}"
-                    )))
-        }
-    )
+    @Operation(summary = "Excluir tema")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTema(
-            @Parameter(description = "ID do tema a ser excluído", required = true) @PathVariable Long id) {
-        temaService.deleteTema(id);
+    public ResponseEntity<Void> deleteTema(@PathVariable Long id) {
+        temaService.delete(id);
         return ResponseEntity.noContent().build();
     }
 }

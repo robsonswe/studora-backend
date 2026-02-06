@@ -16,4 +16,6 @@ public interface ConcursoCargoRepository extends JpaRepository<ConcursoCargo, Lo
 
     boolean existsByConcursoId(Long concursoId);
     boolean existsByCargoId(Long cargoId);
+    long countByConcursoId(Long concursoId);
+    boolean existsByConcursoIdAndCargoId(Long concursoId, Long cargoId);
 }

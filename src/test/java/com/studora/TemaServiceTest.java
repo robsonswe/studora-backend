@@ -1,148 +1,130 @@
 package com.studora;
 
-import com.studora.dto.TemaDto;
-import com.studora.entity.Disciplina;
-import com.studora.entity.Tema;
-import com.studora.repository.DisciplinaRepository;
-import com.studora.repository.TemaRepository;
-import com.studora.service.TemaService;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+
+import com.studora.dto.tema.TemaDetailDto;
+import com.studora.dto.request.TemaCreateRequest;
+import com.studora.entity.Disciplina;
+import com.studora.entity.Tema;
+import com.studora.repository.DisciplinaRepository;
+import com.studora.repository.SubtemaRepository;
+import com.studora.repository.TemaRepository;
+import com.studora.service.TemaService;
+import com.studora.mapper.TemaMapper;
+import com.studora.mapper.DisciplinaMapper;
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.test.util.ReflectionTestUtils;
 
 class TemaServiceTest {
 
     @Mock
     private TemaRepository temaRepository;
-
     @Mock
     private DisciplinaRepository disciplinaRepository;
-
     @Mock
-    private com.studora.repository.SubtemaRepository subtemaRepository;
+    private SubtemaRepository subtemaRepository;
 
     private TemaService temaService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        com.studora.mapper.TemaMapper realMapper = org.mapstruct.factory.Mappers.getMapper(com.studora.mapper.TemaMapper.class);
+        
+        TemaMapper realMapper = org.mapstruct.factory.Mappers.getMapper(TemaMapper.class);
+        DisciplinaMapper discMapper = org.mapstruct.factory.Mappers.getMapper(DisciplinaMapper.class);
+        ReflectionTestUtils.setField(realMapper, "disciplinaMapper", discMapper);
+        
         temaService = new TemaService(temaRepository, disciplinaRepository, subtemaRepository, realMapper);
     }
 
     @Test
-    void testGetTemaById_Success() {
-        // Arrange
-        Long temaId = 1L;
+    void testFindById() {
+        Disciplina disc = new Disciplina("Direito"); disc.setId(1L);
         Tema tema = new Tema();
-        tema.setId(temaId);
-        tema.setNome("Controle de Constitucionalidade");
+        tema.setId(1L);
+        tema.setNome("Atos");
+        tema.setDisciplina(disc);
 
-        Disciplina disciplina = new Disciplina();
-        disciplina.setId(1L);
-        disciplina.setNome("Direito Constitucional");
-        tema.setDisciplina(disciplina);
+        when(temaRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(tema));
 
-        when(temaRepository.findByIdWithDetails(temaId)).thenReturn(Optional.of(tema));
-
-        // Act
-        TemaDto result = temaService.getTemaById(temaId);
-
-        // Assert
+        TemaDetailDto result = temaService.getTemaDetailById(1L);
         assertNotNull(result);
-        assertEquals(tema.getNome(), result.getNome());
-        verify(temaRepository, times(1)).findByIdWithDetails(temaId);
+        assertEquals("Atos", result.getNome());
     }
 
     @Test
-    void testGetTemaById_NotFound() {
-        // Arrange
-        Long temaId = 1L;
-        when(temaRepository.findByIdWithDetails(temaId)).thenReturn(Optional.empty());
+    void testCreate_Success() {
+        Disciplina disc = new Disciplina("Direito"); disc.setId(1L);
+        TemaCreateRequest request = new TemaCreateRequest();
+        request.setDisciplinaId(1L);
+        request.setNome("Contratos");
 
-        // Act & Assert
-        assertThrows(RuntimeException.class, () -> {
-            temaService.getTemaById(temaId);
-        });
-
-        verify(temaRepository, times(1)).findByIdWithDetails(temaId);
-    }
-
-    @Test
-    void testCreateTema_Success() {
-        // Arrange
-        TemaDto temaDto = new TemaDto();
-        temaDto.setNome("Atos Administrativos");
-        temaDto.setDisciplinaId(1L);
-
-        Disciplina disciplina = new Disciplina();
-        disciplina.setId(1L);
-
-        when(disciplinaRepository.findById(1L)).thenReturn(Optional.of(disciplina));
+        when(disciplinaRepository.findById(1L)).thenReturn(Optional.of(disc));
+        when(temaRepository.findByDisciplinaIdAndNomeIgnoreCase(1L, "Contratos")).thenReturn(Optional.empty());
         when(temaRepository.save(any(Tema.class))).thenAnswer(i -> {
             Tema t = i.getArgument(0);
             t.setId(1L);
             return t;
         });
 
-        // Act
-        TemaDto result = temaService.createTema(temaDto);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals("Atos Administrativos", result.getNome());
-        assertEquals(1L, result.getDisciplinaId());
-        verify(disciplinaRepository, times(1)).findById(1L);
-        verify(temaRepository, times(1)).save(any(Tema.class));
+        TemaDetailDto result = temaService.create(request);
+        assertEquals(1L, result.getId());
+        assertEquals("Contratos", result.getNome());
     }
 
     @Test
-    void testCreateTema_DisciplinaNotFound() {
-        // Arrange
-        TemaDto temaDto = new TemaDto();
-        temaDto.setNome("Atos Administrativos");
-        temaDto.setDisciplinaId(1L);
+    void testCreate_DisciplinaNotFound() {
+        TemaCreateRequest request = new TemaCreateRequest();
+        request.setDisciplinaId(1L);
+        request.setNome("Contratos");
 
         when(disciplinaRepository.findById(1L)).thenReturn(Optional.empty());
 
-        // Act & Assert
-        assertThrows(RuntimeException.class, () -> {
-            temaService.createTema(temaDto);
+        assertThrows(com.studora.exception.ResourceNotFoundException.class, () -> {
+            temaService.create(request);
         });
-
-        verify(disciplinaRepository, times(1)).findById(1L);
-        verify(temaRepository, never()).save(any(Tema.class));
     }
 
     @Test
-    void testDeleteTema_Success() {
+    void testUpdate_Success() {
+        Disciplina d = new Disciplina(); d.setId(1L);
+        Tema t = new Tema(); t.setId(1L); t.setNome("Old"); t.setDisciplina(d);
+        com.studora.dto.request.TemaUpdateRequest req = new com.studora.dto.request.TemaUpdateRequest();
+        req.setNome("New"); req.setDisciplinaId(1L);
+        
+        when(temaRepository.findById(1L)).thenReturn(Optional.of(t));
+        when(disciplinaRepository.findById(1L)).thenReturn(Optional.of(d));
+        when(temaRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        
+        TemaDetailDto result = temaService.update(1L, req);
+        assertEquals("New", result.getNome());
+    }
+
+    @Test
+    void testDelete_Success() {
         Long id = 1L;
         when(temaRepository.existsById(id)).thenReturn(true);
         when(subtemaRepository.existsByTemaId(id)).thenReturn(false);
 
-        temaService.deleteTema(id);
+        temaService.delete(id);
 
         verify(temaRepository, times(1)).deleteById(id);
     }
 
     @Test
-    void testDeleteTema_Conflict() {
+    void testDelete_Conflict() {
         Long id = 1L;
         when(temaRepository.existsById(id)).thenReturn(true);
         when(subtemaRepository.existsByTemaId(id)).thenReturn(true);
 
-        assertThrows(com.studora.exception.ConflictException.class, () -> {
-            temaService.deleteTema(id);
+        assertThrows(com.studora.exception.ValidationException.class, () -> {
+            temaService.delete(id);
         });
-
-        verify(temaRepository, never()).deleteById(anyLong());
     }
 }

@@ -1,6 +1,6 @@
 package com.studora.mapper;
 
-import com.studora.dto.AlternativaDto;
+import com.studora.dto.questao.AlternativaDto;
 import com.studora.dto.request.AlternativaCreateRequest;
 import com.studora.entity.Alternativa;
 import org.mapstruct.Mapper;
@@ -16,6 +16,34 @@ public interface AlternativaMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "questaoId", ignore = true)
     AlternativaDto toDto(AlternativaCreateRequest request);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "questao", ignore = true)
+    @Mapping(target = "resposta", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    Alternativa toEntity(AlternativaCreateRequest request);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "questao", ignore = true)
+    @Mapping(target = "resposta", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    void updateEntityFromRequest(AlternativaCreateRequest request, @MappingTarget Alternativa alternativa);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "questao", ignore = true)
+    @Mapping(target = "resposta", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    Alternativa toEntity(com.studora.dto.request.AlternativaUpdateRequest request);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "questao", ignore = true)
+    @Mapping(target = "resposta", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    void updateEntityFromRequest(com.studora.dto.request.AlternativaUpdateRequest request, @MappingTarget Alternativa alternativa);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "questao", ignore = true)

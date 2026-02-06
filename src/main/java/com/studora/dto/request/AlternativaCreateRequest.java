@@ -8,7 +8,7 @@ import lombok.Data;
 
 @Schema(description = "Request DTO para criação de uma alternativa")
 @Data
-public class AlternativaCreateRequest {
+public class AlternativaCreateRequest implements AlternativaBaseRequest {
 
     @Schema(description = "Ordem da alternativa na lista", example = "1", required = true)
     @NotNull(message = "Ordem é obrigatória")

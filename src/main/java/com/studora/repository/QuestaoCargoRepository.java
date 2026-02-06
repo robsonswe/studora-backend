@@ -17,4 +17,9 @@ public interface QuestaoCargoRepository extends JpaRepository<QuestaoCargo, Long
     List<QuestaoCargo> findByConcursoCargoId(Long concursoCargoId);
 
     long countByQuestaoId(Long questaoId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Query("DELETE FROM QuestaoCargo qc WHERE qc.questao.id = :questaoId")
+    void deleteByQuestaoId(@Param("questaoId") Long questaoId);
 }

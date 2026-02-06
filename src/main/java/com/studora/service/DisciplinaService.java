@@ -1,75 +1,91 @@
 package com.studora.service;
 
-import com.studora.dto.DisciplinaDto;
+import com.studora.dto.disciplina.DisciplinaDetailDto;
+import com.studora.dto.disciplina.DisciplinaSummaryDto;
+import com.studora.dto.request.DisciplinaCreateRequest;
+import com.studora.dto.request.DisciplinaUpdateRequest;
 import com.studora.entity.Disciplina;
 import com.studora.exception.ConflictException;
 import com.studora.exception.ResourceNotFoundException;
+import com.studora.exception.ValidationException;
 import com.studora.mapper.DisciplinaMapper;
 import com.studora.repository.DisciplinaRepository;
+import com.studora.repository.TemaRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class DisciplinaService {
 
     private final DisciplinaRepository disciplinaRepository;
+    private final TemaRepository temaRepository;
     private final DisciplinaMapper disciplinaMapper;
-    private final com.studora.repository.TemaRepository temaRepository;
 
-    public Page<DisciplinaDto> findAll(String nome, Pageable pageable) {
+    @Transactional(readOnly = true)
+    public Page<DisciplinaSummaryDto> findAll(String nome, Pageable pageable) {
         if (nome != null && !nome.isBlank()) {
             return disciplinaRepository.findByNomeContainingIgnoreCase(nome, pageable)
-                    .map(disciplinaMapper::toDto);
+                    .map(disciplinaMapper::toSummaryDto);
         }
         return disciplinaRepository.findAll(pageable)
-                .map(disciplinaMapper::toDto);
+                .map(disciplinaMapper::toSummaryDto);
     }
 
-    public DisciplinaDto getDisciplinaById(Long id) {
+    @Transactional(readOnly = true)
+    public DisciplinaDetailDto getDisciplinaDetailById(Long id) {
         Disciplina disciplina = disciplinaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Disciplina", "ID", id));
-        return disciplinaMapper.toDto(disciplina);
+        return disciplinaMapper.toDetailDto(disciplina);
     }
 
-    public DisciplinaDto createDisciplina(DisciplinaDto disciplinaDto) {
-        // Check for duplicate disciplina name (case-insensitive)
-        Optional<Disciplina> existingDisciplina = disciplinaRepository.findByNomeIgnoreCase(disciplinaDto.getNome());
-        if (existingDisciplina.isPresent()) {
-            throw new ConflictException("Já existe uma disciplina com o nome '" + disciplinaDto.getNome() + "'");
+    public DisciplinaDetailDto create(DisciplinaCreateRequest request) {
+        log.info("Criando nova disciplina: {}", request.getNome());
+        
+        Optional<Disciplina> existing = disciplinaRepository.findByNomeIgnoreCase(request.getNome());
+        if (existing.isPresent()) {
+            throw new ConflictException("Já existe uma disciplina com o nome '" + request.getNome() + "'");
         }
 
-        Disciplina disciplina = disciplinaMapper.toEntity(disciplinaDto);
-        Disciplina savedDisciplina = disciplinaRepository.save(disciplina);
-        return disciplinaMapper.toDto(savedDisciplina);
+        Disciplina disciplina = disciplinaMapper.toEntity(request);
+        return disciplinaMapper.toDetailDto(disciplinaRepository.save(disciplina));
     }
 
-    public DisciplinaDto updateDisciplina(Long id, DisciplinaDto disciplinaDto) {
-        Disciplina existingDisciplina = disciplinaRepository.findById(id)
+    public DisciplinaDetailDto update(Long id, DisciplinaUpdateRequest request) {
+        log.info("Atualizando disciplina ID: {}", id);
+        
+        Disciplina disciplina = disciplinaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Disciplina", "ID", id));
 
-        // Check for duplicate disciplina name (excluding current disciplina, case-insensitive)
-        Optional<Disciplina> duplicateDisciplina = disciplinaRepository.findByNomeIgnoreCaseAndIdNot(disciplinaDto.getNome(), id);
-        if (duplicateDisciplina.isPresent()) {
-            throw new ConflictException("Já existe uma disciplina com o nome '" + disciplinaDto.getNome() + "'");
+        if (request.getNome() != null) {
+            Optional<Disciplina> existing = disciplinaRepository.findByNomeIgnoreCase(request.getNome());
+            if (existing.isPresent() && !existing.get().getId().equals(id)) {
+                throw new ConflictException("Já existe uma disciplina com o nome '" + request.getNome() + "'");
+            }
         }
 
-        disciplinaMapper.updateEntityFromDto(disciplinaDto, existingDisciplina);
-        Disciplina updatedDisciplina = disciplinaRepository.save(existingDisciplina);
-        return disciplinaMapper.toDto(updatedDisciplina);
+        disciplinaMapper.updateEntityFromDto(request, disciplina);
+        return disciplinaMapper.toDetailDto(disciplinaRepository.save(disciplina));
     }
 
-    public void deleteDisciplina(Long id) {
+    public void delete(Long id) {
+        log.info("Excluindo disciplina ID: {}", id);
         if (!disciplinaRepository.existsById(id)) {
             throw new ResourceNotFoundException("Disciplina", "ID", id);
         }
+        
         if (temaRepository.existsByDisciplinaId(id)) {
-            throw new ConflictException("Não é possível excluir a disciplina pois existem temas associados a ela.");
+            throw new ValidationException("Não é possível excluir uma disciplina que possui temas associados");
         }
+        
         disciplinaRepository.deleteById(id);
     }
 }

@@ -1,4 +1,4 @@
-package com.studora.dto;
+package com.studora.dto.questao;
 
 import com.studora.dto.Views;
 import com.fasterxml.jackson.annotation.JsonView;

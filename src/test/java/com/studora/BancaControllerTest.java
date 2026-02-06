@@ -3,7 +3,6 @@ package com.studora;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import com.studora.dto.BancaDto;
 import com.studora.dto.request.BancaCreateRequest;
 import com.studora.dto.request.BancaUpdateRequest;
 import com.studora.entity.Banca;

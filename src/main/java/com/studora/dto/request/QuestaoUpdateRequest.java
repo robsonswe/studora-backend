@@ -1,11 +1,12 @@
 package com.studora.dto.request;
 
-import com.studora.dto.AlternativaDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.util.List;
+import com.studora.common.constants.AppConstants;
 
 @Schema(description = "Request DTO para atualização de uma questão")
 @Data
@@ -28,36 +29,23 @@ public class QuestaoUpdateRequest {
     @Schema(description = "URL da imagem associada à questão", example = "https://exemplo.com/imagem.jpg")
     private String imageUrl;
 
-    public String getImageUrl() {
-        return imageUrl;
-    }
-
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = (imageUrl != null && !imageUrl.trim().isEmpty()) ? imageUrl : null;
-    }
-
     @Schema(description = "IDs dos subtemas associados à questão")
-    private List<Long> subtemaIds; // IDs of associated subtemas
+    private List<Long> subtemaIds;
 
+    @NotNull(message = "Pelo menos um cargo deve ser associado à questão")
+    @Size(min = AppConstants.MIN_CARGO_ASSOCIATIONS, message = "A questão deve estar associada a pelo menos {min} cargo")
     @Schema(description = "IDs dos cargos do concurso associados à questão")
-    private List<Long> concursoCargoIds; // IDs of associated ConcursoCargo records
+    private List<Long> concursoCargoIds;
 
     @Schema(description = "Alternativas da questão")
-    private List<AlternativaDto> alternativas; // Alternativas associated with the question
+    @Size(min = AppConstants.MIN_ALTERNATIVAS, message = "A questão deve ter pelo menos {min} alternativas")
+    @jakarta.validation.Valid
+    private List<AlternativaUpdateRequest> alternativas;
 
-    // Constructors
     public QuestaoUpdateRequest() {}
 
     public QuestaoUpdateRequest(Long concursoId, String enunciado) {
         this.concursoId = concursoId;
         this.enunciado = enunciado;
-    }
-
-    public List<AlternativaDto> getAlternativas() {
-        return alternativas;
-    }
-
-    public void setAlternativas(List<AlternativaDto> alternativas) {
-        this.alternativas = alternativas;
     }
 }

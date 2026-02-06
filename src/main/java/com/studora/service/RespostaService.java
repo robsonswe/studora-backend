@@ -1,7 +1,7 @@
 package com.studora.service;
 
-import com.studora.dto.RespostaComAlternativasDto;
-import com.studora.dto.RespostaDto;
+import com.studora.dto.resposta.RespostaDetailDto;
+import com.studora.dto.resposta.RespostaSummaryDto;
 import com.studora.dto.request.RespostaCreateRequest;
 import com.studora.entity.Alternativa;
 import com.studora.entity.Questao;
@@ -21,12 +21,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@Transactional
 @RequiredArgsConstructor
+@Transactional
 public class RespostaService {
 
     private final RespostaRepository respostaRepository;
@@ -35,43 +37,51 @@ public class RespostaService {
     private final SimuladoRepository simuladoRepository;
     private final RespostaMapper respostaMapper;
 
-    public Page<RespostaDto> findAll(Pageable pageable) {
+    @Transactional(readOnly = true)
+    public Page<RespostaSummaryDto> findAll(Pageable pageable) {
         return respostaRepository.findAll(pageable)
-                .map(respostaMapper::toDto);
+                .map(respostaMapper::toSummaryDto);
     }
-    
-    public RespostaDto getRespostaById(Long id) {
+
+    @Transactional(readOnly = true)
+    public RespostaSummaryDto getRespostaSummaryById(Long id) {
         Resposta resposta = respostaRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Resposta", "ID", id));
-        return respostaMapper.toDto(resposta);
+        return respostaMapper.toSummaryDto(resposta);
     }
-    
-    public java.util.List<RespostaDto> getRespostasByQuestaoId(Long questaoId) {
-        java.util.List<Resposta> respostas = respostaRepository.findByQuestaoIdWithDetails(questaoId);
-        if (respostas.isEmpty()) {
-            throw new ResourceNotFoundException("Resposta", "ID da Questão", questaoId);
+
+    @Transactional(readOnly = true)
+    public List<RespostaSummaryDto> getRespostasByQuestaoId(Long questaoId) {
+        if (!questaoRepository.existsById(questaoId)) {
+            throw new ResourceNotFoundException("Questão", "ID", questaoId);
         }
-        return respostas.stream()
-                .map(respostaMapper::toDto)
-                .collect(java.util.stream.Collectors.toList());
+        return respostaRepository.findByQuestaoIdWithDetails(questaoId).stream()
+                .map(respostaMapper::toSummaryDto)
+                .collect(Collectors.toList());
     }
-    
-    public RespostaDto createResposta(RespostaCreateRequest request) {
+
+    @Transactional(readOnly = true)
+    public List<RespostaSummaryDto> getRespostasByQuestaoIds(Collection<Long> questaoIds) {
+        return respostaRepository.findByQuestaoIdInWithDetails(questaoIds).stream()
+                .map(respostaMapper::toSummaryDto)
+                .collect(Collectors.toList());
+    }
+
+    public RespostaDetailDto createResposta(RespostaCreateRequest request) {
         log.info("Criando nova tentativa para a questão ID: {}", request.getQuestaoId());
+        
         Questao questao = questaoRepository.findById(request.getQuestaoId())
                 .orElseThrow(() -> new ResourceNotFoundException("Questão", "ID", request.getQuestaoId()));
 
-        // Check if the question is annulled
-        if (questao.getAnulada()) {
+        if (Boolean.TRUE.equals(questao.getAnulada())) {
             throw new ValidationException("Não é possível responder a uma questão anulada");
         }
 
         Alternativa alternativa = alternativaRepository.findById(request.getAlternativaId())
                 .orElseThrow(() -> new ResourceNotFoundException("Alternativa", "ID", request.getAlternativaId()));
 
-        // Validate that the alternative belongs to the question
         if (!alternativa.getQuestao().getId().equals(questao.getId())) {
-            throw new ValidationException("A alternativa escolhida não pertence à questão informada");
+            throw new ValidationException("A alternativa selecionada não pertence a esta questão");
         }
 
         Resposta resposta = respostaMapper.toEntity(request);
@@ -84,42 +94,10 @@ public class RespostaService {
             resposta.setSimulado(simulado);
         }
 
-        Resposta savedResposta = respostaRepository.save(resposta);
-        return respostaMapper.toDto(savedResposta);
+        return respostaMapper.toDetailDto(respostaRepository.save(resposta));
     }
 
-    public RespostaComAlternativasDto createRespostaWithAlternativas(RespostaCreateRequest request) {
-        log.info("Criando nova tentativa com alternativas para a questão ID: {}", request.getQuestaoId());
-        Questao questao = questaoRepository.findById(request.getQuestaoId())
-                .orElseThrow(() -> new ResourceNotFoundException("Questão", "ID", request.getQuestaoId()));
-
-        if (questao.getAnulada()) {
-            throw new ValidationException("Não é possível responder a uma questão anulada");
-        }
-
-        Alternativa alternativa = alternativaRepository.findById(request.getAlternativaId())
-                .orElseThrow(() -> new ResourceNotFoundException("Alternativa", "ID", request.getAlternativaId()));
-
-        if (!alternativa.getQuestao().getId().equals(questao.getId())) {
-            throw new ValidationException("A alternativa escolhida não pertence à questão informada");
-        }
-
-        Resposta resposta = respostaMapper.toEntity(request);
-        resposta.setQuestao(questao);
-        resposta.setAlternativaEscolhida(alternativa);
-
-        if (request.getSimuladoId() != null) {
-            Simulado simulado = simuladoRepository.findById(request.getSimuladoId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Simulado", "ID", request.getSimuladoId()));
-            resposta.setSimulado(simulado);
-        }
-
-        Resposta savedResposta = respostaRepository.save(resposta);
-        return respostaMapper.toComAlternativasDto(savedResposta);
-    }
-
-    @Transactional
-    public void deleteResposta(Long id) {
+    public void delete(Long id) {
         log.info("Excluindo resposta ID: {}", id);
         if (!respostaRepository.existsById(id)) {
             throw new ResourceNotFoundException("Resposta", "ID", id);

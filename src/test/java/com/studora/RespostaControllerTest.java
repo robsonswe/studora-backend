@@ -3,7 +3,6 @@ package com.studora;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import com.studora.dto.RespostaDto;
 import com.studora.dto.request.RespostaCreateRequest;
 import com.studora.entity.*;
 import com.studora.repository.*;

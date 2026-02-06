@@ -38,9 +38,14 @@ public class QuestaoCreateRequest {
     @Schema(description = "IDs dos subtemas associados à questão")
     private List<Long> subtemaIds; // IDs of associated subtemas
 
+    @NotNull(message = "Pelo menos um cargo deve ser associado à questão")
+    @jakarta.validation.constraints.Size(min = com.studora.common.constants.AppConstants.MIN_CARGO_ASSOCIATIONS, message = "A questão deve estar associada a pelo menos {min} cargo")
     @Schema(description = "IDs dos cargos do concurso associados à questão")
     private List<Long> concursoCargoIds; // IDs of associated ConcursoCargo records
 
+    @NotNull(message = "Alternativas são obrigatórias")
+    @jakarta.validation.constraints.Size(min = com.studora.common.constants.AppConstants.MIN_ALTERNATIVAS, message = "A questão deve ter pelo menos {min} alternativas")
+    @jakarta.validation.Valid
     @Schema(description = "Alternativas da questão")
     private List<AlternativaCreateRequest> alternativas; // Alternativas associated with the question
 

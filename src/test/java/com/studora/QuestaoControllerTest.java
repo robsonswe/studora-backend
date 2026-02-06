@@ -3,7 +3,6 @@ package com.studora;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import com.studora.dto.QuestaoDto;
 import com.studora.dto.request.AlternativaCreateRequest;
 import com.studora.dto.request.QuestaoCreateRequest;
 import com.studora.dto.request.QuestaoUpdateRequest;
@@ -289,7 +288,7 @@ class QuestaoControllerTest {
         // This ensures the question has at least one cargo association
         // The update method will preserve existing associations if not explicitly changed
         // Create a QuestaoCargoDto to add the cargo association
-        com.studora.dto.QuestaoCargoDto questaoCargoDto = new com.studora.dto.QuestaoCargoDto();
+        com.studora.dto.questao.QuestaoCargoDto questaoCargoDto = new com.studora.dto.questao.QuestaoCargoDto();
         questaoCargoDto.setQuestaoId(questao.getId());
         questaoCargoDto.setConcursoCargoId(concursoCargo.getId());
 
@@ -302,13 +301,13 @@ class QuestaoControllerTest {
             .andExpect(status().isCreated());
 
         // Create alternativas for the update request
-        com.studora.dto.AlternativaDto alt1 = new com.studora.dto.AlternativaDto();
+        com.studora.dto.request.AlternativaUpdateRequest alt1 = new com.studora.dto.request.AlternativaUpdateRequest();
         alt1.setOrdem(1);
         alt1.setTexto("Updated Alternative 1");
         alt1.setCorreta(true);
         alt1.setJustificativa("Updated justification 1");
 
-        com.studora.dto.AlternativaDto alt2 = new com.studora.dto.AlternativaDto();
+        com.studora.dto.request.AlternativaUpdateRequest alt2 = new com.studora.dto.request.AlternativaUpdateRequest();
         alt2.setOrdem(2);
         alt2.setTexto("Updated Alternative 2");
         alt2.setCorreta(false);

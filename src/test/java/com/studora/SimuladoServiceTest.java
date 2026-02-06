@@ -1,93 +1,82 @@
 package com.studora;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import com.studora.dto.request.SimuladoGenerationRequest;
+import com.studora.dto.simulado.SimuladoDetailDto;
+import com.studora.dto.simulado.SimuladoSummaryDto;
 import com.studora.entity.Questao;
 import com.studora.entity.Simulado;
 import com.studora.repository.QuestaoRepository;
 import com.studora.repository.RespostaRepository;
 import com.studora.repository.SimuladoRepository;
-import com.studora.repository.SubtemaRepository;
-import com.studora.repository.TemaRepository;
 import com.studora.service.SimuladoService;
-import com.studora.mapper.QuestaoMapper;
+import com.studora.mapper.SimuladoMapper;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 
 class SimuladoServiceTest {
 
+    @Mock private SimuladoRepository simuladoRepository;
+    @Mock private QuestaoRepository questaoRepository;
+    @Mock private RespostaRepository respostaRepository;
+
     private SimuladoService simuladoService;
-
-    @Mock
-    private SimuladoRepository simuladoRepository;
-
-    @Mock
-    private QuestaoRepository questaoRepository;
-
-    @Mock
-    private RespostaRepository respostaRepository;
-
-    @Mock
-    private SubtemaRepository subtemaRepository;
-
-    @Mock
-    private TemaRepository temaRepository;
-
-    @Mock
-    private QuestaoMapper questaoMapper;
-
-    @Mock
-    private com.studora.mapper.RespostaMapper respostaMapper;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        simuladoService = new SimuladoService(
-            simuladoRepository,
-            questaoRepository,
-            respostaRepository,
-            subtemaRepository,
-            temaRepository,
-            questaoMapper,
-            respostaMapper
-        );
+        SimuladoMapper realMapper = org.mapstruct.factory.Mappers.getMapper(SimuladoMapper.class);
+        
+        // Inject QuestaoMapper into SimuladoMapper using ReflectionTestUtils (real mappers)
+        com.studora.mapper.QuestaoMapper questaoMapper = org.mapstruct.factory.Mappers.getMapper(com.studora.mapper.QuestaoMapper.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(realMapper, "questaoMapper", questaoMapper);
+        
+        simuladoService = new SimuladoService(simuladoRepository, questaoRepository, respostaRepository, realMapper);
+    }
+
+    @Test
+    void testFindById() {
+        Simulado s = new Simulado();
+        s.setId(1L);
+        s.setNome("Simulado A");
+
+        when(simuladoRepository.findById(1L)).thenReturn(Optional.of(s));
+
+        SimuladoDetailDto result = simuladoService.getSimuladoDetailById(1L);
+        assertNotNull(result);
+        assertEquals("Simulado A", result.getNome());
     }
 
     @Test
     void testGerarSimulado_VennDiagramLogic() {
         // Arrange
-        SimuladoGenerationRequest request = new SimuladoGenerationRequest();
+        com.studora.dto.request.SimuladoGenerationRequest request = new com.studora.dto.request.SimuladoGenerationRequest();
         request.setNome("Test Mock Exam");
-        
-        SimuladoGenerationRequest.ItemSelection item = new SimuladoGenerationRequest.ItemSelection();
+
+        com.studora.dto.request.SimuladoGenerationRequest.ItemSelection item = new com.studora.dto.request.SimuladoGenerationRequest.ItemSelection();
         item.setId(1L);
         item.setQuantidade(20);
-        request.setDisciplinas(List.of(item));
+        request.setDisciplinas(java.util.List.of(item));
 
         // Mock randomization query returning 20 IDs
-        List<Long> ids = new ArrayList<>();
+        java.util.List<Long> ids = new java.util.ArrayList<>();
         for (long i = 1; i <= 20; i++) ids.add(i);
-        
+
         when(questaoRepository.findIdsByDisciplinaWithPreferences(anyLong(), any(), any(), any(), any(), any()))
             .thenReturn(ids);
 
         // Mock loading entities for these IDs
-        List<Questao> questoes = new ArrayList<>();
+        java.util.List<Questao> questoes = new java.util.ArrayList<>();
         for (Long id : ids) {
             Questao q = new Questao(); q.setId(id);
             questoes.add(q);
         }
         when(questaoRepository.findAllById(any())).thenReturn(questoes);
-        when(questaoMapper.toDto(any(com.studora.entity.Questao.class))).thenReturn(new com.studora.dto.QuestaoDto());
-        
         when(simuladoRepository.save(any())).thenAnswer(i -> {
             Simulado s = i.getArgument(0);
             s.setId(1L);
@@ -124,24 +113,20 @@ class SimuladoServiceTest {
         Simulado simulado = new Simulado();
         simulado.setId(1L);
         simulado.setStartedAt(java.time.LocalDateTime.now().minusHours(1));
-        
+
         Questao q1 = new Questao(); q1.setId(10L);
-        simulado.setQuestoes(new java.util.LinkedHashSet<>(List.of(q1)));
+        simulado.setQuestoes(new java.util.LinkedHashSet<>(java.util.List.of(q1)));
 
         when(simuladoRepository.findByIdWithQuestoes(1L)).thenReturn(Optional.of(simulado));
-        when(questaoMapper.toDto(q1)).thenReturn(new com.studora.dto.QuestaoDto());
-        
-        com.studora.entity.Resposta resp1 = new com.studora.entity.Resposta();
-        resp1.setQuestao(q1);
-        when(respostaRepository.findBySimuladoId(1L)).thenReturn(List.of(resp1));
-        
+        when(respostaRepository.countBySimuladoId(1L)).thenReturn(1);
         when(simuladoRepository.save(any())).thenReturn(simulado);
-        
+
         // Act
-        var result = simuladoService.finalizarSimulado(1L);
+        simuladoService.finalizarSimulado(1L);
 
         // Assert
         assertNotNull(simulado.getFinishedAt());
+        verify(simuladoRepository).save(simulado);
     }
 
     @Test
@@ -150,17 +135,14 @@ class SimuladoServiceTest {
         Simulado simulado = new Simulado();
         simulado.setId(1L);
         simulado.setStartedAt(java.time.LocalDateTime.now().minusHours(1));
-        
+
         Questao q1 = new Questao(); q1.setId(10L);
         Questao q2 = new Questao(); q2.setId(11L);
-        simulado.setQuestoes(new java.util.LinkedHashSet<>(List.of(q1, q2)));
+        simulado.setQuestoes(new java.util.LinkedHashSet<>(java.util.List.of(q1, q2)));
 
         when(simuladoRepository.findByIdWithQuestoes(1L)).thenReturn(Optional.of(simulado));
-        
         // Only one question answered
-        com.studora.entity.Resposta resp1 = new com.studora.entity.Resposta();
-        resp1.setQuestao(q1);
-        when(respostaRepository.findBySimuladoId(1L)).thenReturn(List.of(resp1));
+        when(respostaRepository.countBySimuladoId(1L)).thenReturn(1);
 
         // Act & Assert
         com.studora.exception.ValidationException exception = assertThrows(
@@ -173,15 +155,10 @@ class SimuladoServiceTest {
     }
 
     @Test
-    void testDeleteSimulado() {
-        // Arrange
+    void testDelete() {
         when(simuladoRepository.existsById(1L)).thenReturn(true);
-
-        // Act
-        simuladoService.deleteSimulado(1L);
-
-        // Assert
-        verify(respostaRepository).detachSimulado(1L);
-        verify(simuladoRepository).deleteById(1L);
+        simuladoService.delete(1L);
+        verify(simuladoRepository, times(1)).deleteById(1L);
+        verify(respostaRepository, times(1)).detachSimulado(1L);
     }
 }

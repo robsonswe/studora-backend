@@ -1,6 +1,6 @@
 package com.studora.mapper;
 
-import com.studora.dto.ConcursoCargoDto;
+import com.studora.dto.concurso.ConcursoCargoDto;
 import com.studora.entity.ConcursoCargo;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

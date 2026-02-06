@@ -3,7 +3,6 @@ package com.studora;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import com.studora.dto.CargoDto;
 import com.studora.dto.request.CargoCreateRequest;
 import com.studora.entity.Cargo;
 import com.studora.entity.NivelCargo;
