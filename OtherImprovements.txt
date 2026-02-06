@@ -113,13 +113,10 @@ Add Spring Boot Actuator for application health monitoring.
 </dependency>
 ```
 
-### 3.3 Request/Response Logging Interceptor
-Implement a `HandlerInterceptor` to log all API requests for debugging.
-
-### 3.4 Database Connection Pooling Optimization
+### 3.3 Database Connection Pooling Optimization
 Tune HikariCP settings for the target database environment.
 
-### 3.5 Custom Exception Handling Enhancement
+### 3.3 Custom Exception Handling Enhancement
 Expand error handling with more specific exception types (e.g., `InsufficientQuestionsException`).
 
 ---
@@ -139,6 +136,13 @@ Expand error handling with more specific exception types (e.g., `InsufficientQue
 - **Configuration:** Used `WebMvcConfigurer.addPathPrefix` to automatically apply `/api/v1` to all v1 controllers, ensuring a clean and maintainable versioning strategy.
 - **Compatibility:** Updated all 80+ integration and unit tests to reflect the new versioned paths.
 
+### ✅ Request/Response Logging Interceptor (Feb 2026)
+- **Architecture:** Implemented a `HandlerInterceptor` to log all API traffic.
+- **Organization:** Created `LoggingInterceptor` in `com.studora.common.interceptor`.
+- **Configuration:** Registered the interceptor in `WebConfig`.
+- **Functionality:** Logs incoming request method, URI, and IP, as well as outgoing response status and execution time (in ms).
+- **Verification:** Observed active logging during integration test execution.
+
 ---
 
 ## Implementation Priority
@@ -149,6 +153,7 @@ Expand error handling with more specific exception types (e.g., `InsufficientQue
 ### Medium Priority
 2. **Health Check Endpoints** - Useful for monitoring.
 3. **Query Performance Monitoring** - Helps identify bottlenecks.
+4. **Database Connection Pooling Optimization** - Refines performance.
 
 ---
 
