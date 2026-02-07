@@ -1,8 +1,16 @@
 package com.studora.entity;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "Nível de escolaridade exigido para o cargo", enumAsRef = true)
 public enum NivelCargo {
+    @Schema(description = "Ensino Fundamental")
     FUNDAMENTAL("Fundamental"),
+    
+    @Schema(description = "Ensino Médio")
     MEDIO("Médio"),
+    
+    @Schema(description = "Ensino Superior")
     SUPERIOR("Superior");
 
     private final String descricao;

@@ -1,5 +1,6 @@
 package com.studora.dto;
 
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
 import com.studora.common.constants.AppConstants;
 import lombok.AllArgsConstructor;
@@ -17,7 +18,7 @@ import java.util.List;
 @Schema(description = "Estrutura simplificada para respostas paginadas")
 public class PageResponse<T> {
 
-    @Schema(description = "Lista de elementos na página atual")
+    @ArraySchema(schema = @Schema(description = "Lista de elementos na página atual"))
     private List<T> content;
 
     @Schema(description = "Número da página atual (0..N)", example = AppConstants.DEFAULT_PAGE_NUMBER_STR)

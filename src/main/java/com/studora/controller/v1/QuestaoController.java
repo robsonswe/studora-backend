@@ -17,11 +17,14 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.json.MappingJacksonValue;
 import org.springframework.web.bind.annotation.*;
@@ -41,7 +44,24 @@ public class QuestaoController {
         this.questaoService = questaoService;
     }
 
-    @Operation(summary = "Obter questões")
+    @Operation(
+        summary = "Obter questões",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Página de questões retornada com sucesso",
+                content = @Content(
+                    mediaType = "application/json",
+                    examples = @ExampleObject(
+                        value = "{\"content\": [{\"id\": 1, \"enunciado\": \"De acordo com a CF/88...\", \"concursoId\": 1, \"anulada\": false}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                    )
+                )),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/v1/questoes\"}"
+                    )))
+        }
+    )
     @GetMapping
     public ResponseEntity<PageResponse<QuestaoSummaryDto>> getQuestoes(
             @ParameterObject @Valid QuestaoFilter filter,
@@ -54,7 +74,32 @@ public class QuestaoController {
         return ResponseEntity.ok(new PageResponse<>(questoes));
     }
 
-    @Operation(summary = "Obter questão por ID")
+    @Operation(
+        summary = "Obter questão por ID",
+        description = "Retorna os detalhes de uma questão. A visibilidade do gabarito depende do histórico de respostas do usuário.",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Questão encontrada", 
+                content = @Content(
+                    schema = @Schema(implementation = QuestaoDetailDto.class),
+                    examples = {
+                        @ExampleObject(
+                            name = "Gabarito Oculto (Ainda não respondida)",
+                            value = "{\"id\": 1, \"enunciado\": \"Questão exemplo?\", \"alternativas\": [{\"id\": 1, \"texto\": \"Opção A\"}]}"
+                        ),
+                        @ExampleObject(
+                            name = "Gabarito Visível (Já respondida)",
+                            value = "{\"id\": 1, \"enunciado\": \"Questão exemplo?\", \"alternativas\": [{\"id\": 1, \"texto\": \"Opção A\", \"correta\": true, \"justificativa\": \"Explicação...\"}]}"
+                        )
+                    }
+                )),
+            @ApiResponse(responseCode = "404", description = "Questão não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Questão com ID: '123'\",\"instance\":\"/api/v1/questoes/123\"}"
+                    )))
+        }
+    )
     @GetMapping("/{id}")
     public MappingJacksonValue getQuestaoById(@PathVariable Long id) {
         QuestaoDetailDto questao = questaoService.getQuestaoDetailById(id);
@@ -69,45 +114,125 @@ public class QuestaoController {
         return wrapper;
     }
 
-    @Operation(summary = "Criar nova questão")
+    @Operation(
+        summary = "Criar nova questão",
+        responses = {
+            @ApiResponse(responseCode = "201", description = "Questão criada com sucesso",
+                content = @Content(
+                    schema = @Schema(implementation = QuestaoDetailDto.class),
+                    examples = @ExampleObject(value = "{\"id\": 2, \"enunciado\": \"Nova questão...\", \"concursoId\": 1}")
+                )),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/v1/questoes\",\"errors\":{\"enunciado\":\"não deve estar em branco\"}}"
+                    ))),
+            @ApiResponse(responseCode = "422", description = "Regras de negócio violadas",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Entidade não processável\",\"status\":422,\"detail\":\"Uma questão deve ter pelo menos 2 alternativas\",\"instance\":\"/api/v1/questoes\"}"
+                    )))
+        }
+    )
     @PostMapping
     public ResponseEntity<QuestaoDetailDto> createQuestao(@Valid @RequestBody QuestaoCreateRequest request) {
         return new ResponseEntity<>(questaoService.create(request), HttpStatus.CREATED);
     }
 
-    @Operation(summary = "Atualizar questão")
+    @Operation(
+        summary = "Atualizar questão",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Questão atualizada com sucesso",
+                content = @Content(
+                    schema = @Schema(implementation = QuestaoDetailDto.class),
+                    examples = @ExampleObject(value = "{\"id\": 1, \"enunciado\": \"Questão atualizada...\", \"concursoId\": 1}")
+                )),
+            @ApiResponse(responseCode = "404", description = "Questão não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Questão com ID: '1'\",\"instance\":\"/api/v1/questoes/1\"}"
+                    )))
+        }
+    )
     @PutMapping("/{id}")
     public ResponseEntity<QuestaoDetailDto> updateQuestao(@PathVariable Long id, @Valid @RequestBody QuestaoUpdateRequest request) {
         return ResponseEntity.ok(questaoService.update(id, request));
     }
 
-    @Operation(summary = "Excluir questão")
+    @Operation(
+        summary = "Excluir questão",
+        responses = {
+            @ApiResponse(responseCode = "204", description = "Questão excluída com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Questão não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Questão com ID: '1'\",\"instance\":\"/api/v1/questoes/1\"}"
+                    )))
+        }
+    )
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteQuestao(@PathVariable Long id) {
         questaoService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Alternar status de desatualizada")
+    @Operation(
+        summary = "Alternar status de desatualizada",
+        responses = {
+            @ApiResponse(responseCode = "204", description = "Status alterado com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Questão não encontrada")
+        }
+    )
     @PatchMapping("/{id}/desatualizada")
     public ResponseEntity<Void> toggleDesatualizada(@PathVariable Long id) {
         questaoService.toggleDesatualizada(id);
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Obter cargos por questão")
+    @Operation(
+        summary = "Obter cargos por questão",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Lista de cargos retornada com sucesso",
+                content = @Content(
+                    mediaType = "application/json",
+                    array = @ArraySchema(schema = @Schema(implementation = QuestaoCargoDto.class)),
+                    examples = @ExampleObject(value = "[{\"id\": 1, \"questaoId\": 1, \"concursoCargoId\": 1}]")
+                )),
+            @ApiResponse(responseCode = "404", description = "Questão não encontrada")
+        }
+    )
     @GetMapping("/{id}/cargos")
     public ResponseEntity<List<QuestaoCargoDto>> getCargosByQuestao(@PathVariable Long id) {
         return ResponseEntity.ok(questaoService.getCargosByQuestaoId(id));
     }
 
-    @Operation(summary = "Adicionar cargo à questão")
+    @Operation(
+        summary = "Adicionar cargo à questão",
+        responses = {
+            @ApiResponse(responseCode = "201", description = "Cargo adicionado com sucesso",
+                content = @Content(
+                    schema = @Schema(implementation = QuestaoCargoDto.class),
+                    examples = @ExampleObject(value = "{\"id\": 2, \"questaoId\": 1, \"concursoCargoId\": 2}")
+                )),
+            @ApiResponse(responseCode = "409", description = "Conflito - Cargo já associado à questão")
+        }
+    )
     @PostMapping("/{id}/cargos")
     public ResponseEntity<QuestaoCargoDto> addCargoToQuestao(@PathVariable Long id, @Valid @RequestBody QuestaoCargoCreateRequest request) {
         return new ResponseEntity<>(questaoService.addCargoToQuestao(id, request), HttpStatus.CREATED);
     }
 
-    @Operation(summary = "Remover cargo da questão")
+    @Operation(
+        summary = "Remover cargo da questão",
+        responses = {
+            @ApiResponse(responseCode = "204", description = "Cargo removido com sucesso"),
+            @ApiResponse(responseCode = "422", description = "Entidade não processável - Uma questão deve ter pelo menos um cargo")
+        }
+    )
     @DeleteMapping("/{questaoId}/cargos/{concursoCargoId}")
     public ResponseEntity<Void> removeCargoFromQuestao(@PathVariable Long questaoId, @PathVariable Long concursoCargoId) {
         questaoService.removeCargoFromQuestao(questaoId, concursoCargoId);

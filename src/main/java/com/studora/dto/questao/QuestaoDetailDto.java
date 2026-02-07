@@ -43,7 +43,7 @@ public class QuestaoDetailDto {
     @JsonView(Views.RespostaOculta.class)
     private String imageUrl;
 
-    @Schema(description = "IDs dos subtemas associados à questão")
+    @Schema(description = "IDs dos subtemas associados à questão", example = "[1, 2]")
     @JsonView(Views.RespostaOculta.class)
     private List<Long> subtemaIds;
 
@@ -51,7 +51,7 @@ public class QuestaoDetailDto {
     @JsonView(Views.RespostaOculta.class)
     private List<SubtemaSummaryDto> subtemas;
 
-    @Schema(description = "IDs dos cargos do concurso associados à questão")
+    @Schema(description = "IDs dos cargos do concurso associados à questão", example = "[1]")
     @JsonView(Views.RespostaOculta.class)
     private List<Long> concursoCargoIds;
 

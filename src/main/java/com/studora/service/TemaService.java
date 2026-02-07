@@ -20,6 +20,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -91,6 +92,16 @@ public class TemaService {
 
         temaMapper.updateEntityFromDto(request, tema);
         return temaMapper.toDetailDto(temaRepository.save(tema));
+    }
+
+    @Transactional(readOnly = true)
+    public List<TemaSummaryDto> findByDisciplinaId(Long disciplinaId) {
+        if (!disciplinaRepository.existsById(disciplinaId)) {
+            throw new ResourceNotFoundException("Disciplina", "ID", disciplinaId);
+        }
+        return temaRepository.findByDisciplinaId(disciplinaId).stream()
+                .map(temaMapper::toSummaryDto)
+                .collect(java.util.stream.Collectors.toList());
     }
 
     public void delete(Long id) {

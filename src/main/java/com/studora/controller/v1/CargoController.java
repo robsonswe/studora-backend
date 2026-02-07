@@ -45,7 +45,18 @@ public class CargoController {
         description = "Retorna uma página com todos os cargos cadastrados.",
         responses = {
             @ApiResponse(responseCode = "200", description = "Página de cargos retornada com sucesso",
-                content = @Content(mediaType = "application/json", schema = @Schema(implementation = PageResponse.class)))
+                content = @Content(
+                    mediaType = "application/json",
+                    examples = @ExampleObject(
+                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Analista Judiciário\", \"nivel\": \"Superior\", \"area\": \"Direito\"}, {\"id\": 2, \"nome\": \"Técnico Judiciário\", \"nivel\": \"Médio\", \"area\": \"Administrativa\"}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 2, \"totalPages\": 1, \"last\": true}"
+                    )
+                )),
+            @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro interno no servidor\",\"status\":500,\"detail\":\"Ocorreu um erro inesperado no servidor.\",\"instance\":\"/api/v1/cargos\"}"
+                    )))
         }
     )
     @GetMapping
@@ -66,7 +77,17 @@ public class CargoController {
         return ResponseEntity.ok(new PageResponse<>(cargos));
     }
 
-    @Operation(summary = "Obter todas as áreas de cargos")
+    @Operation(
+        summary = "Obter todas as áreas de cargos",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Lista de áreas retornada com sucesso",
+                content = @Content(
+                    mediaType = "application/json",
+                    array = @ArraySchema(schema = @Schema(type = "string")),
+                    examples = @ExampleObject(value = "[\"Tecnologia da Informação\", \"Judiciária\", \"Administrativa\"]")
+                ))
+        }
+    )
     @GetMapping("/areas")
     public ResponseEntity<List<String>> getAllAreas(@RequestParam(required = false) String search) {
         return ResponseEntity.ok(cargoService.findAllAreas(search));
@@ -76,8 +97,17 @@ public class CargoController {
         summary = "Obter cargo por ID",
         description = "Retorna um cargo específico com base no ID fornecido",
         responses = {
-            @ApiResponse(responseCode = "200", description = "Cargo encontrado", content = @Content(schema = @Schema(implementation = CargoDetailDto.class))),
-            @ApiResponse(responseCode = "404", description = "Cargo não encontrada")
+            @ApiResponse(responseCode = "200", description = "Cargo encontrado", 
+                content = @Content(
+                    schema = @Schema(implementation = CargoDetailDto.class),
+                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Analista Judiciário\", \"nivel\": \"Superior\", \"area\": \"Direito\"}")
+                )),
+            @ApiResponse(responseCode = "404", description = "Cargo não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Cargo com ID: '123'\",\"instance\":\"/api/v1/cargos/123\"}"
+                    )))
         }
     )
     @GetMapping("/{id}")
@@ -85,19 +115,84 @@ public class CargoController {
         return ResponseEntity.ok(cargoService.getCargoDetailById(id));
     }
 
-    @Operation(summary = "Criar novo cargo")
+    @Operation(
+        summary = "Criar novo cargo",
+        responses = {
+            @ApiResponse(responseCode = "201", description = "Cargo criado com sucesso",
+                content = @Content(
+                    schema = @Schema(implementation = CargoDetailDto.class),
+                    examples = @ExampleObject(value = "{\"id\": 3, \"nome\": \"Delegado de Polícia\", \"nivel\": \"Superior\", \"area\": \"Policial\"}")
+                )),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/v1/cargos\",\"errors\":{\"nome\":\"não deve estar em branco\"}}"
+                    ))),
+            @ApiResponse(responseCode = "409", description = "Conflito - Já existe um cargo com este nome, nível e área",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Já existe um cargo com o nome 'Delegado de Polícia', nível 'Superior' e área 'Policial'\",\"instance\":\"/api/v1/cargos\"}"
+                    )))
+        }
+    )
     @PostMapping
     public ResponseEntity<CargoDetailDto> createCargo(@Valid @RequestBody CargoCreateRequest request) {
         return new ResponseEntity<>(cargoService.create(request), HttpStatus.CREATED);
     }
 
-    @Operation(summary = "Atualizar cargo")
+    @Operation(
+        summary = "Atualizar cargo",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Cargo atualizado com sucesso",
+                content = @Content(
+                    schema = @Schema(implementation = CargoDetailDto.class),
+                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Analista Judiciário - Área Judiciária\", \"nivel\": \"Superior\", \"area\": \"Direito\"}")
+                )),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/v1/cargos/1\",\"errors\":{\"nome\":\"não deve estar em branco\"}}"
+                    ))),
+            @ApiResponse(responseCode = "404", description = "Cargo não encontrado",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Cargo com ID: '1'\",\"instance\":\"/api/v1/cargos/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "409", description = "Conflito - Já existe um cargo com este nome, nível e área",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Já existe um cargo com o nome 'Analista Judiciário', nível 'Superior' e área 'Direito'\",\"instance\":\"/api/v1/cargos/1\"}"
+                    )))
+        }
+    )
     @PutMapping("/{id}")
     public ResponseEntity<CargoDetailDto> updateCargo(@PathVariable Long id, @Valid @RequestBody CargoUpdateRequest request) {
         return ResponseEntity.ok(cargoService.update(id, request));
     }
 
-    @Operation(summary = "Excluir cargo")
+    @Operation(
+        summary = "Excluir cargo",
+        responses = {
+            @ApiResponse(responseCode = "204", description = "Cargo excluído com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Cargo não encontrado",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Cargo com ID: '1'\",\"instance\":\"/api/v1/cargos/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "409", description = "Conflito - Existem concursos vinculados a este cargo",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Não é possível excluir o cargo pois existem concursos associados a ele.\",\"instance\":\"/api/v1/cargos/1\"}"
+                    )))
+        }
+    )
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCargo(@PathVariable Long id) {
         cargoService.delete(id);
