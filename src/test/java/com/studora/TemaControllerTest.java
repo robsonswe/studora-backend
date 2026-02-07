@@ -107,6 +107,20 @@ class TemaControllerTest {
     }
 
     @Test
+    void testGetTemasByDisciplina() throws Exception {
+        Tema tema = new Tema();
+        tema.setNome("Tema de Disciplina");
+        tema.setDisciplina(disciplina);
+        temaRepository.save(tema);
+
+        mockMvc
+            .perform(get("/api/v1/temas/disciplina/{disciplinaId}", disciplina.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(org.hamcrest.Matchers.greaterThanOrEqualTo(1)))
+            .andExpect(jsonPath("$[0].nome").value("Tema de Disciplina"));
+    }
+
+    @Test
     void testGetAllTemas_DefaultSorting() throws Exception {
         // Create another disciplina to test disciplinaId sorting
         Disciplina disc2 = new Disciplina();

@@ -112,6 +112,20 @@ class SubtemaControllerTest {
     }
 
     @Test
+    void testGetSubtemasByTema() throws Exception {
+        Subtema subtema = new Subtema();
+        subtema.setNome("Subtema de Tema");
+        subtema.setTema(tema);
+        subtemaRepository.save(subtema);
+
+        mockMvc
+            .perform(get("/api/v1/subtemas/tema/{temaId}", tema.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(org.hamcrest.Matchers.greaterThanOrEqualTo(1)))
+            .andExpect(jsonPath("$[0].nome").value("Subtema de Tema"));
+    }
+
+    @Test
     void testGetAllSubtemas_DefaultSorting() throws Exception {
         // Create another tema to test temaId sorting
         Tema tema2 = new Tema();

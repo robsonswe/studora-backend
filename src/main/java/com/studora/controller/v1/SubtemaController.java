@@ -97,6 +97,23 @@ public class SubtemaController {
     }
 
     @Operation(
+        summary = "Obter subtemas por tema",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Lista de subtemas retornada com sucesso",
+                content = @Content(
+                    mediaType = "application/json",
+                    examples = @ExampleObject(
+                        value = "[{\"id\": 1, \"nome\": \"Atos Administrativos\", \"temaId\": 5}]"
+                    )
+                ))
+        }
+    )
+    @GetMapping("/tema/{temaId}")
+    public ResponseEntity<List<SubtemaSummaryDto>> getSubtemasByTema(@PathVariable Long temaId) {
+        return ResponseEntity.ok(subtemaService.findByTemaId(temaId));
+    }
+
+    @Operation(
         summary = "Criar novo subtema",
         responses = {
             @ApiResponse(responseCode = "201", description = "Subtema criado com sucesso",
