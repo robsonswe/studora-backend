@@ -54,6 +54,29 @@ class CargoControllerTest {
     }
 
     @Test
+    void testUpdateCargo() throws Exception {
+        Cargo cargo = new Cargo();
+        cargo.setNome("Old Name");
+        cargo.setNivel(NivelCargo.SUPERIOR);
+        cargo.setArea("TI");
+        cargo = cargoRepository.save(cargo);
+
+        com.studora.dto.request.CargoUpdateRequest updateRequest = new com.studora.dto.request.CargoUpdateRequest();
+        updateRequest.setNome("New Name");
+        updateRequest.setNivel(NivelCargo.SUPERIOR);
+        updateRequest.setArea("TI");
+
+        mockMvc
+            .perform(
+                put("/api/v1/cargos/{id}", cargo.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(updateRequest))
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.nome").value("New Name"));
+    }
+
+    @Test
     void testGetById() throws Exception {
         Cargo cargo = new Cargo();
         cargo.setNome("Tecnico");

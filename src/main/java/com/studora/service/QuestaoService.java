@@ -340,15 +340,19 @@ public class QuestaoService {
     }
 
     public void removeCargoFromQuestao(Long questaoId, Long concursoCargoId) {
-        List<QuestaoCargo> qcs = questaoCargoRepository.findByQuestaoIdAndConcursoCargoId(questaoId, concursoCargoId);
-        if (qcs.isEmpty()) {
-            throw new ResourceNotFoundException("Associação Questão-Cargo", "IDs", questaoId + "-" + concursoCargoId);
-        }
+        Questao questao = questaoRepository.findById(questaoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Questão", "ID", questaoId));
+
+        QuestaoCargo association = questao.getQuestaoCargos().stream()
+                .filter(qc -> qc.getConcursoCargo().getId().equals(concursoCargoId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Associação Questão-Cargo", "IDs", questaoId + "-" + concursoCargoId));
         
-        if (questaoCargoRepository.countByQuestaoId(questaoId) <= 1) {
+        if (questao.getQuestaoCargos().size() <= 1) {
             throw new com.studora.exception.ValidationException("Uma questão deve estar associada a pelo menos um cargo");
         }
 
-        questaoCargoRepository.delete(qcs.get(0));
+        questao.getQuestaoCargos().remove(association);
+        questaoRepository.save(questao);
     }
 }

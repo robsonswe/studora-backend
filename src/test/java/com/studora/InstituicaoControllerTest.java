@@ -139,6 +139,22 @@ class InstituicaoControllerTest {
     }
 
     @Test
+    void testDeleteInstituicao() throws Exception {
+        Instituicao inst = new Instituicao();
+        inst.setNome("Deletable");
+        inst.setArea("TI");
+        inst = instituicaoRepository.save(inst);
+
+        mockMvc
+            .perform(delete("/api/v1/instituicoes/{id}", inst.getId()))
+            .andExpect(status().isNoContent());
+
+        mockMvc
+            .perform(get("/api/v1/instituicoes/{id}", inst.getId()))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
     void testCreateInstituicao_Conflict_DuplicateName() throws Exception {
         // Create first instituicao
         Instituicao inst1 = new Instituicao();

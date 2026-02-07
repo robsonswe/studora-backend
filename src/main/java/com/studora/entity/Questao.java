@@ -80,6 +80,7 @@ public class Questao extends BaseEntity {
     @OneToMany(
         mappedBy = "questao",
         cascade = CascadeType.ALL,
+        orphanRemoval = true,
         fetch = FetchType.LAZY
     )
     @Schema(description = "Associações entre a questão e cargos do concurso")

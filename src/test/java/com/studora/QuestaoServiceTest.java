@@ -202,18 +202,37 @@ class QuestaoServiceTest {
 
     @Test
     void testRemoveCargo_Success() {
-        QuestaoCargo qc = new QuestaoCargo();
-        when(questaoCargoRepository.findByQuestaoIdAndConcursoCargoId(1L, 100L)).thenReturn(Collections.singletonList(qc));
-        when(questaoCargoRepository.countByQuestaoId(1L)).thenReturn(2L);
+        Questao q = new Questao();
+        q.setId(1L);
+        
+        ConcursoCargo cc1 = new ConcursoCargo(); cc1.setId(100L);
+        QuestaoCargo qc1 = new QuestaoCargo(); qc1.setConcursoCargo(cc1); qc1.setQuestao(q);
+        
+        ConcursoCargo cc2 = new ConcursoCargo(); cc2.setId(101L);
+        QuestaoCargo qc2 = new QuestaoCargo(); qc2.setConcursoCargo(cc2); qc2.setQuestao(q);
+        
+        q.addQuestaoCargo(qc1);
+        q.addQuestaoCargo(qc2);
+
+        when(questaoRepository.findById(1L)).thenReturn(Optional.of(q));
         
         questaoService.removeCargoFromQuestao(1L, 100L);
-        verify(questaoCargoRepository).delete(qc);
+        
+        assertEquals(1, q.getQuestaoCargos().size());
+        assertFalse(q.getQuestaoCargos().contains(qc1));
+        verify(questaoRepository).save(q);
     }
 
     @Test
     void testRemoveCargo_FailsIfLast() {
-        when(questaoCargoRepository.findByQuestaoIdAndConcursoCargoId(1L, 100L)).thenReturn(Collections.singletonList(new QuestaoCargo()));
-        when(questaoCargoRepository.countByQuestaoId(1L)).thenReturn(1L);
+        Questao q = new Questao();
+        q.setId(1L);
+        
+        ConcursoCargo cc = new ConcursoCargo(); cc.setId(100L);
+        QuestaoCargo qc = new QuestaoCargo(); qc.setConcursoCargo(cc); qc.setQuestao(q);
+        q.addQuestaoCargo(qc);
+
+        when(questaoRepository.findById(1L)).thenReturn(Optional.of(q));
         
         assertThrows(ValidationException.class, () -> questaoService.removeCargoFromQuestao(1L, 100L));
     }

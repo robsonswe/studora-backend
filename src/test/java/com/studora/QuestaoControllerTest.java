@@ -383,6 +383,97 @@ class QuestaoControllerTest {
             .andExpect(status().isNotFound());
     }
 
+    @Test
+    void testToggleDesatualizada() throws Exception {
+        Questao questao = new Questao();
+        questao.setEnunciado("Toggle Test");
+        questao.setConcurso(concurso);
+        questao.setDesatualizada(false);
+        questao = questaoRepository.save(questao);
+
+        mockMvc
+            .perform(patch("/api/v1/questoes/{id}/desatualizada", questao.getId()))
+            .andExpect(status().isNoContent());
+
+        Questao updated = questaoRepository.findById(questao.getId()).orElseThrow();
+        org.junit.jupiter.api.Assertions.assertTrue(updated.getDesatualizada());
+    }
+
+    @Test
+    void testQuestaoCargoManagement() throws Exception {
+        // Setup question
+        Questao questao = new Questao();
+        questao.setEnunciado("Cargo Mgmt Test");
+        questao.setConcurso(concurso);
+        questao = questaoRepository.save(questao);
+
+        // Setup a second cargo
+        Cargo cargo2 = new Cargo();
+        cargo2.setNome("Cargo 2");
+        cargo2.setNivel(NivelCargo.MEDIO);
+        cargo2.setArea("ADM");
+        cargo2 = cargoRepository.save(cargo2);
+
+        ConcursoCargo concursoCargo2 = new ConcursoCargo();
+        concursoCargo2.setConcurso(concurso);
+        concursoCargo2.setCargo(cargo2);
+        concursoCargo2 = concursoCargoRepository.save(concursoCargo2);
+
+        // 1. Add two Cargo associations (POST)
+        com.studora.dto.request.QuestaoCargoCreateRequest addRequest1 = new com.studora.dto.request.QuestaoCargoCreateRequest();
+        addRequest1.setConcursoCargoId(concursoCargo.getId());
+        mockMvc.perform(post("/api/v1/questoes/{id}/cargos", questao.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(TestUtil.asJsonString(addRequest1)))
+                .andExpect(status().isCreated());
+
+        com.studora.dto.request.QuestaoCargoCreateRequest addRequest2 = new com.studora.dto.request.QuestaoCargoCreateRequest();
+        addRequest2.setConcursoCargoId(concursoCargo2.getId());
+        mockMvc.perform(post("/api/v1/questoes/{id}/cargos", questao.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(TestUtil.asJsonString(addRequest2)))
+                .andExpect(status().isCreated());
+
+        // 2. Get Cargos (GET)
+        mockMvc
+            .perform(get("/api/v1/questoes/{id}/cargos", questao.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(2));
+
+        // 3. Remove one Cargo (DELETE) - Should succeed because one remains
+        mockMvc
+            .perform(delete("/api/v1/questoes/{questaoId}/cargos/{concursoCargoId}", questao.getId(), concursoCargo.getId()))
+            .andExpect(status().isNoContent());
+
+        // 4. Verify remaining
+        mockMvc
+            .perform(get("/api/v1/questoes/{id}/cargos", questao.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].concursoCargoId").value(concursoCargo2.getId()));
+    }
+
+    @Test
+    void testRemoveCargoFromQuestao_UnprocessableEntity() throws Exception {
+        // Setup question
+        Questao questao = new Questao();
+        questao.setEnunciado("One Cargo Test");
+        questao.setConcurso(concurso);
+        questao = questaoRepository.save(questao);
+
+        QuestaoCargo qc = new QuestaoCargo();
+        qc.setQuestao(questao);
+        qc.setConcursoCargo(concursoCargo);
+        questao.addQuestaoCargo(qc); // Add to parent collection
+        questaoCargoRepository.save(qc);
+        questaoRepository.save(questao); // Update parent
+
+        // Try to remove the last cargo - This depends on business logic in QuestaoService
+        // If there's a constraint that a question must have at least one cargo, this should fail.
+        mockMvc
+            .perform(delete("/api/v1/questoes/{questaoId}/cargos/{concursoCargoId}", questao.getId(), concursoCargo.getId()))
+            .andExpect(status().isUnprocessableEntity());
+    }
 
     @Test
     void testAddCargoToQuestao() throws Exception {
