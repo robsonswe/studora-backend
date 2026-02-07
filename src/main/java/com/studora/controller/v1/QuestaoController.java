@@ -48,7 +48,7 @@ public class QuestaoController {
                 content = @Content(
                     mediaType = "application/json",
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"enunciado\": \"De acordo com a CF/88...\", \"concursoId\": 1, \"anulada\": false}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"enunciado\": \"De acordo com a CF/88...\", \"concursoId\": 1, \"anulada\": false, \"cargos\": [1]}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -81,11 +81,11 @@ public class QuestaoController {
                     examples = {
                         @ExampleObject(
                             name = "Gabarito Oculto (Ainda não respondida)",
-                            value = "{\"id\": 1, \"enunciado\": \"Questão exemplo?\", \"alternativas\": [{\"id\": 1, \"texto\": \"Opção A\"}]}"
+                            value = "{\"id\": 1, \"enunciado\": \"Questão exemplo?\", \"cargos\": [1], \"alternativas\": [{\"id\": 1, \"texto\": \"Opção A\"}]}"
                         ),
                         @ExampleObject(
                             name = "Gabarito Visível (Já respondida)",
-                            value = "{\"id\": 1, \"enunciado\": \"Questão exemplo?\", \"alternativas\": [{\"id\": 1, \"texto\": \"Opção A\", \"correta\": true, \"justificativa\": \"Explicação...\"}]}"
+                            value = "{\"id\": 1, \"enunciado\": \"Questão exemplo?\", \"cargos\": [1], \"alternativas\": [{\"id\": 1, \"texto\": \"Opção A\", \"correta\": true, \"justificativa\": \"Explicação...\"}]}"
                         )
                     }
                 )),
@@ -117,7 +117,7 @@ public class QuestaoController {
             @ApiResponse(responseCode = "201", description = "Questão criada com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = QuestaoDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 2, \"enunciado\": \"Nova questão...\", \"concursoId\": 1}")
+                    examples = @ExampleObject(value = "{\"id\": 2, \"enunciado\": \"Nova questão...\", \"concursoId\": 1, \"cargos\": [1]}")
                 )),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",
@@ -144,7 +144,7 @@ public class QuestaoController {
             @ApiResponse(responseCode = "200", description = "Questão atualizada com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = QuestaoDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"enunciado\": \"Questão atualizada...\", \"concursoId\": 1}")
+                    examples = @ExampleObject(value = "{\"id\": 1, \"enunciado\": \"Questão atualizada...\", \"concursoId\": 1, \"cargos\": [1]}")
                 )),
             @ApiResponse(responseCode = "404", description = "Questão não encontrada",
                 content = @Content(mediaType = "application/problem+json",
