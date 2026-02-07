@@ -9,10 +9,11 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
-@Mapper(componentModel = "spring", uses = {AlternativaMapper.class, SubtemaMapper.class, QuestaoCargoMapper.class, RespostaMapper.class})
+@Mapper(componentModel = "spring", uses = {AlternativaMapper.class, SubtemaMapper.class, RespostaMapper.class})
 public interface QuestaoMapper {
 
     @Mapping(target = "concursoId", source = "concurso.id")
+    @Mapping(target = "cargos", source = "questaoCargos")
     QuestaoSummaryDto toSummaryDto(Questao questao);
 
     @Mapping(target = "concursoId", source = "concurso.id")
@@ -42,4 +43,14 @@ public interface QuestaoMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     void updateEntityFromDto(QuestaoUpdateRequest request, @MappingTarget Questao questao);
+
+    default java.util.List<Long> mapCargos(java.util.Set<com.studora.entity.QuestaoCargo> questaoCargos) {
+        if (questaoCargos == null) {
+            return java.util.Collections.emptyList();
+        }
+        return questaoCargos.stream()
+                .map(qc -> qc.getConcursoCargo().getCargo().getId())
+                .sorted()
+                .collect(java.util.stream.Collectors.toList());
+    }
 }

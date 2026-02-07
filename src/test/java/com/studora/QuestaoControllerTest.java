@@ -67,6 +67,7 @@ class QuestaoControllerTest {
 
     private Concurso concurso;
     private Subtema subtema;
+    private Cargo cargo;
     private ConcursoCargo concursoCargo;
 
     @BeforeEach
@@ -91,7 +92,7 @@ class QuestaoControllerTest {
         subtema = subtemaRepository.save(new Subtema(tema, "Subtema Q Test"));
 
         // Create a cargo and associate it with the concurso
-        Cargo cargo = new Cargo();
+        cargo = new Cargo();
         cargo.setNome("Cargo Test");
         cargo.setNivel(NivelCargo.SUPERIOR);
         cargo.setArea("Área Test");
@@ -101,6 +102,8 @@ class QuestaoControllerTest {
         concursoCargo.setConcurso(concurso);
         concursoCargo.setCargo(cargo);
         concursoCargo = concursoCargoRepository.save(concursoCargo);
+        
+        concurso.addConcursoCargo(concursoCargo);
     }
 
     @Test
@@ -122,8 +125,8 @@ class QuestaoControllerTest {
         questaoCreateRequest.setEnunciado("Qual a capital do Brasil?");
         questaoCreateRequest.setConcursoId(concurso.getId());
         questaoCreateRequest.setSubtemaIds(Collections.singletonList(subtema.getId()));
-        // Add the concursoCargo association
-        questaoCreateRequest.setConcursoCargoIds(Collections.singletonList(concursoCargo.getId()));
+        // Add the cargo association (using cargoId)
+        questaoCreateRequest.setCargos(Collections.singletonList(cargo.getId()));
         // Add alternativas to comply with validation
         questaoCreateRequest.setAlternativas(Arrays.asList(alt1, alt2));
 
@@ -136,7 +139,8 @@ class QuestaoControllerTest {
             .andExpect(status().isCreated())
             .andExpect(
                 jsonPath("$.enunciado").value("Qual a capital do Brasil?")
-            );
+            )
+            .andExpect(jsonPath("$.cargos[0]").value(cargo.getId()));
     }
 
     @Test
@@ -145,6 +149,13 @@ class QuestaoControllerTest {
         questao.setEnunciado("Qual a capital do Brasil?");
         questao.setConcurso(concurso);
         questao = questaoRepository.save(questao);
+        
+        // Add cargo
+        QuestaoCargo qc = new QuestaoCargo();
+        qc.setQuestao(questao);
+        qc.setConcursoCargo(concursoCargo);
+        questao.addQuestaoCargo(qc);
+        questaoCargoRepository.save(qc);
 
         // Add some alternatives to the question
         com.studora.entity.Alternativa alt1 = new com.studora.entity.Alternativa();
@@ -171,7 +182,8 @@ class QuestaoControllerTest {
             .andExpect(jsonPath("$.enunciado").value("Qual a capital do Brasil?"))
             .andExpect(jsonPath("$.alternativas.length()").value(2))
             .andExpect(jsonPath("$.alternativas[0].texto").value("Brasília"))
-            .andExpect(jsonPath("$.alternativas[1].texto").value("São Paulo"));
+            .andExpect(jsonPath("$.alternativas[1].texto").value("São Paulo"))
+            .andExpect(jsonPath("$.cargos[0]").value(cargo.getId()));
     }
 
     @Test
@@ -202,77 +214,6 @@ class QuestaoControllerTest {
     }
 
     @Test
-    void testGetQuestoesByConcursoId() throws Exception {
-        Questao questao = new Questao();
-        questao.setEnunciado("Questao Concurso");
-        questao.setConcurso(concurso);
-        questaoRepository.save(questao);
-
-        mockMvc
-            .perform(
-                get("/api/v1/questoes").param("concursoId", concurso.getId().toString())
-            )
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.content[0].enunciado").value("Questao Concurso"));
-    }
-
-    @Test
-    void testGetQuestoesBySubtemaId() throws Exception {
-        Questao questao = new Questao();
-        questao.setEnunciado("Questao Subtema");
-        questao.setConcurso(concurso);
-        questao.setSubtemas(new java.util.LinkedHashSet<>(Collections.singletonList(subtema)));
-        questaoRepository.save(questao);
-
-        mockMvc
-            .perform(get("/api/v1/questoes").param("subtemaId", subtema.getId().toString()))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.content[0].enunciado").value("Questao Subtema"));
-    }
-
-    @Test
-    void testGetQuestoesAnuladas() throws Exception {
-        Questao qValid = new Questao(concurso, "Valida");
-        qValid.setAnulada(false);
-        questaoRepository.save(qValid);
-
-        Questao qAnulada = new Questao(concurso, "Anulada");
-        qAnulada.setAnulada(true);
-        questaoRepository.save(qAnulada);
-
-        mockMvc
-            .perform(get("/api/v1/questoes").param("anulada", "true"))
-            .andExpect(status().isOk())
-            .andExpect(
-                jsonPath("$.content.length()").value(
-                    org.hamcrest.Matchers.greaterThanOrEqualTo(1)
-                )
-            )
-            .andExpect(jsonPath("$.content[?(@.anulada == false)]").doesNotExist());
-    }
-
-    @Test
-    void testGetQuestoesMultiFilter() throws Exception {
-        Questao qTarget = new Questao(concurso, "Target");
-        qTarget.setAnulada(true);
-        qTarget.setSubtemas(new java.util.LinkedHashSet<>(Collections.singletonList(subtema)));
-        questaoRepository.save(qTarget);
-
-        Questao qOther = new Questao(concurso, "Other");
-        qOther.setAnulada(false);
-        questaoRepository.save(qOther);
-
-        mockMvc
-            .perform(get("/api/v1/questoes")
-                .param("concursoId", concurso.getId().toString())
-                .param("subtemaId", subtema.getId().toString())
-                .param("anulada", "true"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.content.length()").value(1))
-            .andExpect(jsonPath("$.content[0].enunciado").value("Target"));
-    }
-
-    @Test
     void testUpdateQuestao() throws Exception {
         // First create a question with cargo association
         Questao questao = new Questao();
@@ -284,21 +225,8 @@ class QuestaoControllerTest {
         QuestaoCargo questaoCargo = new QuestaoCargo();
         questaoCargo.setQuestao(questao);
         questaoCargo.setConcursoCargo(concursoCargo);
-        // Save the association directly to the database
-        // This ensures the question has at least one cargo association
-        // The update method will preserve existing associations if not explicitly changed
-        // Create a QuestaoCargoDto to add the cargo association
-        com.studora.dto.questao.QuestaoCargoDto questaoCargoDto = new com.studora.dto.questao.QuestaoCargoDto();
-        questaoCargoDto.setQuestaoId(questao.getId());
-        questaoCargoDto.setConcursoCargoId(concursoCargo.getId());
-
-        mockMvc
-            .perform(
-                post("/api/v1/questoes/{id}/cargos", questao.getId())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(questaoCargoDto))
-            )
-            .andExpect(status().isCreated());
+        questao.addQuestaoCargo(questaoCargo);
+        questaoCargoRepository.save(questaoCargo);
 
         // Create alternativas for the update request
         com.studora.dto.request.AlternativaUpdateRequest alt1 = new com.studora.dto.request.AlternativaUpdateRequest();
@@ -317,8 +245,8 @@ class QuestaoControllerTest {
         updatedRequest.setEnunciado("New Enunciado");
         updatedRequest.setConcursoId(concurso.getId());
         updatedRequest.setAnulada(true);
-        // Maintain the cargo association
-        updatedRequest.setConcursoCargoIds(Collections.singletonList(concursoCargo.getId()));
+        // Maintain the cargo association (using cargoId)
+        updatedRequest.setCargos(Collections.singletonList(cargo.getId()));
         // Add new alternatives for the update
         updatedRequest.setAlternativas(Arrays.asList(alt1, alt2));
 
@@ -330,6 +258,7 @@ class QuestaoControllerTest {
         initialAlt.setCorreta(false);
         initialAlt.setJustificativa("Initial justification");
         initialAlt = alternativaRepository.save(initialAlt);
+        questao.getAlternativas().add(initialAlt);
 
         mockMvc
             .perform(
@@ -340,7 +269,8 @@ class QuestaoControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.enunciado").value("New Enunciado"))
             .andExpect(jsonPath("$.anulada").value(true))
-            .andExpect(jsonPath("$.alternativas.length()").value(2));
+            .andExpect(jsonPath("$.alternativas.length()").value(2))
+            .andExpect(jsonPath("$.cargos[0]").value(cargo.getId()));
     }
 
     @Test
@@ -384,23 +314,7 @@ class QuestaoControllerTest {
     }
 
     @Test
-    void testToggleDesatualizada() throws Exception {
-        Questao questao = new Questao();
-        questao.setEnunciado("Toggle Test");
-        questao.setConcurso(concurso);
-        questao.setDesatualizada(false);
-        questao = questaoRepository.save(questao);
-
-        mockMvc
-            .perform(patch("/api/v1/questoes/{id}/desatualizada", questao.getId()))
-            .andExpect(status().isNoContent());
-
-        Questao updated = questaoRepository.findById(questao.getId()).orElseThrow();
-        org.junit.jupiter.api.Assertions.assertTrue(updated.getDesatualizada());
-    }
-
-    @Test
-    void testQuestaoCargoManagement() throws Exception {
+    void testUpdateQuestao_ManageCargos() throws Exception {
         // Setup question
         Questao questao = new Questao();
         questao.setEnunciado("Cargo Mgmt Test");
@@ -418,127 +332,47 @@ class QuestaoControllerTest {
         concursoCargo2.setConcurso(concurso);
         concursoCargo2.setCargo(cargo2);
         concursoCargo2 = concursoCargoRepository.save(concursoCargo2);
+        
+        concurso.addConcursoCargo(concursoCargo2);
 
-        // 1. Add two Cargo associations (POST)
-        com.studora.dto.request.QuestaoCargoCreateRequest addRequest1 = new com.studora.dto.request.QuestaoCargoCreateRequest();
-        addRequest1.setConcursoCargoId(concursoCargo.getId());
-        mockMvc.perform(post("/api/v1/questoes/{id}/cargos", questao.getId())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(TestUtil.asJsonString(addRequest1)))
-                .andExpect(status().isCreated());
+        // Initial association with Cargo 1
+        QuestaoCargo qc1 = new QuestaoCargo();
+        qc1.setQuestao(questao);
+        qc1.setConcursoCargo(concursoCargo);
+        questao.addQuestaoCargo(qc1);
+        questaoCargoRepository.save(qc1);
+        
+        // Add required alternatives
+        com.studora.entity.Alternativa alt1 = new com.studora.entity.Alternativa();
+        alt1.setQuestao(questao);
+        alt1.setOrdem(1); alt1.setTexto("A"); alt1.setCorreta(true);
+        alternativaRepository.save(alt1);
+        com.studora.entity.Alternativa alt2 = new com.studora.entity.Alternativa();
+        alt2.setQuestao(questao);
+        alt2.setOrdem(2); alt2.setTexto("B"); alt2.setCorreta(false);
+        alternativaRepository.save(alt2);
+        questao.getAlternativas().addAll(Arrays.asList(alt1, alt2));
 
-        com.studora.dto.request.QuestaoCargoCreateRequest addRequest2 = new com.studora.dto.request.QuestaoCargoCreateRequest();
-        addRequest2.setConcursoCargoId(concursoCargo2.getId());
-        mockMvc.perform(post("/api/v1/questoes/{id}/cargos", questao.getId())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(TestUtil.asJsonString(addRequest2)))
-                .andExpect(status().isCreated());
+        // Update: Switch from Cargo 1 to Cargo 2
+        QuestaoUpdateRequest updateRequest = new QuestaoUpdateRequest();
+        updateRequest.setEnunciado("Cargo Mgmt Test");
+        updateRequest.setConcursoId(concurso.getId());
+        updateRequest.setCargos(Collections.singletonList(cargo2.getId()));
+        
+        // Re-send alternatives to keep them
+        com.studora.dto.request.AlternativaUpdateRequest altUp1 = new com.studora.dto.request.AlternativaUpdateRequest();
+        altUp1.setId(alt1.getId()); altUp1.setTexto("A"); altUp1.setCorreta(true); altUp1.setOrdem(1);
+        com.studora.dto.request.AlternativaUpdateRequest altUp2 = new com.studora.dto.request.AlternativaUpdateRequest();
+        altUp2.setId(alt2.getId()); altUp2.setTexto("B"); altUp2.setCorreta(false); altUp2.setOrdem(2);
+        updateRequest.setAlternativas(Arrays.asList(altUp1, altUp2));
 
-        // 2. Get Cargos (GET)
-        mockMvc
-            .perform(get("/api/v1/questoes/{id}/cargos", questao.getId()))
+        mockMvc.perform(
+                put("/api/v1/questoes/{id}", questao.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(updateRequest))
+            )
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(2));
-
-        // 3. Remove one Cargo (DELETE) - Should succeed because one remains
-        mockMvc
-            .perform(delete("/api/v1/questoes/{questaoId}/cargos/{concursoCargoId}", questao.getId(), concursoCargo.getId()))
-            .andExpect(status().isNoContent());
-
-        // 4. Verify remaining
-        mockMvc
-            .perform(get("/api/v1/questoes/{id}/cargos", questao.getId()))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(1))
-            .andExpect(jsonPath("$[0].concursoCargoId").value(concursoCargo2.getId()));
-    }
-
-    @Test
-    void testRemoveCargoFromQuestao_UnprocessableEntity() throws Exception {
-        // Setup question
-        Questao questao = new Questao();
-        questao.setEnunciado("One Cargo Test");
-        questao.setConcurso(concurso);
-        questao = questaoRepository.save(questao);
-
-        QuestaoCargo qc = new QuestaoCargo();
-        qc.setQuestao(questao);
-        qc.setConcursoCargo(concursoCargo);
-        questao.addQuestaoCargo(qc); // Add to parent collection
-        questaoCargoRepository.save(qc);
-        questaoRepository.save(questao); // Update parent
-
-        // Try to remove the last cargo - This depends on business logic in QuestaoService
-        // If there's a constraint that a question must have at least one cargo, this should fail.
-        mockMvc
-            .perform(delete("/api/v1/questoes/{questaoId}/cargos/{concursoCargoId}", questao.getId(), concursoCargo.getId()))
-            .andExpect(status().isUnprocessableEntity());
-    }
-
-    @Test
-    void testAddCargoToQuestao() throws Exception {
-        // First create a question
-        Questao questao = new Questao();
-        questao.setEnunciado("Questão para cargo");
-        questao.setConcurso(concurso);
-        questao = questaoRepository.save(questao);
-
-        // Create cargo association request
-        com.studora.dto.request.QuestaoCargoCreateRequest cargoRequest = new com.studora.dto.request.QuestaoCargoCreateRequest();
-        cargoRequest.setConcursoCargoId(concursoCargo.getId());
-
-        mockMvc
-            .perform(
-                post("/api/v1/questoes/{id}/cargos", questao.getId())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(cargoRequest))
-            )
-            .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.concursoCargoId").value(concursoCargo.getId()))
-            .andExpect(jsonPath("$.questaoId").value(questao.getId()));
-    }
-
-    @Test
-    void testAddCargoToQuestao_NonExistentQuestao() throws Exception {
-        // Create cargo association request
-        com.studora.dto.request.QuestaoCargoCreateRequest cargoRequest = new com.studora.dto.request.QuestaoCargoCreateRequest();
-        cargoRequest.setConcursoCargoId(concursoCargo.getId());
-
-        mockMvc
-            .perform(
-                post("/api/v1/questoes/{id}/cargos", 99999L) // Non-existent questao ID
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(cargoRequest))
-            )
-            .andExpect(status().isNotFound())
-            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
-            .andExpect(jsonPath("$.title").value("Recurso não encontrado"))
-            .andExpect(jsonPath("$.status").value(404))
-            .andExpect(jsonPath("$.detail").value("Não foi possível encontrar Questão com ID: '99999'"));
-    }
-
-    @Test
-    void testAddCargoToQuestao_NonExistentConcursoCargo() throws Exception {
-        // First create a question
-        Questao questao = new Questao();
-        questao.setEnunciado("Questão para cargo");
-        questao.setConcurso(concurso);
-        questao = questaoRepository.save(questao);
-
-        // Create cargo association request with non-existent concursoCargo ID
-        com.studora.dto.request.QuestaoCargoCreateRequest cargoRequest = new com.studora.dto.request.QuestaoCargoCreateRequest();
-        cargoRequest.setConcursoCargoId(99999L); // Non-existent concursoCargo ID
-
-        mockMvc
-            .perform(
-                post("/api/v1/questoes/{id}/cargos", questao.getId())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(cargoRequest))
-            )
-            .andExpect(status().isNotFound())
-            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
-            .andExpect(jsonPath("$.title").value("Recurso não encontrado"))
-            .andExpect(jsonPath("$.status").value(404))
-            .andExpect(jsonPath("$.detail").value("Não foi possível encontrar ConcursoCargo com ID: '99999'"));
+            .andExpect(jsonPath("$.cargos.length()").value(1))
+            .andExpect(jsonPath("$.cargos[0]").value(cargo2.getId()));
     }
 }

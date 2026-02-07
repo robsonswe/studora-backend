@@ -1,10 +1,8 @@
 package com.studora.controller.v1;
 
-import com.studora.dto.concurso.ConcursoCargoDto;
 import com.studora.dto.concurso.ConcursoSummaryDto;
 import com.studora.dto.concurso.ConcursoDetailDto;
 import com.studora.dto.PageResponse;
-import com.studora.dto.request.ConcursoCargoCreateRequest;
 import com.studora.dto.request.ConcursoCreateRequest;
 import com.studora.dto.request.ConcursoUpdateRequest;
 import com.studora.common.constants.AppConstants;
@@ -12,7 +10,6 @@ import com.studora.service.ConcursoService;
 import com.studora.util.PaginationUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -181,68 +178,6 @@ public class ConcursoController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteConcurso(@PathVariable Long id) {
         concursoService.delete(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    @Operation(
-        summary = "Obter cargos por concurso",
-        responses = {
-            @ApiResponse(responseCode = "200", description = "Lista de cargos retornada com sucesso",
-                content = @Content(
-                    mediaType = "application/json",
-                    array = @ArraySchema(schema = @Schema(implementation = ConcursoCargoDto.class)),
-                    examples = @ExampleObject(value = "[{\"id\": 1, \"concursoId\": 1, \"cargoId\": 1}]")
-                )),
-            @ApiResponse(responseCode = "404", description = "Concurso não encontrado",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Concurso com ID: '1'\",\"instance\":\"/api/v1/concursos/1/cargos\"}"
-                    )))
-        }
-    )
-    @GetMapping("/{id}/cargos")
-    public ResponseEntity<List<ConcursoCargoDto>> getCargosByConcurso(@PathVariable Long id) {
-        return ResponseEntity.ok(concursoService.getCargosByConcursoId(id));
-    }
-
-    @Operation(
-        summary = "Adicionar cargo ao concurso",
-        responses = {
-            @ApiResponse(responseCode = "201", description = "Cargo adicionado ao concurso com sucesso",
-                content = @Content(
-                    schema = @Schema(implementation = ConcursoCargoDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 5, \"concursoId\": 1, \"cargoId\": 2}")
-                )),
-            @ApiResponse(responseCode = "409", description = "Conflito - Cargo já associado ao concurso",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Este cargo já está associado a este concurso.\",\"instance\":\"/api/v1/concursos/1/cargos\"}"
-                    )))
-        }
-    )
-    @PostMapping("/{id}/cargos")
-    public ResponseEntity<ConcursoCargoDto> addCargoToConcurso(@PathVariable Long id, @Valid @RequestBody ConcursoCargoCreateRequest request) {
-        return new ResponseEntity<>(concursoService.addCargoToConcurso(id, request), HttpStatus.CREATED);
-    }
-
-    @Operation(
-        summary = "Remover cargo do concurso",
-        responses = {
-            @ApiResponse(responseCode = "204", description = "Cargo removido do concurso com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Associação não encontrada"),
-            @ApiResponse(responseCode = "422", description = "Entidade não processável - Regras de negócio violadas",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Entidade não processável\",\"status\":422,\"detail\":\"Um concurso deve estar associado a pelo menos um cargo\",\"instance\":\"/api/v1/concursos/1/cargos/1\"}"
-                    )))
-        }
-    )
-    @DeleteMapping("/{concursoId}/cargos/{cargoId}")
-    public ResponseEntity<Void> removeCargoFromConcurso(@PathVariable Long concursoId, @PathVariable Long cargoId) {
-        concursoService.removeCargoFromConcurso(concursoId, cargoId);
         return ResponseEntity.noContent().build();
     }
 }

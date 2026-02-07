@@ -28,7 +28,8 @@ public interface QuestaoRepository extends JpaRepository<Questao, Long>, JpaSpec
            "LEFT JOIN FETCH q.alternativas " +
            "LEFT JOIN FETCH q.subtemas " +
            "LEFT JOIN FETCH q.questaoCargos qc " +
-           "LEFT JOIN FETCH qc.concursoCargo " +
+           "LEFT JOIN FETCH qc.concursoCargo cc " +
+           "LEFT JOIN FETCH cc.cargo " +
            "LEFT JOIN FETCH q.concurso " +
            "WHERE q.id = :id")
     Optional<Questao> findByIdWithDetails(@Param("id") Long id);

@@ -23,4 +23,7 @@ public class ConcursoSummaryDto {
 
     @Schema(description = "Identificação do edital do concurso", example = "https://exemplo.com/edital.pdf")
     private String edital;
+
+    @Schema(description = "Lista de IDs dos cargos", example = "[1, 2]")
+    private java.util.List<Long> cargos;
 }

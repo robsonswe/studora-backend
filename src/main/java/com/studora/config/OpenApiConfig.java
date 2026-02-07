@@ -30,13 +30,6 @@ public class OpenApiConfig {
                                 .email("suporte@studora.com.br"))
                         .license(new License()
                                 .name("Apache 2.0")
-                                .url("https://www.apache.org/licenses/LICENSE-2.0.html")))
-                .tags(List.of(
-                        new Tag().name("Simulados").description("Geração e gerenciamento de simulados personalizados"),
-                        new Tag().name("Questões").description("Gerenciamento de banco de questões"),
-                        new Tag().name("Taxonomia").description("Gestão da hierarquia de Disciplinas, Temas e Subtemas"),
-                        new Tag().name("Estrutura").description("Gestão de Bancas, Instituições, Concursos e Cargos"),
-                        new Tag().name("Operacional").description("Endpoints de saúde e monitoramento")
-                ));
+                                .url("https://www.apache.org/licenses/LICENSE-2.0.html")));
     }
 }

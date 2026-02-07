@@ -31,6 +31,6 @@ public class QuestaoSummaryDto {
     @Schema(description = "IDs dos subtemas associados à questão")
     private List<Long> subtemaIds;
 
-    @Schema(description = "IDs dos cargos do concurso associados à questão")
-    private List<Long> concursoCargoIds;
+    @Schema(description = "IDs dos cargos associados à questão")
+    private List<Long> cargos;
 }

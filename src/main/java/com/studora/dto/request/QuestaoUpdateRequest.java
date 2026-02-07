@@ -34,8 +34,8 @@ public class QuestaoUpdateRequest {
 
     @NotNull(message = "Pelo menos um cargo deve ser associado à questão")
     @Size(min = AppConstants.MIN_CARGO_ASSOCIATIONS, message = "A questão deve estar associada a pelo menos {min} cargo")
-    @Schema(description = "IDs dos cargos do concurso associados à questão")
-    private List<Long> concursoCargoIds;
+    @Schema(description = "IDs dos cargos associados à questão")
+    private List<Long> cargos;
 
     @Schema(description = "Alternativas da questão")
     @Size(min = AppConstants.MIN_ALTERNATIVAS, message = "A questão deve ter pelo menos {min} alternativas")

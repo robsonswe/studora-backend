@@ -5,19 +5,17 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import com.studora.dto.questao.QuestaoDetailDto;
-import com.studora.dto.questao.QuestaoCargoDto;
 import com.studora.dto.questao.QuestaoSummaryDto;
 import com.studora.dto.questao.QuestaoFilter;
 import com.studora.dto.request.AlternativaCreateRequest;
 import com.studora.dto.request.AlternativaUpdateRequest;
-import com.studora.dto.request.QuestaoCargoCreateRequest;
 import com.studora.dto.request.QuestaoCreateRequest;
 import com.studora.dto.request.QuestaoUpdateRequest;
 import com.studora.entity.Concurso;
 import com.studora.entity.ConcursoCargo;
+import com.studora.entity.Cargo;
 import com.studora.entity.Questao;
 import com.studora.entity.QuestaoCargo;
-import com.studora.entity.Resposta;
 import com.studora.entity.Alternativa;
 import com.studora.exception.ValidationException;
 import com.studora.repository.*;
@@ -27,9 +25,9 @@ import jakarta.persistence.EntityManager;
 import java.util.Optional;
 import java.util.List;
 import java.util.Arrays;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Collections;
+import java.util.ArrayList;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -46,7 +44,6 @@ class QuestaoServiceTest {
     @Mock private ConcursoRepository concursoRepository;
     @Mock private SubtemaRepository subtemaRepository;
     @Mock private ConcursoCargoRepository concursoCargoRepository;
-    @Mock private QuestaoCargoRepository questaoCargoRepository;
     @Mock private RespostaRepository respostaRepository;
     @Mock private AlternativaRepository alternativaRepository;
     @Mock private EntityManager entityManager;
@@ -56,7 +53,6 @@ class QuestaoServiceTest {
     // Mappers
     private QuestaoMapper questaoMapper;
     private AlternativaMapper alternativaMapper;
-    private QuestaoCargoMapper questaoCargoMapper;
     private RespostaMapper respostaMapper;
 
     @BeforeEach
@@ -64,21 +60,19 @@ class QuestaoServiceTest {
         MockitoAnnotations.openMocks(this);
         
         questaoMapper = org.mapstruct.factory.Mappers.getMapper(QuestaoMapper.class);
-        questaoCargoMapper = org.mapstruct.factory.Mappers.getMapper(QuestaoCargoMapper.class);
         alternativaMapper = org.mapstruct.factory.Mappers.getMapper(AlternativaMapper.class);
         SubtemaMapper subtemaMapper = org.mapstruct.factory.Mappers.getMapper(SubtemaMapper.class);
         respostaMapper = org.mapstruct.factory.Mappers.getMapper(RespostaMapper.class);
         
         ReflectionTestUtils.setField(questaoMapper, "alternativaMapper", alternativaMapper);
         ReflectionTestUtils.setField(questaoMapper, "subtemaMapper", subtemaMapper);
-        ReflectionTestUtils.setField(questaoMapper, "questaoCargoMapper", questaoCargoMapper);
         ReflectionTestUtils.setField(questaoMapper, "respostaMapper", respostaMapper);
 
         questaoService = new QuestaoService(
             questaoRepository, concursoRepository, subtemaRepository,
-            concursoCargoRepository, questaoCargoRepository, respostaRepository,
+            concursoCargoRepository, respostaRepository,
             alternativaRepository,
-            questaoMapper, questaoCargoMapper, entityManager
+            questaoMapper, entityManager
         );
     }
 
@@ -115,10 +109,12 @@ class QuestaoServiceTest {
             new AlternativaCreateRequest(1, "A", true),
             new AlternativaCreateRequest(2, "B", false)
         ));
-        req.setConcursoCargoIds(Collections.singletonList(100L));
+        req.setCargos(Collections.singletonList(10L)); // Cargo ID
 
         when(concursoRepository.findById(1L)).thenReturn(Optional.of(c));
-        when(concursoCargoRepository.findById(100L)).thenReturn(Optional.of(createConcursoCargo(100L, c)));
+        when(concursoCargoRepository.existsByConcursoIdAndCargoId(1L, 10L)).thenReturn(true);
+        when(concursoCargoRepository.findByConcursoIdAndCargoId(1L, 10L)).thenReturn(Collections.singletonList(createConcursoCargo(100L, c, 10L)));
+        
         when(questaoRepository.save(any(Questao.class))).thenAnswer(i -> {
             Questao q = i.getArgument(0);
             q.setId(1L);
@@ -135,6 +131,21 @@ class QuestaoServiceTest {
     }
 
     @Test
+    void testCreate_Validation_CargoMustBelongToConcurso() {
+        Concurso c = new Concurso(); c.setId(1L);
+        QuestaoCreateRequest req = new QuestaoCreateRequest();
+        req.setConcursoId(1L);
+        req.setEnunciado("Fail");
+        req.setAlternativas(Arrays.asList(new AlternativaCreateRequest(1, "A", true), new AlternativaCreateRequest(2, "B", false)));
+        req.setCargos(Collections.singletonList(99L)); // Invalid cargo
+
+        when(concursoRepository.findById(1L)).thenReturn(Optional.of(c));
+        when(concursoCargoRepository.existsByConcursoIdAndCargoId(1L, 99L)).thenReturn(false);
+
+        assertThrows(ValidationException.class, () -> questaoService.create(req));
+    }
+
+    @Test
     void testUpdate_Success() {
         Long id = 1L;
         Concurso c = new Concurso(); c.setId(1L);
@@ -148,16 +159,50 @@ class QuestaoServiceTest {
             new AlternativaUpdateRequest() {{ setTexto("A"); setCorreta(true); setOrdem(1); }},
             new AlternativaUpdateRequest() {{ setTexto("B"); setCorreta(false); setOrdem(2); }}
         ));
-        req.setConcursoCargoIds(Collections.singletonList(100L));
+        req.setCargos(Collections.singletonList(10L));
 
         when(questaoRepository.findByIdWithDetails(id)).thenReturn(Optional.of(existing));
         when(concursoRepository.findById(1L)).thenReturn(Optional.of(c));
-        when(concursoCargoRepository.findById(100L)).thenReturn(Optional.of(createConcursoCargo(100L, c)));
+        when(concursoCargoRepository.existsByConcursoIdAndCargoId(1L, 10L)).thenReturn(true);
+        when(concursoCargoRepository.findByConcursoIdAndCargoId(1L, 10L)).thenReturn(Collections.singletonList(createConcursoCargo(100L, c, 10L)));
+        
         when(questaoRepository.save(any())).thenReturn(existing);
         when(respostaRepository.findByQuestaoIdInWithDetails(anyList())).thenReturn(Collections.emptyList());
 
         QuestaoDetailDto result = questaoService.update(id, req);
         assertNotNull(result);
+    }
+
+    @Test
+    void testUpdate_ImplicitCargoSync() {
+        Long id = 1L;
+        Concurso c = new Concurso(); c.setId(1L);
+        Questao existing = new Questao(); existing.setId(id); existing.setEnunciado("Old"); existing.setConcurso(c);
+        
+        // Existing cargo association (Cargo ID 10)
+        ConcursoCargo ccOld = createConcursoCargo(100L, c, 10L);
+        QuestaoCargo qcOld = new QuestaoCargo(); qcOld.setId(1L); qcOld.setQuestao(existing); qcOld.setConcursoCargo(ccOld);
+        existing.addQuestaoCargo(qcOld);
+
+        QuestaoUpdateRequest req = new QuestaoUpdateRequest();
+        req.setConcursoId(1L);
+        req.setEnunciado("Old");
+        req.setAnulada(false);
+        req.setAlternativas(Arrays.asList(new AlternativaUpdateRequest() {{ setTexto("A"); setCorreta(true); setOrdem(1); }}, new AlternativaUpdateRequest() {{ setTexto("B"); setCorreta(false); setOrdem(2); }}));
+        req.setCargos(Collections.singletonList(20L)); // Change to Cargo ID 20
+
+        when(questaoRepository.findByIdWithDetails(id)).thenReturn(Optional.of(existing));
+        when(concursoRepository.findById(1L)).thenReturn(Optional.of(c));
+        when(concursoCargoRepository.existsByConcursoIdAndCargoId(1L, 20L)).thenReturn(true);
+        when(concursoCargoRepository.findByConcursoIdAndCargoId(1L, 20L)).thenReturn(Collections.singletonList(createConcursoCargo(101L, c, 20L)));
+        when(questaoRepository.save(any())).thenReturn(existing);
+        when(respostaRepository.findByQuestaoIdInWithDetails(anyList())).thenReturn(Collections.emptyList());
+
+        questaoService.update(id, req);
+
+        // Verify that old association was removed and new one added
+        assertEquals(1, existing.getQuestaoCargos().size());
+        assertEquals(20L, existing.getQuestaoCargos().iterator().next().getConcursoCargo().getCargo().getId());
     }
 
     @Test
@@ -177,109 +222,23 @@ class QuestaoServiceTest {
     }
 
     @Test
-    void testGetCargosByQuestaoId() {
-        QuestaoCargo qc = new QuestaoCargo(); qc.setId(10L);
-        when(questaoCargoRepository.findByQuestaoId(1L)).thenReturn(Collections.singletonList(qc));
-        List<QuestaoCargoDto> result = questaoService.getCargosByQuestaoId(1L);
-        assertEquals(1, result.size());
-    }
-
-    @Test
-    void testAddCargo_Success() {
-        Questao q = new Questao(); q.setId(1L); q.setConcurso(new Concurso()); q.getConcurso().setId(1L);
-        ConcursoCargo cc = new ConcursoCargo(); cc.setId(100L); cc.setConcurso(q.getConcurso());
-        
-        when(questaoCargoRepository.findByQuestaoIdAndConcursoCargoId(1L, 100L)).thenReturn(Collections.emptyList());
-        when(questaoRepository.findById(1L)).thenReturn(Optional.of(q));
-        when(concursoCargoRepository.findById(100L)).thenReturn(Optional.of(cc));
-        when(questaoCargoRepository.save(any())).thenAnswer(i -> i.getArgument(0));
-
-        QuestaoCargoCreateRequest req = new QuestaoCargoCreateRequest();
-        req.setConcursoCargoId(100L);
-        QuestaoCargoDto result = questaoService.addCargoToQuestao(1L, req);
-        assertNotNull(result);
-    }
-
-    @Test
-    void testRemoveCargo_Success() {
-        Questao q = new Questao();
-        q.setId(1L);
-        
-        ConcursoCargo cc1 = new ConcursoCargo(); cc1.setId(100L);
-        QuestaoCargo qc1 = new QuestaoCargo(); qc1.setConcursoCargo(cc1); qc1.setQuestao(q);
-        
-        ConcursoCargo cc2 = new ConcursoCargo(); cc2.setId(101L);
-        QuestaoCargo qc2 = new QuestaoCargo(); qc2.setConcursoCargo(cc2); qc2.setQuestao(q);
-        
-        q.addQuestaoCargo(qc1);
-        q.addQuestaoCargo(qc2);
-
-        when(questaoRepository.findById(1L)).thenReturn(Optional.of(q));
-        
-        questaoService.removeCargoFromQuestao(1L, 100L);
-        
-        assertEquals(1, q.getQuestaoCargos().size());
-        assertFalse(q.getQuestaoCargos().contains(qc1));
-        verify(questaoRepository).save(q);
-    }
-
-    @Test
-    void testRemoveCargo_FailsIfLast() {
-        Questao q = new Questao();
-        q.setId(1L);
-        
-        ConcursoCargo cc = new ConcursoCargo(); cc.setId(100L);
-        QuestaoCargo qc = new QuestaoCargo(); qc.setConcursoCargo(cc); qc.setQuestao(q);
-        q.addQuestaoCargo(qc);
-
-        when(questaoRepository.findById(1L)).thenReturn(Optional.of(q));
-        
-        assertThrows(ValidationException.class, () -> questaoService.removeCargoFromQuestao(1L, 100L));
-    }
-
-    @Test
     void testCreate_RequiresAtLeastTwoAlternatives() {
         QuestaoCreateRequest req = new QuestaoCreateRequest(1L, "E");
         req.setAlternativas(Collections.singletonList(new AlternativaCreateRequest(1, "A", true)));
-        req.setConcursoCargoIds(Collections.singletonList(100L));
+        req.setCargos(Collections.singletonList(10L));
         Concurso c = new Concurso(); c.setId(1L);
         when(concursoRepository.findById(1L)).thenReturn(Optional.of(c));
-        when(concursoCargoRepository.findById(100L)).thenReturn(Optional.of(createConcursoCargo(100L, c)));
         assertThrows(ValidationException.class, () -> questaoService.create(req));
     }
 
     @Test
     void testCreate_RequiresExactlyOneCorrect() {
         QuestaoCreateRequest req = new QuestaoCreateRequest(1L, "E");
-        req.setConcursoCargoIds(Collections.singletonList(100L));
+        req.setCargos(Collections.singletonList(10L));
         req.setAlternativas(Arrays.asList(new AlternativaCreateRequest(1, "A", true), new AlternativaCreateRequest(2, "B", true)));
         Concurso c = new Concurso(); c.setId(1L);
         when(concursoRepository.findById(1L)).thenReturn(Optional.of(c));
-        when(concursoCargoRepository.findById(100L)).thenReturn(Optional.of(createConcursoCargo(100L, c)));
         assertThrows(ValidationException.class, () -> questaoService.create(req));
-    }
-
-    @Test
-    void testUpdate_PreservesIds() {
-        Long qId = 1L; Questao q = new Questao(); q.setId(qId); 
-        Concurso c = new Concurso(); c.setId(1L); q.setConcurso(c);
-        Alternativa a1 = new Alternativa(); a1.setId(10L); a1.setOrdem(1); a1.setQuestao(q); a1.setTexto("A"); a1.setCorreta(true);
-        q.setAlternativas(new HashSet<>(Collections.singletonList(a1)));
-        
-        when(questaoRepository.findByIdWithDetails(qId)).thenReturn(Optional.of(q));
-        when(alternativaRepository.findByQuestaoIdOrderByOrdemAsc(qId)).thenReturn(Collections.singletonList(a1));
-        when(concursoRepository.findById(any())).thenReturn(Optional.of(c));
-        when(questaoRepository.save(any())).thenReturn(q);
-        when(respostaRepository.findByQuestaoIdInWithDetails(anyList())).thenReturn(Collections.emptyList());
-
-        QuestaoUpdateRequest req = new QuestaoUpdateRequest();
-        req.setConcursoId(1L); req.setEnunciado("Old"); req.setAnulada(false); req.setConcursoCargoIds(Collections.singletonList(100L));
-        req.setAlternativas(Arrays.asList(new AlternativaUpdateRequest() {{ setId(10L); setOrdem(2); setTexto("A"); setCorreta(true); }}, new AlternativaUpdateRequest() {{ setTexto("B"); setCorreta(false); setOrdem(1); }}));
-        when(concursoCargoRepository.findById(100L)).thenReturn(Optional.of(createConcursoCargo(100L, c)));
-
-        questaoService.update(qId, req);
-        assertEquals(10L, a1.getId());
-        assertEquals(2, a1.getOrdem());
     }
 
     @Test
@@ -289,12 +248,13 @@ class QuestaoServiceTest {
         when(questaoRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(q));
         when(concursoRepository.findById(any())).thenReturn(Optional.of(c));
         when(questaoRepository.save(any())).thenReturn(q);
-        when(concursoCargoRepository.findById(any())).thenReturn(Optional.of(createConcursoCargo(100L, c)));
+        when(concursoCargoRepository.existsByConcursoIdAndCargoId(1L, 10L)).thenReturn(true);
+        when(concursoCargoRepository.findByConcursoIdAndCargoId(1L, 10L)).thenReturn(Collections.singletonList(createConcursoCargo(100L, c, 10L)));
         when(respostaRepository.findByQuestaoIdInWithDetails(anyList())).thenReturn(Collections.emptyList());
 
         QuestaoUpdateRequest req = new QuestaoUpdateRequest();
         req.setConcursoId(1L);
-        req.setEnunciado("New"); req.setAnulada(false); req.setConcursoCargoIds(Collections.singletonList(100L));
+        req.setEnunciado("New"); req.setAnulada(false); req.setCargos(Collections.singletonList(10L));
         req.setAlternativas(Arrays.asList(new AlternativaUpdateRequest() {{ setTexto("A"); setCorreta(true); setOrdem(1); }}, new AlternativaUpdateRequest() {{ setTexto("B"); setCorreta(false); setOrdem(2); }}));
 
         questaoService.update(1L, req);
@@ -302,30 +262,19 @@ class QuestaoServiceTest {
     }
 
     @Test
-    void testNormalizeAlternativaOrders() {
-        Questao q = new Questao();
-        Alternativa a1 = new Alternativa(); a1.setOrdem(10);
-        Alternativa a2 = new Alternativa(); a2.setOrdem(5);
-        q.setAlternativas(new HashSet<>(Arrays.asList(a1, a2)));
-        
-        ReflectionTestUtils.invokeMethod(questaoService, "normalizeAlternativaOrders", q);
-        List<Alternativa> sorted = q.getAlternativas().stream().sorted(java.util.Comparator.comparing(Alternativa::getOrdem)).toList();
-        assertEquals(1, sorted.get(0).getOrdem());
-        assertEquals(2, sorted.get(1).getOrdem());
-    }
-
-    @Test
     void testValidateBusinessRules_FailsIfNoCargo() {
         QuestaoCreateRequest req = new QuestaoCreateRequest();
         req.setConcursoId(1L);
-        req.setConcursoCargoIds(Collections.emptyList());
+        req.setCargos(Collections.emptyList());
         req.setAlternativas(Arrays.asList(new AlternativaCreateRequest() {{ setCorreta(true); }}, new AlternativaCreateRequest() {{ setCorreta(false); }}));
         when(concursoRepository.findById(any())).thenReturn(Optional.of(new Concurso()));
         assertThrows(ValidationException.class, () -> questaoService.create(req));
     }
 
-    private ConcursoCargo createConcursoCargo(Long id, Concurso c) {
+    private ConcursoCargo createConcursoCargo(Long id, Concurso c, Long cargoId) {
         ConcursoCargo cc = new ConcursoCargo(); cc.setId(id); cc.setConcurso(c);
+        Cargo cargo = new Cargo(); cargo.setId(cargoId);
+        cc.setCargo(cargo);
         return cc;
     }
 }

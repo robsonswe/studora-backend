@@ -1,13 +1,11 @@
 package com.studora.controller.v1;
 
 import com.studora.dto.PageResponse;
-import com.studora.dto.questao.QuestaoCargoDto;
 import com.studora.dto.questao.QuestaoSummaryDto;
 import com.studora.dto.questao.QuestaoDetailDto;
 import com.studora.dto.questao.QuestaoFilter;
 import com.studora.dto.request.QuestaoCreateRequest;
 import com.studora.dto.request.QuestaoUpdateRequest;
-import com.studora.dto.request.QuestaoCargoCreateRequest;
 import com.studora.common.constants.AppConstants;
 import com.studora.service.QuestaoService;
 import com.studora.util.PaginationUtils;
@@ -17,7 +15,6 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
@@ -190,52 +187,6 @@ public class QuestaoController {
     @PatchMapping("/{id}/desatualizada")
     public ResponseEntity<Void> toggleDesatualizada(@PathVariable Long id) {
         questaoService.toggleDesatualizada(id);
-        return ResponseEntity.noContent().build();
-    }
-
-    @Operation(
-        summary = "Obter cargos por questão",
-        responses = {
-            @ApiResponse(responseCode = "200", description = "Lista de cargos retornada com sucesso",
-                content = @Content(
-                    mediaType = "application/json",
-                    array = @ArraySchema(schema = @Schema(implementation = QuestaoCargoDto.class)),
-                    examples = @ExampleObject(value = "[{\"id\": 1, \"questaoId\": 1, \"concursoCargoId\": 1}]")
-                )),
-            @ApiResponse(responseCode = "404", description = "Questão não encontrada")
-        }
-    )
-    @GetMapping("/{id}/cargos")
-    public ResponseEntity<List<QuestaoCargoDto>> getCargosByQuestao(@PathVariable Long id) {
-        return ResponseEntity.ok(questaoService.getCargosByQuestaoId(id));
-    }
-
-    @Operation(
-        summary = "Adicionar cargo à questão",
-        responses = {
-            @ApiResponse(responseCode = "201", description = "Cargo adicionado com sucesso",
-                content = @Content(
-                    schema = @Schema(implementation = QuestaoCargoDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 2, \"questaoId\": 1, \"concursoCargoId\": 2}")
-                )),
-            @ApiResponse(responseCode = "409", description = "Conflito - Cargo já associado à questão")
-        }
-    )
-    @PostMapping("/{id}/cargos")
-    public ResponseEntity<QuestaoCargoDto> addCargoToQuestao(@PathVariable Long id, @Valid @RequestBody QuestaoCargoCreateRequest request) {
-        return new ResponseEntity<>(questaoService.addCargoToQuestao(id, request), HttpStatus.CREATED);
-    }
-
-    @Operation(
-        summary = "Remover cargo da questão",
-        responses = {
-            @ApiResponse(responseCode = "204", description = "Cargo removido com sucesso"),
-            @ApiResponse(responseCode = "422", description = "Entidade não processável - Uma questão deve ter pelo menos um cargo")
-        }
-    )
-    @DeleteMapping("/{questaoId}/cargos/{concursoCargoId}")
-    public ResponseEntity<Void> removeCargoFromQuestao(@PathVariable Long questaoId, @PathVariable Long concursoCargoId) {
-        questaoService.removeCargoFromQuestao(questaoId, concursoCargoId);
         return ResponseEntity.noContent().build();
     }
 }

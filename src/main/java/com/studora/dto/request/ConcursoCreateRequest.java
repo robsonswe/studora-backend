@@ -34,13 +34,19 @@ public class ConcursoCreateRequest {
     @Schema(description = "Identificação do edital do concurso", example = "Edital 01/2023")
     private String edital;
 
+    @NotNull(message = "A lista de cargos é obrigatória")
+    @jakarta.validation.constraints.NotEmpty(message = "O concurso deve ter pelo menos um cargo")
+    @Schema(description = "Lista de IDs dos cargos associados ao concurso", example = "[1, 2]", required = true)
+    private java.util.List<Long> cargos;
+
     // Constructors
     public ConcursoCreateRequest() {}
 
-    public ConcursoCreateRequest(Long instituicaoId, Long bancaId, Integer ano, Integer mes) {
+    public ConcursoCreateRequest(Long instituicaoId, Long bancaId, Integer ano, Integer mes, java.util.List<Long> cargos) {
         this.instituicaoId = instituicaoId;
         this.bancaId = bancaId;
         this.ano = ano;
         this.mes = mes;
+        this.cargos = cargos;
     }
 }

@@ -78,7 +78,7 @@ class ConcursoCascadeDeletionTest {
         qReq.setConcursoId(concursoId);
         qReq.setEnunciado("Enunciado Test");
         qReq.setAnulada(false);
-        qReq.setConcursoCargoIds(List.of(concursoCargoId));
+        qReq.setCargos(List.of(cargo.getId()));
         
         AlternativaCreateRequest alt1 = new AlternativaCreateRequest();
         alt1.setOrdem(1);

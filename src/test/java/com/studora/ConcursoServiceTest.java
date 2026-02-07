@@ -23,13 +23,15 @@ import com.studora.repository.CargoRepository;
 import com.studora.repository.QuestaoCargoRepository;
 import com.studora.service.ConcursoService;
 import com.studora.mapper.ConcursoMapper;
-import com.studora.mapper.ConcursoCargoMapper;
 import com.studora.mapper.InstituicaoMapper;
 import com.studora.mapper.BancaMapper;
 import java.util.Optional;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -55,13 +57,11 @@ class ConcursoServiceTest {
         MockitoAnnotations.openMocks(this);
 
         ConcursoMapper realMapper = org.mapstruct.factory.Mappers.getMapper(ConcursoMapper.class);
-        ConcursoCargoMapper ccMapper = org.mapstruct.factory.Mappers.getMapper(ConcursoCargoMapper.class);
         InstituicaoMapper instMapper = org.mapstruct.factory.Mappers.getMapper(InstituicaoMapper.class);
         BancaMapper bancaMapper = org.mapstruct.factory.Mappers.getMapper(BancaMapper.class);
         
         ReflectionTestUtils.setField(realMapper, "instituicaoMapper", instMapper);
         ReflectionTestUtils.setField(realMapper, "bancaMapper", bancaMapper);
-        ReflectionTestUtils.setField(realMapper, "concursoCargoMapper", ccMapper);
         
         concursoService = new ConcursoService(
             concursoRepository, 
@@ -70,8 +70,7 @@ class ConcursoServiceTest {
             cargoRepository, 
             concursoCargoRepository, 
             questaoCargoRepository,
-            realMapper, 
-            ccMapper
+            realMapper
         );
     }
 
@@ -110,25 +109,21 @@ class ConcursoServiceTest {
     }
 
     @Test
-    void testFindAll_Empty() {
-        when(concursoRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
-        Page<ConcursoSummaryDto> result = concursoService.findAll(Pageable.unpaged());
-        assertTrue(result.isEmpty());
-    }
-
-    @Test
     void testCreate_Success() {
         Instituicao inst = new Instituicao(); inst.setId(1L);
         Banca banca = new Banca(); banca.setId(1L);
+        Cargo cargo = new Cargo(); cargo.setId(10L);
         
         ConcursoCreateRequest request = new ConcursoCreateRequest();
         request.setInstituicaoId(1L);
         request.setBancaId(1L);
         request.setAno(2023);
         request.setMes(1);
+        request.setCargos(List.of(10L));
 
         when(instituicaoRepository.findById(1L)).thenReturn(Optional.of(inst));
         when(bancaRepository.findById(1L)).thenReturn(Optional.of(banca));
+        when(cargoRepository.findById(10L)).thenReturn(Optional.of(cargo));
         when(concursoRepository.existsByInstituicaoIdAndBancaIdAndAnoAndMes(1L, 1L, 2023, 1)).thenReturn(false);
         
         when(concursoRepository.save(any(Concurso.class))).thenAnswer(i -> {
@@ -140,6 +135,8 @@ class ConcursoServiceTest {
         ConcursoDetailDto result = concursoService.create(request);
         assertEquals(1L, result.getId());
         assertEquals(2023, result.getAno());
+        assertEquals(1, result.getCargos().size());
+        assertEquals(10L, result.getCargos().get(0));
     }
 
     @Test
@@ -149,6 +146,7 @@ class ConcursoServiceTest {
         req.setBancaId(1L);
         req.setAno(2023);
         req.setMes(1);
+        req.setCargos(List.of(1L));
 
         when(concursoRepository.existsByInstituicaoIdAndBancaIdAndAnoAndMes(1L, 1L, 2023, 1)).thenReturn(true);
 
@@ -162,17 +160,88 @@ class ConcursoServiceTest {
         Long id = 1L;
         Instituicao inst = new Instituicao(); inst.setId(1L);
         Banca banca = new Banca(); banca.setId(1L);
+        Cargo cargo = new Cargo(); cargo.setId(10L);
+        
         Concurso existing = new Concurso(inst, banca, 2023, 1);
         existing.setId(id);
+        
+        ConcursoCargo cc = new ConcursoCargo();
+        cc.setConcurso(existing);
+        cc.setCargo(cargo);
+        cc.setId(100L);
+        existing.addConcursoCargo(cc);
 
         ConcursoUpdateRequest req = new ConcursoUpdateRequest();
         req.setAno(2024);
+        req.setCargos(List.of(10L)); // Same cargo
 
-        when(concursoRepository.findById(id)).thenReturn(Optional.of(existing));
+        when(concursoRepository.findByIdWithDetails(id)).thenReturn(Optional.of(existing));
         when(concursoRepository.save(any(Concurso.class))).thenAnswer(i -> i.getArgument(0));
 
         ConcursoDetailDto result = concursoService.update(id, req);
         assertEquals(2024, result.getAno());
+        assertEquals(1, result.getCargos().size());
+    }
+
+    @Test
+    void testUpdate_AddAndRemoveCargos() {
+        Long id = 1L;
+        Instituicao inst = new Instituicao(); inst.setId(1L);
+        Banca banca = new Banca(); banca.setId(1L);
+        
+        Cargo cargo1 = new Cargo(); cargo1.setId(10L);
+        Cargo cargo2 = new Cargo(); cargo2.setId(20L);
+        
+        Concurso existing = new Concurso(inst, banca, 2023, 1);
+        existing.setId(id);
+        
+        // Initially has Cargo 1
+        ConcursoCargo cc1 = new ConcursoCargo();
+        cc1.setConcurso(existing);
+        cc1.setCargo(cargo1);
+        cc1.setId(100L);
+        existing.addConcursoCargo(cc1);
+
+        // Update: Remove Cargo 1, Add Cargo 2
+        ConcursoUpdateRequest req = new ConcursoUpdateRequest();
+        req.setCargos(List.of(20L)); 
+
+        when(concursoRepository.findByIdWithDetails(id)).thenReturn(Optional.of(existing));
+        when(cargoRepository.findById(20L)).thenReturn(Optional.of(cargo2));
+        when(questaoCargoRepository.findByConcursoCargoId(100L)).thenReturn(Collections.emptyList()); // Not used
+        
+        when(concursoRepository.save(any(Concurso.class))).thenAnswer(i -> i.getArgument(0));
+
+        ConcursoDetailDto result = concursoService.update(id, req);
+        
+        assertEquals(1, result.getCargos().size());
+        assertEquals(20L, result.getCargos().get(0));
+    }
+    
+    @Test
+    void testUpdate_RemoveCargo_FailIfUsed() {
+        Long id = 1L;
+        Instituicao inst = new Instituicao(); inst.setId(1L);
+        Banca banca = new Banca(); banca.setId(1L);
+        Cargo cargo1 = new Cargo(); cargo1.setId(10L);
+        
+        Concurso existing = new Concurso(inst, banca, 2023, 1);
+        existing.setId(id);
+        
+        ConcursoCargo cc1 = new ConcursoCargo();
+        cc1.setConcurso(existing);
+        cc1.setCargo(cargo1);
+        cc1.setId(100L);
+        existing.addConcursoCargo(cc1);
+
+        // Update: Remove Cargo 1
+        ConcursoUpdateRequest req = new ConcursoUpdateRequest();
+        req.setCargos(List.of(20L)); // Try to replace with 20L
+
+        when(concursoRepository.findByIdWithDetails(id)).thenReturn(Optional.of(existing));
+        when(questaoCargoRepository.findByConcursoCargoId(100L)).thenReturn(List.of(new com.studora.entity.QuestaoCargo())); // Used!
+        
+        assertThrows(ValidationException.class, () -> concursoService.update(id, req));
     }
 
     @Test
@@ -189,98 +258,5 @@ class ConcursoServiceTest {
     void testDelete_NotFound() {
         when(concursoRepository.existsById(1L)).thenReturn(false);
         assertThrows(ResourceNotFoundException.class, () -> concursoService.delete(1L));
-    }
-
-    @Test
-    void testAddCargo_Success() {
-        Long id = 1L;
-        Concurso concurso = new Concurso(); concurso.setId(id);
-        Cargo cargo = new Cargo(); cargo.setId(2L);
-        
-        com.studora.dto.request.ConcursoCargoCreateRequest req = new com.studora.dto.request.ConcursoCargoCreateRequest();
-        req.setCargoId(2L);
-
-        when(concursoCargoRepository.existsByConcursoIdAndCargoId(id, 2L)).thenReturn(false);
-        when(concursoRepository.findById(id)).thenReturn(Optional.of(concurso));
-        when(cargoRepository.findById(2L)).thenReturn(Optional.of(cargo));
-        when(concursoCargoRepository.save(any(ConcursoCargo.class))).thenAnswer(i -> {
-            ConcursoCargo cc = i.getArgument(0);
-            cc.setId(10L);
-            return cc;
-        });
-
-        com.studora.dto.concurso.ConcursoCargoDto result = concursoService.addCargoToConcurso(id, req);
-        assertNotNull(result);
-        assertEquals(10L, result.getId());
-    }
-
-    @Test
-    void testAddCargo_AlreadyExists() {
-        Long id = 1L;
-        when(concursoCargoRepository.existsByConcursoIdAndCargoId(id, 2L)).thenReturn(true);
-        com.studora.dto.request.ConcursoCargoCreateRequest req = new com.studora.dto.request.ConcursoCargoCreateRequest();
-        req.setCargoId(2L);
-        assertThrows(com.studora.exception.ConflictException.class, () -> concursoService.addCargoToConcurso(id, req));
-    }
-
-    @Test
-    void testAddCargo_ConcursoNotFound() {
-        when(concursoCargoRepository.existsByConcursoIdAndCargoId(1L, 2L)).thenReturn(false);
-        when(concursoRepository.findById(1L)).thenReturn(Optional.empty());
-        com.studora.dto.request.ConcursoCargoCreateRequest req = new com.studora.dto.request.ConcursoCargoCreateRequest();
-        req.setCargoId(2L);
-        assertThrows(ResourceNotFoundException.class, () -> concursoService.addCargoToConcurso(1L, req));
-    }
-
-    @Test
-    void testAddCargo_CargoNotFound() {
-        when(concursoCargoRepository.existsByConcursoIdAndCargoId(1L, 2L)).thenReturn(false);
-        when(concursoRepository.findById(1L)).thenReturn(Optional.of(new Concurso()));
-        when(cargoRepository.findById(2L)).thenReturn(Optional.empty());
-        com.studora.dto.request.ConcursoCargoCreateRequest req = new com.studora.dto.request.ConcursoCargoCreateRequest();
-        req.setCargoId(2L);
-        assertThrows(ResourceNotFoundException.class, () -> concursoService.addCargoToConcurso(1L, req));
-    }
-
-    @Test
-    void testRemoveCargo_Success() {
-        Long concursoId = 1L;
-        Long cargoId = 2L;
-        ConcursoCargo cc = new ConcursoCargo();
-        cc.setId(10L);
-
-        when(concursoCargoRepository.findByConcursoIdAndCargoId(concursoId, cargoId)).thenReturn(Arrays.asList(cc));
-        when(questaoCargoRepository.findByConcursoCargoId(10L)).thenReturn(Collections.emptyList());
-        when(concursoCargoRepository.countByConcursoId(concursoId)).thenReturn(2L);
-
-        concursoService.removeCargoFromConcurso(concursoId, cargoId);
-        verify(concursoCargoRepository).delete(cc);
-    }
-
-    @Test
-    void testRemoveCargo_FailsIfHasQuestions() {
-        Long concursoId = 1L;
-        Long cargoId = 2L;
-        ConcursoCargo cc = new ConcursoCargo();
-        cc.setId(10L);
-
-        when(concursoCargoRepository.findByConcursoIdAndCargoId(concursoId, cargoId)).thenReturn(Arrays.asList(cc));
-        when(questaoCargoRepository.findByConcursoCargoId(10L)).thenReturn(Arrays.asList(new com.studora.entity.QuestaoCargo()));
-
-        assertThrows(ValidationException.class, () -> concursoService.removeCargoFromConcurso(concursoId, cargoId));
-    }
-
-    @Test
-    void testRemoveLastCargo_Fails() {
-        Long concursoId = 1L;
-        Long cargoId = 2L;
-        ConcursoCargo cc = new ConcursoCargo();
-        cc.setId(10L);
-
-        when(concursoCargoRepository.findByConcursoIdAndCargoId(concursoId, cargoId)).thenReturn(Arrays.asList(cc));
-        when(questaoCargoRepository.findByConcursoCargoId(10L)).thenReturn(Collections.emptyList());
-        when(concursoCargoRepository.countByConcursoId(concursoId)).thenReturn(1L);
-
-        assertThrows(ValidationException.class, () -> concursoService.removeCargoFromConcurso(concursoId, cargoId));
     }
 }

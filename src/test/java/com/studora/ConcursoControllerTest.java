@@ -26,6 +26,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -50,9 +52,22 @@ class ConcursoControllerTest {
     @Autowired
     private ConcursoCargoRepository concursoCargoRepository;
 
+    private Cargo cargo1;
+    private Cargo cargo2;
+
     @BeforeEach
     void setUp() {
-        // No deleteAll necessary with @Transactional
+        cargo1 = new Cargo();
+        cargo1.setNome("Cargo 1");
+        cargo1.setNivel(com.studora.entity.NivelCargo.SUPERIOR);
+        cargo1.setArea("TI");
+        cargo1 = cargoRepository.save(cargo1);
+
+        cargo2 = new Cargo();
+        cargo2.setNome("Cargo 2");
+        cargo2.setNivel(com.studora.entity.NivelCargo.MEDIO);
+        cargo2.setArea("ADM");
+        cargo2 = cargoRepository.save(cargo2);
     }
 
     @Test
@@ -71,6 +86,7 @@ class ConcursoControllerTest {
         concursoCreateRequest.setBancaId(banca.getId());
         concursoCreateRequest.setAno(2023);
         concursoCreateRequest.setMes(1);
+        concursoCreateRequest.setCargos(List.of(cargo1.getId()));
 
         mockMvc
             .perform(
@@ -82,7 +98,8 @@ class ConcursoControllerTest {
             .andExpect(jsonPath("$.instituicaoId").value(instituicao.getId()))
             .andExpect(jsonPath("$.bancaId").value(banca.getId()))
             .andExpect(jsonPath("$.ano").value(2023))
-            .andExpect(jsonPath("$.mes").value(1));
+            .andExpect(jsonPath("$.mes").value(1))
+            .andExpect(jsonPath("$.cargos[0]").value(cargo1.getId()));
     }
 
     @Test
@@ -106,6 +123,7 @@ class ConcursoControllerTest {
         request.setBancaId(banca.getId());
         request.setAno(2023);
         request.setMes(1);
+        request.setCargos(List.of(cargo1.getId()));
 
         mockMvc
             .perform(
@@ -131,6 +149,12 @@ class ConcursoControllerTest {
 
         Concurso concurso = new Concurso(instituicao, banca, 2023, 6);
         concurso = concursoRepository.save(concurso);
+        
+        ConcursoCargo cc = new ConcursoCargo();
+        cc.setConcurso(concurso);
+        cc.setCargo(cargo1);
+        concursoCargoRepository.save(cc);
+        concurso.getConcursoCargos().add(cc);
 
         mockMvc
             .perform(get("/api/v1/concursos/{id}", concurso.getId()))
@@ -138,7 +162,8 @@ class ConcursoControllerTest {
             .andExpect(jsonPath("$.instituicaoId").value(instituicao.getId()))
             .andExpect(jsonPath("$.bancaId").value(banca.getId()))
             .andExpect(jsonPath("$.ano").value(2023))
-            .andExpect(jsonPath("$.mes").value(6));
+            .andExpect(jsonPath("$.mes").value(6))
+            .andExpect(jsonPath("$.cargos[0]").value(cargo1.getId()));
     }
 
     @Test
@@ -203,12 +228,20 @@ class ConcursoControllerTest {
 
         Concurso concurso = new Concurso(instituicao1, banca1, 2022, 12);
         concurso = concursoRepository.save(concurso);
+        
+        // Initial cargo association
+        ConcursoCargo cc = new ConcursoCargo();
+        cc.setConcurso(concurso);
+        cc.setCargo(cargo1);
+        concursoCargoRepository.save(cc);
+        concurso.getConcursoCargos().add(cc);
 
         ConcursoUpdateRequest concursoUpdateRequest = new ConcursoUpdateRequest();
         concursoUpdateRequest.setInstituicaoId(instituicao2.getId());
         concursoUpdateRequest.setBancaId(banca2.getId());
         concursoUpdateRequest.setAno(2023);
         concursoUpdateRequest.setMes(6);
+        concursoUpdateRequest.setCargos(List.of(cargo2.getId())); // Change cargo to cargo2
 
         mockMvc
             .perform(
@@ -220,7 +253,9 @@ class ConcursoControllerTest {
             .andExpect(jsonPath("$.instituicaoId").value(instituicao2.getId()))
             .andExpect(jsonPath("$.bancaId").value(banca2.getId()))
             .andExpect(jsonPath("$.ano").value(2023))
-            .andExpect(jsonPath("$.mes").value(6));
+            .andExpect(jsonPath("$.mes").value(6))
+            .andExpect(jsonPath("$.cargos[0]").value(cargo2.getId()))
+            .andExpect(jsonPath("$.cargos.length()").value(1));
     }
 
     @Test
@@ -289,169 +324,5 @@ class ConcursoControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].ano").value(2024))
             .andExpect(jsonPath("$.content[1].ano").value(2023));
-    }
-
-    @Test
-    void testCargoManagement() throws Exception {
-        // Setup
-        Instituicao instituicao = new Instituicao();
-        instituicao.setNome("Inst Cargo");
-        instituicao.setArea("TI");
-        instituicao = instituicaoRepository.save(instituicao);
-
-        Banca banca = new Banca();
-        banca.setNome("Banca Cargo");
-        banca = bancaRepository.save(banca);
-
-        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
-        concurso = concursoRepository.save(concurso);
-
-        Cargo cargo1 = new Cargo();
-        cargo1.setNome("Cargo 1");
-        cargo1.setNivel(com.studora.entity.NivelCargo.SUPERIOR);
-        cargo1.setArea("TI");
-        cargo1 = cargoRepository.save(cargo1);
-
-        Cargo cargo2 = new Cargo();
-        cargo2.setNome("Cargo 2");
-        cargo2.setNivel(com.studora.entity.NivelCargo.MEDIO);
-        cargo2.setArea("ADM");
-        cargo2 = cargoRepository.save(cargo2);
-
-        // 1. Add Cargo 1 (POST)
-        com.studora.dto.request.ConcursoCargoCreateRequest addRequest = new com.studora.dto.request.ConcursoCargoCreateRequest();
-        addRequest.setCargoId(cargo1.getId());
-
-        mockMvc
-            .perform(
-                post("/api/v1/concursos/{id}/cargos", concurso.getId())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(addRequest))
-            )
-            .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.cargoId").value(cargo1.getId()));
-
-        // 2. Add Cargo 2
-        addRequest.setCargoId(cargo2.getId());
-        mockMvc.perform(post("/api/v1/concursos/{id}/cargos", concurso.getId())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(TestUtil.asJsonString(addRequest)))
-                .andExpect(status().isCreated());
-
-        // 3. Get Cargos (GET)
-        mockMvc
-            .perform(get("/api/v1/concursos/{id}/cargos", concurso.getId()))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(2));
-
-        // 4. Remove Cargo 1 (DELETE)
-        mockMvc
-            .perform(delete("/api/v1/concursos/{concursoId}/cargos/{cargoId}", concurso.getId(), cargo1.getId()))
-            .andExpect(status().isNoContent());
-
-        // 5. Verify remaining
-        mockMvc
-            .perform(get("/api/v1/concursos/{id}/cargos", concurso.getId()))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(1))
-            .andExpect(jsonPath("$[0].cargoId").value(cargo2.getId()));
-    }
-
-    @Test
-    void testAddCargoToConcurso_NonExistentConcurso() throws Exception {
-        // Create cargo
-        Cargo cargo = new Cargo();
-        cargo.setNome("Cargo Test");
-        cargo.setNivel(com.studora.entity.NivelCargo.SUPERIOR);
-        cargo.setArea("TI");
-        cargo = cargoRepository.save(cargo);
-
-        // Prepare request
-        com.studora.dto.request.ConcursoCargoCreateRequest request = new com.studora.dto.request.ConcursoCargoCreateRequest();
-        request.setCargoId(cargo.getId());
-
-        // Try to add cargo to non-existent concurso
-        mockMvc
-            .perform(
-                post("/api/v1/concursos/{id}/cargos", 99999L)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(request))
-            )
-            .andExpect(status().isNotFound())
-            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
-            .andExpect(jsonPath("$.title").value("Recurso não encontrado"))
-            .andExpect(jsonPath("$.status").value(404))
-            .andExpect(jsonPath("$.detail").value("Não foi possível encontrar Concurso com ID: '99999'"));
-    }
-
-    @Test
-    void testAddCargoToConcurso_NonExistentCargo() throws Exception {
-        Instituicao instituicao = new Instituicao();
-        instituicao.setNome("Instituição Test");
-        instituicao.setArea("Educação");
-        instituicao = instituicaoRepository.save(instituicao);
-
-        Banca banca = new Banca();
-        banca.setNome("Banca Test");
-        banca = bancaRepository.save(banca);
-
-        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
-        concurso = concursoRepository.save(concurso);
-
-        // Prepare request with non-existent cargo ID
-        com.studora.dto.request.ConcursoCargoCreateRequest request = new com.studora.dto.request.ConcursoCargoCreateRequest();
-        request.setCargoId(99999L);
-
-        // Try to add non-existent cargo to concurso
-        mockMvc
-            .perform(
-                post("/api/v1/concursos/{id}/cargos", concurso.getId())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(request))
-            )
-            .andExpect(status().isNotFound())
-            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
-            .andExpect(jsonPath("$.title").value("Recurso não encontrado"))
-            .andExpect(jsonPath("$.status").value(404))
-            .andExpect(jsonPath("$.detail").value("Não foi possível encontrar Cargo com ID: '99999'"));
-    }
-
-    @Test
-    void testRemoveCargoFromConcurso_UnprocessableEntity_NoRemainingCargo() throws Exception {
-        // Create instituicao and banca
-        Instituicao instituicao = new Instituicao();
-        instituicao.setNome("Instituição Test");
-        instituicao.setArea("Educação");
-        instituicao = instituicaoRepository.save(instituicao);
-
-        Banca banca = new Banca();
-        banca.setNome("Banca Test");
-        banca = bancaRepository.save(banca);
-
-        // Create concurso
-        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
-        concurso = concursoRepository.save(concurso);
-
-        // Create cargo
-        Cargo cargo = new Cargo();
-        cargo.setNome("Cargo Test");
-        cargo.setNivel(com.studora.entity.NivelCargo.SUPERIOR);
-        cargo.setArea("TI");
-        cargo = cargoRepository.save(cargo);
-
-        // Create concurso-cargo association
-        ConcursoCargo concursoCargo = new ConcursoCargo();
-        concursoCargo.setConcurso(concurso);
-        concursoCargo.setCargo(cargo);
-        concursoCargo = concursoCargoRepository.save(concursoCargo);
-
-        // Try to remove the only cargo association (should fail with 422)
-        mockMvc
-            .perform(delete("/api/v1/concursos/{concursoId}/cargos/{cargoId}", concurso.getId(), cargo.getId()))
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
-            .andExpect(jsonPath("$.title").value("Entidade não processável"))
-            .andExpect(jsonPath("$.status").value(422))
-            .andExpect(jsonPath("$.detail").value("Um concurso deve estar associado a pelo menos um cargo"));
     }
 }

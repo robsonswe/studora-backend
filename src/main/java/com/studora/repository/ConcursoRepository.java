@@ -17,6 +17,8 @@ public interface ConcursoRepository extends JpaRepository<Concurso, Long> {
     @Query("SELECT c FROM Concurso c " +
            "JOIN FETCH c.instituicao " +
            "JOIN FETCH c.banca " +
+           "LEFT JOIN FETCH c.concursoCargos cc " +
+           "LEFT JOIN FETCH cc.cargo " +
            "WHERE c.id = :id")
     Optional<Concurso> findByIdWithDetails(@Param("id") Long id);
 }

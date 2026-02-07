@@ -51,13 +51,9 @@ public class QuestaoDetailDto {
     @JsonView(Views.RespostaOculta.class)
     private List<SubtemaSummaryDto> subtemas;
 
-    @Schema(description = "IDs dos cargos do concurso associados à questão", example = "[1]")
+    @Schema(description = "IDs dos cargos associados à questão", example = "[1]")
     @JsonView(Views.RespostaOculta.class)
-    private List<Long> concursoCargoIds;
-
-    @Schema(description = "Dados das associações de cargos")
-    @JsonView(Views.RespostaOculta.class)
-    private List<QuestaoCargoDto> cargos;
+    private List<Long> cargos;
 
     @Schema(description = "Alternativas da questão")
     @JsonView(Views.RespostaOculta.class)

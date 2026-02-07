@@ -1,9 +1,7 @@
 package com.studora.service;
 
-import com.studora.dto.concurso.ConcursoCargoDto;
 import com.studora.dto.concurso.ConcursoDetailDto;
 import com.studora.dto.concurso.ConcursoSummaryDto;
-import com.studora.dto.request.ConcursoCargoCreateRequest;
 import com.studora.dto.request.ConcursoCreateRequest;
 import com.studora.dto.request.ConcursoUpdateRequest;
 import com.studora.entity.Banca;
@@ -13,7 +11,6 @@ import com.studora.entity.ConcursoCargo;
 import com.studora.entity.Instituicao;
 import com.studora.exception.ResourceNotFoundException;
 import com.studora.exception.ValidationException;
-import com.studora.mapper.ConcursoCargoMapper;
 import com.studora.mapper.ConcursoMapper;
 import com.studora.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -39,7 +36,6 @@ public class ConcursoService {
     private final ConcursoCargoRepository concursoCargoRepository;
     private final QuestaoCargoRepository questaoCargoRepository;
     private final ConcursoMapper concursoMapper;
-    private final ConcursoCargoMapper concursoCargoMapper;
 
     @Transactional(readOnly = true)
     public Page<ConcursoSummaryDto> findAll(Pageable pageable) {
@@ -73,13 +69,23 @@ public class ConcursoService {
         concurso.setInstituicao(instituicao);
         concurso.setBanca(banca);
 
+        // Process Cargos
+        List<Long> cargoIds = request.getCargos().stream().distinct().collect(Collectors.toList());
+        for (Long cargoId : cargoIds) {
+            Cargo cargo = cargoRepository.findById(cargoId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Cargo", "ID", cargoId));
+            ConcursoCargo cc = new ConcursoCargo();
+            cc.setCargo(cargo);
+            concurso.addConcursoCargo(cc);
+        }
+
         return concursoMapper.toDetailDto(concursoRepository.save(concurso));
     }
 
     public ConcursoDetailDto update(Long id, ConcursoUpdateRequest request) {
         log.info("Atualizando concurso ID: {}", id);
         
-        Concurso concurso = concursoRepository.findById(id)
+        Concurso concurso = concursoRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Concurso", "ID", id));
 
         Long instId = request.getInstituicaoId() != null ? request.getInstituicaoId() : concurso.getInstituicao().getId();
@@ -88,7 +94,6 @@ public class ConcursoService {
         Integer mes = request.getMes() != null ? request.getMes() : concurso.getMes();
 
         // Complex uniqueness check for update
-        concursoRepository.findByIdWithDetails(id); // Ensure loaded
         if (! (instId.equals(concurso.getInstituicao().getId()) && 
                bancaId.equals(concurso.getBanca().getId()) && 
                ano.equals(concurso.getAno()) && 
@@ -111,6 +116,39 @@ public class ConcursoService {
             concurso.setBanca(banca);
         }
 
+        // Process Cargos
+        List<Long> newCargoIds = request.getCargos().stream().distinct().collect(Collectors.toList());
+        
+        // Identify removals
+        List<ConcursoCargo> toRemove = concurso.getConcursoCargos().stream()
+                .filter(cc -> !newCargoIds.contains(cc.getCargo().getId()))
+                .collect(Collectors.toList());
+
+        for (ConcursoCargo cc : toRemove) {
+            if (!questaoCargoRepository.findByConcursoCargoId(cc.getId()).isEmpty()) {
+                throw new ValidationException("Não é possível remover o cargo ID " + cc.getCargo().getId() + " pois existem questões associadas a ele neste concurso.");
+            }
+            concurso.getConcursoCargos().remove(cc);
+            cc.setConcurso(null);
+        }
+        
+        // Identify additions
+        List<Long> existingCargoIds = concurso.getConcursoCargos().stream()
+                .map(cc -> cc.getCargo().getId())
+                .collect(Collectors.toList());
+        
+        List<Long> toAdd = newCargoIds.stream()
+                .filter(idToAdd -> !existingCargoIds.contains(idToAdd))
+                .collect(Collectors.toList());
+
+        for (Long cargoId : toAdd) {
+             Cargo cargo = cargoRepository.findById(cargoId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Cargo", "ID", cargoId));
+            ConcursoCargo cc = new ConcursoCargo();
+            cc.setCargo(cargo);
+            concurso.addConcursoCargo(cc);
+        }
+
         concursoMapper.updateEntityFromDto(request, concurso);
         return concursoMapper.toDetailDto(concursoRepository.save(concurso));
     }
@@ -121,48 +159,5 @@ public class ConcursoService {
             throw new ResourceNotFoundException("Concurso", "ID", id);
         }
         concursoRepository.deleteById(id);
-    }
-
-    @Transactional(readOnly = true)
-    public List<ConcursoCargoDto> getCargosByConcursoId(Long concursoId) {
-        return concursoCargoRepository.findByConcursoId(concursoId).stream()
-                .map(concursoCargoMapper::toDto)
-                .collect(Collectors.toList());
-    }
-
-    public ConcursoCargoDto addCargoToConcurso(Long concursoId, ConcursoCargoCreateRequest request) {
-        if (concursoCargoRepository.existsByConcursoIdAndCargoId(concursoId, request.getCargoId())) {
-            throw new com.studora.exception.ConflictException("Este cargo já está associado a este concurso.");
-        }
-
-        Concurso concurso = concursoRepository.findById(concursoId)
-                .orElseThrow(() -> new ResourceNotFoundException("Concurso", "ID", concursoId));
-        
-        Cargo cargo = cargoRepository.findById(request.getCargoId())
-                .orElseThrow(() -> new ResourceNotFoundException("Cargo", "ID", request.getCargoId()));
-
-        ConcursoCargo cc = new ConcursoCargo();
-        cc.setConcurso(concurso);
-        cc.setCargo(cargo);
-
-        return concursoCargoMapper.toDto(concursoCargoRepository.save(cc));
-    }
-
-    public void removeCargoFromConcurso(Long concursoId, Long cargoId) {
-        List<ConcursoCargo> ccs = concursoCargoRepository.findByConcursoIdAndCargoId(concursoId, cargoId);
-        if (ccs.isEmpty()) {
-            throw new ResourceNotFoundException("Associação Concurso-Cargo", "IDs", concursoId + "-" + cargoId);
-        }
-        ConcursoCargo cc = ccs.get(0);
-        
-        if (!questaoCargoRepository.findByConcursoCargoId(cc.getId()).isEmpty()) {
-            throw new ValidationException("Não é possível remover o cargo pois existem questões associadas a ele neste concurso.");
-        }
-
-        if (concursoCargoRepository.countByConcursoId(concursoId) <= 1) {
-            throw new ValidationException("Um concurso deve estar associado a pelo menos um cargo");
-        }
-
-        concursoCargoRepository.delete(cc);
     }
 }
