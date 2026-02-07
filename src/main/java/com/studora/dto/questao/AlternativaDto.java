@@ -29,12 +29,12 @@ public class AlternativaDto {
     @JsonView(Views.RespostaOculta.class)
     private String texto;
 
-    @Schema(description = "Indica se a alternativa é a correta", example = "true", required = true)
+    @Schema(description = "Indica se a alternativa é a correta. (Visível apenas se a questão foi respondida nos últimos 30 dias)", example = "true", required = true)
     @NotNull(message = "Indicação de correta é obrigatória")
     @JsonView(Views.RespostaVisivel.class)
     private Boolean correta;
 
-    @Schema(description = "Justificativa da alternativa", example = "Esta é a alternativa correta porque...")
+    @Schema(description = "Justificativa da alternativa. (Visível apenas se a questão foi respondida nos últimos 30 dias)", example = "Esta é a alternativa correta porque...")
     @JsonView(Views.RespostaVisivel.class)
     private String justificativa;
     

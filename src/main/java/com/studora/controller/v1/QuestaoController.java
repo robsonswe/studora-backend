@@ -24,6 +24,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.json.MappingJacksonValue;
+import com.fasterxml.jackson.annotation.JsonView;
+import com.studora.dto.Views;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -47,9 +49,16 @@ public class QuestaoController {
             @ApiResponse(responseCode = "200", description = "Página de questões retornada com sucesso",
                 content = @Content(
                     mediaType = "application/json",
-                    examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"enunciado\": \"De acordo com a CF/88...\", \"concursoId\": 1, \"anulada\": false, \"cargos\": [1]}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
-                    )
+                    examples = {
+                        @ExampleObject(
+                            name = "Página de Questões (Gabaritos Ocultos)",
+                            value = "{\"content\": [{\"id\": 1, \"concursoId\": 1, \"enunciado\": \"Questão 1?\", \"anulada\": false, \"desatualizada\": false, \"imageUrl\": null, \"cargos\": [1], \"subtemaIds\": [10], \"alternativas\": [{\"id\": 1, \"texto\": \"Opção A\"}]}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        ),
+                        @ExampleObject(
+                            name = "Página de Questões (Gabaritos Visíveis)",
+                            value = "{\"content\": [{\"id\": 2, \"concursoId\": 1, \"enunciado\": \"Questão 2?\", \"anulada\": false, \"desatualizada\": false, \"imageUrl\": \"https://exemplo.com/img.png\", \"cargos\": [1], \"subtemaIds\": [10], \"alternativas\": [{\"id\": 2, \"texto\": \"Opção B\", \"correta\": true, \"justificativa\": \"...\"}], \"respostas\": [{\"id\": 50, \"correta\": true, \"createdAt\": \"2026-02-07T12:00:00\"}]}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        )
+                    }
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",
@@ -60,6 +69,7 @@ public class QuestaoController {
         }
     )
     @GetMapping
+    @JsonView(Views.QuestaoVisivel.class)
     public ResponseEntity<PageResponse<QuestaoSummaryDto>> getQuestoes(
             @ParameterObject @Valid QuestaoFilter filter,
             @Parameter(hidden = true) @PageableDefault(size = AppConstants.DEFAULT_PAGE_SIZE) Pageable pageable,
@@ -68,24 +78,73 @@ public class QuestaoController {
         
         Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, Map.of(), List.of());
         Page<QuestaoSummaryDto> questoes = questaoService.findAll(filter, finalPageable);
+        
+        // Apply visibility rules by nulling fields for those that should be hidden
+        java.time.LocalDateTime monthAgo = java.time.LocalDateTime.now().minusMonths(1);
+        questoes.getContent().forEach(q -> {
+            boolean hasRecent = q.getRespostas() != null && q.getRespostas().stream()
+                    .anyMatch(r -> r.getCreatedAt() != null && r.getCreatedAt().isAfter(monthAgo));
+            
+            if (!hasRecent) {
+                if (q.getAlternativas() != null) {
+                    q.getAlternativas().forEach(alt -> {
+                        alt.setCorreta(null);
+                        alt.setJustificativa(null);
+                    });
+                }
+                q.setRespostas(null);
+            }
+        });
+
         return ResponseEntity.ok(new PageResponse<>(questoes));
     }
 
     @Operation(
-        summary = "Obter questão por ID",
-        description = "Retorna os detalhes de uma questão. A visibilidade do gabarito depende do histórico de respostas do usuário.",
+        summary = "Obter uma questão aleatória",
+        description = "Retorna uma questão aleatória que atenda aos critérios de filtro fornecidos. " +
+                      "Questões respondidas nos últimos 30 dias são excluídas da seleção. " +
+                      "O gabarito é OCULTADO para as questões retornadas por este endpoint, pois elas ou nunca foram respondidas ou foram respondidas há mais de 30 dias.",
         responses = {
             @ApiResponse(responseCode = "200", description = "Questão encontrada", 
                 content = @Content(
                     schema = @Schema(implementation = QuestaoDetailDto.class),
                     examples = {
                         @ExampleObject(
-                            name = "Gabarito Oculto (Ainda não respondida)",
-                            value = "{\"id\": 1, \"enunciado\": \"Questão exemplo?\", \"cargos\": [1], \"alternativas\": [{\"id\": 1, \"texto\": \"Opção A\"}]}"
+                            name = "Questão Aleatória (Gabarito Oculto)",
+                            value = "{\"id\": 1, \"enunciado\": \"Questão aleatória?\", \"concursoId\": 1, \"anulada\": false, \"desatualizada\": false, \"imageUrl\": null, \"cargos\": [1], \"alternativas\": [{\"id\": 1, \"texto\": \"Opção A\"}]}"
+                        )
+                    }
+                )),
+            @ApiResponse(responseCode = "404", description = "Nenhuma questão encontrada com os filtros fornecidos",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar nenhuma questão com os filtros fornecidos.\",\"instance\":\"/api/v1/questoes/random\"}"
+                    )))
+        }
+    )
+    @GetMapping("/random")
+    public MappingJacksonValue getRandomQuestao(@ParameterObject @Valid com.studora.dto.questao.QuestaoRandomFilter filter) {
+        QuestaoDetailDto questao = questaoService.getRandomQuestao(filter);
+        return wrapWithView(questao);
+    }
+
+    @Operation(
+        summary = "Obter questão por ID",
+        description = "Retorna os detalhes de uma questão. O gabarito (campo 'correta' e 'justificativa') e o histórico de respostas são VISÍVEIS " +
+                      "apenas se a questão tiver sido respondida nos últimos 30 dias (1 mês). Caso contrário (não respondida ou resposta antiga), o gabarito é ocultado.",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Questão encontrada", 
+                content = @Content(
+                    schema = @Schema(implementation = QuestaoDetailDto.class),
+                    examples = {
+                        @ExampleObject(
+                            name = "Gabarito Oculto (Não respondida ou resposta antiga)",
+                            value = "{\"id\": 1, \"enunciado\": \"Questão exemplo?\", \"concursoId\": 1, \"anulada\": false, \"desatualizada\": false, \"imageUrl\": null, \"cargos\": [1], \"alternativas\": [{\"id\": 1, \"texto\": \"Opção A\"}]}"
                         ),
                         @ExampleObject(
-                            name = "Gabarito Visível (Já respondida)",
-                            value = "{\"id\": 1, \"enunciado\": \"Questão exemplo?\", \"cargos\": [1], \"alternativas\": [{\"id\": 1, \"texto\": \"Opção A\", \"correta\": true, \"justificativa\": \"Explicação...\"}]}"
+                            name = "Gabarito Visível (Respondida recentemente)",
+                            value = "{\"id\": 1, \"enunciado\": \"Questão exemplo?\", \"concursoId\": 1, \"anulada\": false, \"desatualizada\": false, \"imageUrl\": null, \"cargos\": [1], \"alternativas\": [{\"id\": 1, \"texto\": \"Opção A\", \"correta\": true, \"justificativa\": \"Explicação...\"}], \"respostas\": [{\"id\": 10, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"createdAt\": \"2026-02-07T10:00:00\"}]}"
                         )
                     }
                 )),
@@ -100,9 +159,21 @@ public class QuestaoController {
     @GetMapping("/{id}")
     public MappingJacksonValue getQuestaoById(@PathVariable Long id) {
         QuestaoDetailDto questao = questaoService.getQuestaoDetailById(id);
+        return wrapWithView(questao);
+    }
+
+    private MappingJacksonValue wrapWithView(QuestaoDetailDto questao) {
         MappingJacksonValue wrapper = new MappingJacksonValue(questao);
         
+        // Logic: Visible ONLY if has a response more recent than a month
+        boolean hasRecent = false;
         if (questao.getRespostas() != null && !questao.getRespostas().isEmpty()) {
+            java.time.LocalDateTime monthAgo = java.time.LocalDateTime.now().minusMonths(1);
+            hasRecent = questao.getRespostas().stream()
+                    .anyMatch(r -> r.getCreatedAt() != null && r.getCreatedAt().isAfter(monthAgo));
+        }
+        
+        if (hasRecent) {
             wrapper.setSerializationView(com.studora.dto.Views.QuestaoVisivel.class);
         } else {
             wrapper.setSerializationView(com.studora.dto.Views.QuestaoOculta.class);
@@ -117,7 +188,7 @@ public class QuestaoController {
             @ApiResponse(responseCode = "201", description = "Questão criada com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = QuestaoDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 2, \"enunciado\": \"Nova questão...\", \"concursoId\": 1, \"cargos\": [1]}")
+                    examples = @ExampleObject(value = "{\"id\": 2, \"enunciado\": \"Nova questão...\", \"concursoId\": 1, \"anulada\": false, \"desatualizada\": false, \"imageUrl\": null, \"cargos\": [1], \"alternativas\": [{\"id\": 10, \"texto\": \"Opção A\", \"correta\": true, \"justificativa\": \"...\"}, {\"id\": 11, \"texto\": \"Opção B\", \"correta\": false, \"justificativa\": \"...\"}]}")
                 )),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",
@@ -144,7 +215,7 @@ public class QuestaoController {
             @ApiResponse(responseCode = "200", description = "Questão atualizada com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = QuestaoDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"enunciado\": \"Questão atualizada...\", \"concursoId\": 1, \"cargos\": [1]}")
+                    examples = @ExampleObject(value = "{\"id\": 1, \"enunciado\": \"Questão atualizada...\", \"concursoId\": 1, \"anulada\": false, \"desatualizada\": false, \"imageUrl\": \"https://example.com/image.png\", \"cargos\": [1], \"alternativas\": [{\"id\": 1, \"texto\": \"Opção A\", \"correta\": true, \"justificativa\": \"...\"}, {\"id\": 2, \"texto\": \"Opção B\", \"correta\": false, \"justificativa\": \"...\"}]}")
                 )),
             @ApiResponse(responseCode = "404", description = "Questão não encontrada",
                 content = @Content(mediaType = "application/problem+json",

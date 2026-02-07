@@ -42,8 +42,23 @@ public class QuestaoService {
     @Transactional(readOnly = true)
     public Page<QuestaoSummaryDto> findAll(QuestaoFilter filter, Pageable pageable) {
         Specification<Questao> spec = QuestaoSpecification.withFilter(filter);
-        return questaoRepository.findAll(spec, pageable)
-                .map(questaoMapper::toSummaryDto);
+        
+        // 1. Fetch the page of questions (initially without full details to keep count/pagination simple)
+        Page<Questao> page = questaoRepository.findAll(spec, pageable);
+        
+        if (page.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        // 2. Extract IDs and fetch full details in a single query
+        List<Long> ids = page.getContent().stream().map(Questao::getId).toList();
+        List<Questao> withDetails = questaoRepository.findByIdsWithDetails(ids);
+        
+        // 3. Map to DTOs while maintaining the original page order
+        java.util.Map<Long, Questao> detailsMap = withDetails.stream()
+                .collect(java.util.stream.Collectors.toMap(Questao::getId, q -> q));
+        
+        return page.map(q -> questaoMapper.toSummaryDto(detailsMap.getOrDefault(q.getId(), q)));
     }
 
     @Transactional(readOnly = true)
@@ -51,6 +66,44 @@ public class QuestaoService {
         Questao questao = questaoRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Questão", "ID", id));
         return questaoMapper.toDetailDto(questao);
+    }
+
+    @Transactional(readOnly = true)
+    public QuestaoDetailDto getRandomQuestao(com.studora.dto.questao.QuestaoRandomFilter randomFilter) {
+        QuestaoFilter filter = new QuestaoFilter();
+        filter.setBancaId(randomFilter.getBancaId());
+        filter.setInstituicaoId(randomFilter.getInstituicaoId());
+        filter.setConcursoId(randomFilter.getConcursoId());
+        filter.setCargoId(randomFilter.getCargoId());
+        filter.setDisciplinaId(randomFilter.getDisciplinaId());
+        filter.setTemaId(randomFilter.getTemaId());
+        filter.setSubtemaId(randomFilter.getSubtemaId());
+        
+        // 1. Force desatualizada to false (not an option for random endpoint)
+        filter.setDesatualizada(false);
+        
+        // 2. Default anulada to false if not provided
+        filter.setAnulada(java.util.Objects.requireNonNullElse(randomFilter.getAnulada(), false));
+
+        Specification<Questao> spec = QuestaoSpecification.withFilter(filter)
+                .and(QuestaoSpecification.notAnsweredRecently(java.time.LocalDateTime.now().minusMonths(1)));
+
+        long count = questaoRepository.count(spec);
+
+        if (count == 0) {
+            throw new ResourceNotFoundException("Não foi possível encontrar nenhuma questão com os filtros fornecidos.");
+        }
+
+        int randomIndex = (int) (Math.random() * count);
+        Page<Questao> randomPage = questaoRepository.findAll(spec, org.springframework.data.domain.PageRequest.of(randomIndex, 1));
+        
+        if (randomPage.hasContent()) {
+            // We need details, and findAll with pageable won't fetch everything efficiently/correctly with details in a single query
+            // So we fetch the full details by ID of the randomly picked question
+            return getQuestaoDetailById(randomPage.getContent().get(0).getId());
+        }
+
+        throw new ResourceNotFoundException("Não foi possível encontrar nenhuma questão com os filtros fornecidos.");
     }
 
     public QuestaoDetailDto create(QuestaoCreateRequest request) {

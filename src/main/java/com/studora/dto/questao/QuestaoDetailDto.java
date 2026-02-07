@@ -63,7 +63,7 @@ public class QuestaoDetailDto {
     @JsonView(Views.RespostaVisivel.class)
     private RespostaSummaryDto resposta;
 
-    @Schema(description = "Histórico de respostas para esta questão")
+    @Schema(description = "Histórico de respostas para esta questão. (Visível apenas se a questão foi respondida nos últimos 30 dias)")
     @JsonView(Views.RespostaVisivel.class)
     private List<RespostaSummaryDto> respostas;
 }

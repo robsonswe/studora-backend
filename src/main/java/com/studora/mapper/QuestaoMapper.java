@@ -14,6 +14,8 @@ public interface QuestaoMapper {
 
     @Mapping(target = "concursoId", source = "concurso.id")
     @Mapping(target = "cargos", source = "questaoCargos")
+    @Mapping(target = "alternativas", source = "alternativas")
+    @Mapping(target = "respostas", source = "respostas")
     QuestaoSummaryDto toSummaryDto(Questao questao);
 
     @Mapping(target = "concursoId", source = "concurso.id")

@@ -65,6 +65,12 @@ class QuestaoControllerTest {
     @Autowired
     private AlternativaRepository alternativaRepository;
 
+    @Autowired
+    private RespostaRepository respostaRepository;
+
+    @Autowired
+    private jakarta.persistence.EntityManager entityManager;
+
     private Concurso concurso;
     private Subtema subtema;
     private Cargo cargo;
@@ -144,7 +150,7 @@ class QuestaoControllerTest {
     }
 
     @Test
-    void testGetQuestaoById() throws Exception {
+    void testGetQuestaoById_HiddenByDefault() throws Exception {
         Questao questao = new Questao();
         questao.setEnunciado("Qual a capital do Brasil?");
         questao.setConcurso(concurso);
@@ -181,9 +187,68 @@ class QuestaoControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.enunciado").value("Qual a capital do Brasil?"))
             .andExpect(jsonPath("$.alternativas.length()").value(2))
-            .andExpect(jsonPath("$.alternativas[0].texto").value("Brasília"))
-            .andExpect(jsonPath("$.alternativas[1].texto").value("São Paulo"))
+            // By default (no responses), gabarito IS HIDDEN
+            .andExpect(jsonPath("$.alternativas[0].correta").doesNotExist())
             .andExpect(jsonPath("$.cargos[0]").value(cargo.getId()));
+    }
+
+    @Test
+    void testGetQuestaoById_VisibleIfRecent() throws Exception {
+        Questao questao = new Questao();
+        questao.setEnunciado("Visible Test");
+        questao.setConcurso(concurso);
+        questao = questaoRepository.save(questao);
+
+        Alternativa alt = new Alternativa();
+        alt.setQuestao(questao);
+        alt.setOrdem(1); alt.setTexto("A"); alt.setCorreta(true);
+        alt = alternativaRepository.save(alt);
+        
+        Resposta resp = new Resposta(questao, alt);
+        resp = respostaRepository.save(resp);
+        
+        String nowStr = java.time.LocalDateTime.now()
+                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        entityManager.createNativeQuery("UPDATE resposta SET created_at = '" + nowStr + "' WHERE id = " + resp.getId())
+                .executeUpdate();
+        entityManager.flush();
+        entityManager.clear();
+
+        // Should show gabarito because of recent answer
+        mockMvc
+            .perform(get("/api/v1/questoes/" + questao.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.alternativas[0].correta").exists())
+            .andExpect(jsonPath("$.alternativas[0].correta").value(true));
+    }
+
+    @Test
+    void testGetQuestaoById_HiddenIfOld() throws Exception {
+        Questao questao = new Questao();
+        questao.setEnunciado("Hidden Test");
+        questao.setConcurso(concurso);
+        questao = questaoRepository.save(questao);
+
+        Alternativa alt = new Alternativa();
+        alt.setQuestao(questao);
+        alt.setOrdem(1); alt.setTexto("A"); alt.setCorreta(true);
+        alt = alternativaRepository.save(alt);
+        
+        Resposta resp = new Resposta(questao, alt);
+        resp = respostaRepository.save(resp);
+        
+        String oldDateStr = java.time.LocalDateTime.now().minusMonths(2)
+                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        entityManager.createNativeQuery("UPDATE resposta SET created_at = '" + oldDateStr + "' WHERE id = " + resp.getId())
+                .executeUpdate();
+        entityManager.flush();
+        entityManager.clear();
+
+        // Should hide gabarito because answer is old
+        mockMvc
+            .perform(get("/api/v1/questoes/" + questao.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.alternativas[0].correta").doesNotExist());
     }
 
     @Test
@@ -194,23 +259,49 @@ class QuestaoControllerTest {
     }
 
     @Test
-    void testGetAllQuestoes() throws Exception {
-        Questao questao1 = new Questao();
-        questao1.setEnunciado("Enunciado 1");
-        questao1.setConcurso(concurso);
-        questao1 = questaoRepository.save(questao1);
+    void testGetAllQuestoes_WithVisibilityRules() throws Exception {
+        // Questao 1: No responses -> Gabarito Hidden
+        Questao q1 = new Questao();
+        q1.setEnunciado("Q1 Enunciado");
+        q1.setConcurso(concurso);
+        q1 = questaoRepository.save(q1);
+        Alternativa alt1 = new Alternativa();
+        alt1.setQuestao(q1); alt1.setOrdem(1); alt1.setTexto("Alt 1"); alt1.setCorreta(true);
+        alternativaRepository.save(alt1);
 
-        Questao questao2 = new Questao();
-        questao2.setEnunciado("Enunciado 2");
-        questao2.setConcurso(concurso);
-        questao2 = questaoRepository.save(questao2);
+        // Questao 2: Recent response -> Gabarito Visible
+        Questao q2 = new Questao();
+        q2.setEnunciado("Q2 Enunciado");
+        q2.setConcurso(concurso);
+        q2.setImageUrl("http://img.com/2.png");
+        q2 = questaoRepository.save(q2);
+        Alternativa alt2 = new Alternativa();
+        alt2.setQuestao(q2); alt2.setOrdem(1); alt2.setTexto("Alt 2"); alt2.setCorreta(true);
+        alternativaRepository.save(alt2);
+        
+        Resposta resp = new Resposta(q2, alt2);
+        resp = respostaRepository.save(resp);
+        String nowStr = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        entityManager.createNativeQuery("UPDATE resposta SET created_at = '" + nowStr + "' WHERE id = " + resp.getId()).executeUpdate();
 
-        // Default sort should be id DESC
+        entityManager.flush();
+        entityManager.clear();
+
+        // Perform request
         mockMvc
-            .perform(get("/api/v1/questoes"))
+            .perform(get("/api/v1/questoes").param("sort", "id").param("direction", "ASC"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.content[0].id").value(questao2.getId()))
-            .andExpect(jsonPath("$.content[1].id").value(questao1.getId()));
+            .andExpect(jsonPath("$.content.length()").value(2))
+            // Q1: Hidden
+            .andExpect(jsonPath("$.content[0].id").value(q1.getId()))
+            .andExpect(jsonPath("$.content[0].concursoId").value(concurso.getId()))
+            .andExpect(jsonPath("$.content[0].alternativas[0].texto").value("Alt 1"))
+            .andExpect(jsonPath("$.content[0].alternativas[0].correta").doesNotExist())
+            // Q2: Visible
+            .andExpect(jsonPath("$.content[1].id").value(q2.getId()))
+            .andExpect(jsonPath("$.content[1].imageUrl").value("http://img.com/2.png"))
+            .andExpect(jsonPath("$.content[1].alternativas[0].correta").value(true))
+            .andExpect(jsonPath("$.content[1].respostas.length()").value(1));
     }
 
     @Test
@@ -311,6 +402,126 @@ class QuestaoControllerTest {
         mockMvc
             .perform(get("/api/v1/questoes/{id}", questao.getId()))
             .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testGetRandomQuestao() throws Exception {
+        Questao questao = new Questao();
+        questao.setEnunciado("Random Test");
+        questao.setConcurso(concurso);
+        questao = questaoRepository.save(questao);
+
+        mockMvc
+            .perform(get("/api/v1/questoes/random"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.enunciado").value("Random Test"));
+    }
+
+    @Test
+    void testGetRandomQuestao_FiltersDesatualizada() throws Exception {
+        Questao qDesat = new Questao(concurso, "Desatualizada");
+        qDesat.setDesatualizada(true);
+        questaoRepository.save(qDesat);
+
+        // Should return 404 because the only question is desatualizada and we force it to false
+        mockMvc
+            .perform(get("/api/v1/questoes/random"))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testGetRandomQuestao_DefaultsAnuladaToFalse() throws Exception {
+        Questao qAnulada = new Questao(concurso, "Anulada");
+        qAnulada.setAnulada(true);
+        questaoRepository.save(qAnulada);
+
+        // Should return 404 because we default anulada to false and only have an anulada question
+        mockMvc
+            .perform(get("/api/v1/questoes/random"))
+            .andExpect(status().isNotFound());
+
+        // Should return the question if explicitly asked for anulada
+        mockMvc
+            .perform(get("/api/v1/questoes/random").param("anulada", "true"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.enunciado").value("Anulada"));
+    }
+
+    @Test
+    void testGetRandomQuestao_FiltersRecentlyAnswered() throws Exception {
+        Questao questao = new Questao();
+        questao.setEnunciado("Recent");
+        questao.setConcurso(concurso);
+        questao = questaoRepository.save(questao);
+
+        Alternativa alt = new Alternativa();
+        alt.setQuestao(questao);
+        alt.setOrdem(1);
+        alt.setTexto("A");
+        alt.setCorreta(true);
+        alt = alternativaRepository.save(alt);
+        
+        Resposta resp = new Resposta(questao, alt);
+        resp = respostaRepository.save(resp);
+        
+        // Force recent date natively to match the specification's string comparison exactly
+        String nowStr = java.time.LocalDateTime.now()
+                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        entityManager.createNativeQuery("UPDATE resposta SET created_at = '" + nowStr + "' WHERE id = " + resp.getId())
+                .executeUpdate();
+        
+        entityManager.flush();
+        entityManager.clear();
+
+        // Should return 404 because the only question was answered today
+        mockMvc
+            .perform(get("/api/v1/questoes/random"))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testGetRandomQuestao_IncludesOldAnswers() throws Exception {
+        Questao questao = new Questao();
+        questao.setEnunciado("Old Answer");
+        questao.setConcurso(concurso);
+        questao = questaoRepository.save(questao);
+
+        Alternativa alt = new Alternativa();
+        alt.setQuestao(questao);
+        alt.setOrdem(1);
+        alt.setTexto("A");
+        alt.setCorreta(true);
+        alt = alternativaRepository.save(alt);
+        
+        Resposta resp = new Resposta(questao, alt);
+        resp = respostaRepository.save(resp);
+        
+        // Use native update to bypass JPA Auditing listeners
+        String oldDateStr = java.time.LocalDateTime.now().minusMonths(2)
+                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        entityManager.createNativeQuery("UPDATE resposta SET created_at = '" + oldDateStr + "' WHERE id = " + resp.getId())
+                .executeUpdate();
+        entityManager.flush();
+        entityManager.clear();
+
+        // Should return 200 because the answer is old (2 months)
+        // Gabarito should be HIDDEN because it's not a recent answer
+        mockMvc
+            .perform(get("/api/v1/questoes/random"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.enunciado").value("Old Answer"))
+            .andExpect(jsonPath("$.alternativas[0].correta").doesNotExist());
+    }
+
+    @Test
+    void testGetRandomQuestao_NotFound() throws Exception {
+        // We are in @Transactional, but we need to ensure the database is empty for this test
+        // However, setUp() already populated it. 
+        // Let's use a filter that won't match anything.
+        mockMvc
+            .perform(get("/api/v1/questoes/random").param("concursoId", "99999"))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.detail").value("Não foi possível encontrar nenhuma questão com os filtros fornecidos."));
     }
 
     @Test
