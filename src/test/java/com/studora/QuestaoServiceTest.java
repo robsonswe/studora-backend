@@ -271,6 +271,56 @@ class QuestaoServiceTest {
         assertThrows(ValidationException.class, () -> questaoService.create(req));
     }
 
+    @Test
+    void testUpdate_ReorderAlternatives_UniqueConstraint() {
+        Long id = 1L;
+        Concurso c = new Concurso(); c.setId(1L);
+        Questao existing = new Questao(); existing.setId(id); existing.setEnunciado("Old"); existing.setConcurso(c);
+        
+        // Setup existing alternatives with IDs and Orders
+        Alternativa alt1 = new Alternativa(); alt1.setId(10L); alt1.setOrdem(1); alt1.setTexto("A"); alt1.setQuestao(existing);
+        Alternativa alt2 = new Alternativa(); alt2.setId(11L); alt2.setOrdem(2); alt2.setTexto("B"); alt2.setQuestao(existing);
+        existing.getAlternativas().add(alt1);
+        existing.getAlternativas().add(alt2);
+
+        // Mock repository to return these alternatives
+        when(alternativaRepository.findByQuestaoIdOrderByOrdemAsc(id)).thenReturn(Arrays.asList(alt1, alt2));
+
+        // Request to SWAP orders: Alt1 -> 2, Alt2 -> 1
+        QuestaoUpdateRequest req = new QuestaoUpdateRequest();
+        req.setConcursoId(1L);
+        req.setEnunciado("Old");
+        req.setAnulada(false);
+        req.setCargos(Collections.singletonList(10L));
+        
+        AlternativaUpdateRequest update1 = new AlternativaUpdateRequest();
+        update1.setId(10L); update1.setOrdem(2); update1.setTexto("A"); update1.setCorreta(true);
+        
+        AlternativaUpdateRequest update2 = new AlternativaUpdateRequest();
+        update2.setId(11L); update2.setOrdem(1); update2.setTexto("B"); update2.setCorreta(false);
+        
+        req.setAlternativas(Arrays.asList(update1, update2));
+
+        // Mocks for dependencies
+        when(questaoRepository.findByIdWithDetails(id)).thenReturn(Optional.of(existing));
+        when(concursoRepository.findById(1L)).thenReturn(Optional.of(c));
+        when(concursoCargoRepository.existsByConcursoIdAndCargoId(1L, 10L)).thenReturn(true);
+        when(concursoCargoRepository.findByConcursoIdAndCargoId(1L, 10L)).thenReturn(Collections.singletonList(createConcursoCargo(100L, c, 10L)));
+        when(questaoRepository.save(any())).thenReturn(existing);
+        when(respostaRepository.findByQuestaoIdInWithDetails(anyList())).thenReturn(Collections.emptyList());
+
+        // Execute update
+        questaoService.update(id, req);
+
+        // Verification: 
+        // 1. Ensure the orders were swapped in the existing entity (JPA dirty checking handles the update)
+        assertEquals(2, alt1.getOrdem());
+        assertEquals(1, alt2.getOrdem());
+        
+        // 2. Ensure flush was called to clear positive space and finish transaction
+        verify(entityManager, atLeastOnce()).flush();
+    }
+
     private ConcursoCargo createConcursoCargo(Long id, Concurso c, Long cargoId) {
         ConcursoCargo cc = new ConcursoCargo(); cc.setId(id); cc.setConcurso(c);
         Cargo cargo = new Cargo(); cargo.setId(cargoId);

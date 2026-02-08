@@ -26,6 +26,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.json.MappingJacksonValue;
 import com.fasterxml.jackson.annotation.JsonView;
 import com.studora.dto.Views;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
@@ -35,6 +36,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/questoes")
 @Tag(name = "Questoes", description = "Endpoints para gerenciamento de questões")
+@Slf4j
 public class QuestaoController {
 
     private final QuestaoService questaoService;
@@ -238,6 +240,7 @@ public class QuestaoController {
     )
     @PutMapping("/{id}")
     public ResponseEntity<QuestaoDetailDto> updateQuestao(@PathVariable Long id, @Valid @RequestBody QuestaoUpdateRequest request) {
+        log.info("Recebida requisição para atualizar questão ID {}: {}", id, request);
         return ResponseEntity.ok(questaoService.update(id, request));
     }
 

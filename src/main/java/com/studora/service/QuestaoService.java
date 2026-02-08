@@ -181,6 +181,7 @@ public class QuestaoService {
         questaoMapper.updateEntityFromDto(request, questao);
         
         if (request.getAlternativas() != null) {
+            log.debug("Processando atualização de alternativas para questão ID {}. Qtd: {}", id, request.getAlternativas().size());
             List<Alternativa> currentAlts = alternativaRepository.findByQuestaoIdOrderByOrdemAsc(id);
             java.util.Map<Long, Alternativa> existingMap = currentAlts.stream()
                 .collect(Collectors.toMap(Alternativa::getId, a -> a));
@@ -191,53 +192,48 @@ public class QuestaoService {
                 .collect(Collectors.toSet());
 
             // 1. Remove orphans
-            for (Alternativa alt : currentAlts) {
-                if (!idsToKeep.contains(alt.getId())) {
-                    questao.getAlternativas().remove(alt);
-                    alternativaRepository.delete(alt);
+            questao.getAlternativas().removeIf(alt -> !idsToKeep.contains(alt.getId()));
+
+            // 1.5. Temporary Shift: Set existing items to temporary unique negative orders
+            // This prevents UNIQUE constraint violations (e.g. swapping 1 and 2) by clearing the positive number space.
+            log.trace("Realizando shift temporário para ordens negativas para evitar conflitos.");
+            for (Alternativa alt : questao.getAlternativas()) {
+                if (alt.getId() != null) {
+                    alt.setOrdem(-1 * alt.getId().intValue());
                 }
             }
-            alternativaRepository.flush();
+            // Flush only once here to clear the positive sequence in DB
+            entityManager.flush();
 
             // 2. Update or Create
             for (com.studora.dto.request.AlternativaUpdateRequest altReq : request.getAlternativas()) {
-                Alternativa alt = null;
+                Alternativa alt;
                 if (altReq.getId() != null) {
                     alt = existingMap.get(altReq.getId());
-                }
-
-                if (alt != null) {
-                    // Update existing
-                    alt.setTexto(altReq.getTexto());
-                    alt.setCorreta(altReq.getCorreta());
-                    alt.setOrdem(altReq.getOrdem());
-                    alt.setJustificativa(altReq.getJustificativa());
-                    alternativaRepository.save(alt);
-                    if (!questao.getAlternativas().contains(alt)) {
-                        questao.getAlternativas().add(alt);
+                    if (alt != null) {
+                        alt.setTexto(altReq.getTexto());
+                        alt.setCorreta(altReq.getCorreta());
+                        alt.setOrdem(altReq.getOrdem());
+                        alt.setJustificativa(altReq.getJustificativa());
                     }
                 } else {
-                    // Create new
                     alt = new Alternativa();
                     alt.setQuestao(questao);
                     alt.setTexto(altReq.getTexto());
                     alt.setCorreta(altReq.getCorreta());
                     alt.setOrdem(altReq.getOrdem());
                     alt.setJustificativa(altReq.getJustificativa());
-                    alternativaRepository.save(alt);
                     questao.getAlternativas().add(alt);
                 }
             }
-            alternativaRepository.flush();
         }
 
         if (request.getCargos() != null) {
             synchronizeCargos(questao, request.getCargos(), request.getConcursoId());
         }
 
+        normalizeAlternativaOrders(questao);
         Questao saved = questaoRepository.save(questao);
-        normalizeAlternativaOrders(saved);
-        saved = questaoRepository.save(saved);
         entityManager.flush();
         return questaoMapper.toDetailDto(questaoRepository.findByIdWithDetails(saved.getId()).get());
     }
