@@ -19,6 +19,7 @@ public interface QuestaoMapper {
     @Mapping(target = "alternativas", source = "alternativas")
     @Mapping(target = "respostas", source = "respostas")
     @Mapping(target = "subtemas", source = "subtemas")
+    @Mapping(target = "respondida", expression = "java(questao.getRespostas() != null && !questao.getRespostas().isEmpty())")
     QuestaoSummaryDto toSummaryDto(Questao questao);
 
     @Mapping(target = "concurso", source = "concurso")
@@ -26,6 +27,7 @@ public interface QuestaoMapper {
     @Mapping(target = "subtemas", source = "subtemas")
     @Mapping(target = "cargos", source = "questaoCargos")
     @Mapping(target = "respostas", source = "respostas")
+    @Mapping(target = "respondida", expression = "java(questao.getRespostas() != null && !questao.getRespostas().isEmpty())")
     QuestaoDetailDto toDetailDto(Questao questao);
 
     @Mapping(target = "id", ignore = true)
