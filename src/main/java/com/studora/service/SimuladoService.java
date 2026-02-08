@@ -37,23 +37,40 @@ public class SimuladoService {
     private final QuestaoRepository questaoRepository;
     private final RespostaRepository respostaRepository;
     private final SimuladoMapper simuladoMapper;
+    
+    private final com.studora.repository.BancaRepository bancaRepository;
+    private final com.studora.repository.CargoRepository cargoRepository;
+    private final com.studora.repository.DisciplinaRepository disciplinaRepository;
+    private final com.studora.repository.TemaRepository temaRepository;
+    private final com.studora.repository.SubtemaRepository subtemaRepository;
+    private final com.studora.mapper.BancaMapper bancaMapper;
+    private final com.studora.mapper.CargoMapper cargoMapper;
 
     @Transactional(readOnly = true)
     public Page<SimuladoSummaryDto> findAll(Pageable pageable) {
         return simuladoRepository.findAll(pageable)
-                .map(simuladoMapper::toSummaryDto);
+                .map(s -> {
+                    SimuladoSummaryDto dto = simuladoMapper.toSummaryDto(s);
+                    enrichSimuladoDto(s, dto);
+                    return dto;
+                });
     }
 
     @Transactional(readOnly = true)
     public SimuladoDetailDto getSimuladoDetailById(Long id) {
         Simulado simulado = simuladoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Simulado", "ID", id));
-        return simuladoMapper.toDetailDto(simulado);
+        SimuladoDetailDto dto = simuladoMapper.toDetailDto(simulado);
+        enrichSimuladoDto(simulado, dto);
+        return dto;
     }
 
     public SimuladoDetailDto create(SimuladoSummaryDto request) {
         Simulado simulado = simuladoMapper.toEntity(request);
-        return simuladoMapper.toDetailDto(simuladoRepository.save(simulado));
+        Simulado saved = simuladoRepository.save(simulado);
+        SimuladoDetailDto dto = simuladoMapper.toDetailDto(saved);
+        enrichSimuladoDto(saved, dto);
+        return dto;
     }
 
     public SimuladoDetailDto gerarSimulado(SimuladoGenerationRequest request) {
@@ -136,7 +153,10 @@ public class SimuladoService {
         List<Questao> questions = questaoRepository.findAllById(collectedIds);
         simulado.setQuestoes(new ArrayList<>(questions));
 
-        return simuladoMapper.toDetailDto(simuladoRepository.save(simulado));
+        Simulado saved = simuladoRepository.save(simulado);
+        SimuladoDetailDto dto = simuladoMapper.toDetailDto(saved);
+        enrichSimuladoDto(saved, dto);
+        return dto;
     }
 
     public void delete(Long id) {
@@ -158,8 +178,10 @@ public class SimuladoService {
         }
 
         simulado.setStartedAt(LocalDateTime.now());
-        simulado = simuladoRepository.save(simulado);
-        return simuladoMapper.toDetailDto(simulado);
+        Simulado saved = simuladoRepository.save(simulado);
+        SimuladoDetailDto dto = simuladoMapper.toDetailDto(saved);
+        enrichSimuladoDto(saved, dto);
+        return dto;
     }
 
     public SimuladoDetailDto finalizarSimulado(Long id) {
@@ -178,7 +200,98 @@ public class SimuladoService {
         }
 
         simulado.setFinishedAt(LocalDateTime.now());
-        simulado = simuladoRepository.save(simulado);
-        return simuladoMapper.toDetailDto(simulado);
+        Simulado saved = simuladoRepository.save(simulado);
+        SimuladoDetailDto dto = simuladoMapper.toDetailDto(saved);
+        enrichSimuladoDto(saved, dto);
+        return dto;
+    }
+
+    private void enrichSimuladoDto(Simulado simulado, Object dtoObj) {
+        if (simulado.getBancaId() != null) {
+            bancaRepository.findById(simulado.getBancaId())
+                .ifPresent(b -> setBanca(dtoObj, bancaMapper.toSummaryDto(b)));
+        }
+        if (simulado.getCargoId() != null) {
+            cargoRepository.findById(simulado.getCargoId())
+                .ifPresent(c -> setCargo(dtoObj, cargoMapper.toSummaryDto(c)));
+        }
+        
+        setDisciplinas(dtoObj, mapDisciplinas(simulado.getDisciplinas()));
+        setTemas(dtoObj, mapTemas(simulado.getTemas()));
+        setSubtemas(dtoObj, mapSubtemas(simulado.getSubtemas()));
+    }
+
+    private void setBanca(Object dto, com.studora.dto.banca.BancaSummaryDto value) {
+        if (dto instanceof SimuladoSummaryDto s) s.setBanca(value);
+        else if (dto instanceof SimuladoDetailDto d) d.setBanca(value);
+    }
+
+    private void setCargo(Object dto, com.studora.dto.cargo.CargoSummaryDto value) {
+        if (dto instanceof SimuladoSummaryDto s) s.setCargo(value);
+        else if (dto instanceof SimuladoDetailDto d) d.setCargo(value);
+    }
+
+    private void setDisciplinas(Object dto, List<com.studora.dto.simulado.DisciplinaSimuladoDto> value) {
+        if (dto instanceof SimuladoSummaryDto s) s.setDisciplinas(value);
+        else if (dto instanceof SimuladoDetailDto d) d.setDisciplinas(value);
+    }
+
+    private void setTemas(Object dto, List<com.studora.dto.simulado.TemaSimuladoDto> value) {
+        if (dto instanceof SimuladoSummaryDto s) s.setTemas(value);
+        else if (dto instanceof SimuladoDetailDto d) d.setTemas(value);
+    }
+
+    private void setSubtemas(Object dto, List<com.studora.dto.simulado.SubtemaSimuladoDto> value) {
+        if (dto instanceof SimuladoSummaryDto s) s.setSubtemas(value);
+        else if (dto instanceof SimuladoDetailDto d) d.setSubtemas(value);
+    }
+
+    private List<com.studora.dto.simulado.DisciplinaSimuladoDto> mapDisciplinas(List<com.studora.entity.SimuladoItemSelection> selections) {
+        if (selections == null) return List.of();
+        return selections.stream().map(s -> {
+            var dto = new com.studora.dto.simulado.DisciplinaSimuladoDto();
+            dto.setId(s.getItemId());
+            dto.setQuantidade(s.getQuantidade());
+            disciplinaRepository.findById(s.getItemId()).ifPresent(d -> dto.setNome(d.getNome()));
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    private List<com.studora.dto.simulado.TemaSimuladoDto> mapTemas(List<com.studora.entity.SimuladoItemSelection> selections) {
+        if (selections == null) return List.of();
+        return selections.stream().map(s -> {
+            var dto = new com.studora.dto.simulado.TemaSimuladoDto();
+            dto.setId(s.getItemId());
+            dto.setQuantidade(s.getQuantidade());
+            temaRepository.findById(s.getItemId()).ifPresent(t -> {
+                dto.setNome(t.getNome());
+                if (t.getDisciplina() != null) {
+                    dto.setDisciplinaId(t.getDisciplina().getId());
+                    dto.setDisciplinaNome(t.getDisciplina().getNome());
+                }
+            });
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    private List<com.studora.dto.simulado.SubtemaSimuladoDto> mapSubtemas(List<com.studora.entity.SimuladoItemSelection> selections) {
+        if (selections == null) return List.of();
+        return selections.stream().map(s -> {
+            var dto = new com.studora.dto.simulado.SubtemaSimuladoDto();
+            dto.setId(s.getItemId());
+            dto.setQuantidade(s.getQuantidade());
+            subtemaRepository.findById(s.getItemId()).ifPresent(st -> {
+                dto.setNome(st.getNome());
+                if (st.getTema() != null) {
+                    dto.setTemaId(st.getTema().getId());
+                    dto.setTemaNome(st.getTema().getNome());
+                    if (st.getTema().getDisciplina() != null) {
+                        dto.setDisciplinaId(st.getTema().getDisciplina().getId());
+                        dto.setDisciplinaNome(st.getTema().getDisciplina().getNome());
+                    }
+                }
+            });
+            return dto;
+        }).collect(Collectors.toList());
     }
 }

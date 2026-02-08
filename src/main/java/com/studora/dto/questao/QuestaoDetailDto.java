@@ -19,9 +19,9 @@ public class QuestaoDetailDto {
     @JsonView(Views.RespostaOculta.class)
     private Long id;
 
-    @Schema(description = "ID do concurso ao qual a questão pertence", example = "1")
+    @Schema(description = "Contexto do concurso ao qual a questão pertence")
     @JsonView(Views.RespostaOculta.class)
-    private Long concursoId;
+    private ConcursoQuestaoDto concurso;
 
     @Schema(description = "Texto do enunciado da questão", example = "Qual é a capital do Brasil?")
     @JsonView(Views.RespostaOculta.class)
@@ -39,13 +39,13 @@ public class QuestaoDetailDto {
     @JsonView(Views.RespostaOculta.class)
     private String imageUrl;
 
-    @Schema(description = "IDs dos subtemas associados à questão", example = "[1, 2]")
+    @Schema(description = "Subtemas associados à questão (hierarquia completa)")
     @JsonView(Views.RespostaOculta.class)
-    private List<Long> subtemaIds;
+    private List<SubtemaQuestaoDto> subtemas;
 
-    @Schema(description = "IDs dos cargos associados à questão", example = "[1]")
+    @Schema(description = "Cargos associados à questão")
     @JsonView(Views.RespostaOculta.class)
-    private List<Long> cargos;
+    private List<com.studora.dto.cargo.CargoSummaryDto> cargos;
 
     @Schema(description = "Alternativas da questão")
     @JsonView(Views.RespostaOculta.class)

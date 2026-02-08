@@ -24,6 +24,13 @@ class SimuladoServiceTest {
     @Mock private SimuladoRepository simuladoRepository;
     @Mock private QuestaoRepository questaoRepository;
     @Mock private RespostaRepository respostaRepository;
+    @Mock private com.studora.repository.BancaRepository bancaRepository;
+    @Mock private com.studora.repository.CargoRepository cargoRepository;
+    @Mock private com.studora.repository.DisciplinaRepository disciplinaRepository;
+    @Mock private com.studora.repository.TemaRepository temaRepository;
+    @Mock private com.studora.repository.SubtemaRepository subtemaRepository;
+    @Mock private com.studora.mapper.BancaMapper bancaMapper;
+    @Mock private com.studora.mapper.CargoMapper cargoMapper;
 
     private SimuladoService simuladoService;
 
@@ -36,7 +43,11 @@ class SimuladoServiceTest {
         com.studora.mapper.QuestaoMapper questaoMapper = org.mapstruct.factory.Mappers.getMapper(com.studora.mapper.QuestaoMapper.class);
         org.springframework.test.util.ReflectionTestUtils.setField(realMapper, "questaoMapper", questaoMapper);
         
-        simuladoService = new SimuladoService(simuladoRepository, questaoRepository, respostaRepository, realMapper);
+        simuladoService = new SimuladoService(
+            simuladoRepository, questaoRepository, respostaRepository, realMapper,
+            bancaRepository, cargoRepository, disciplinaRepository, temaRepository, subtemaRepository,
+            bancaMapper, cargoMapper
+        );
     }
 
     @Test

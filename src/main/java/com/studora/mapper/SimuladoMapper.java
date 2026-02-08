@@ -22,6 +22,8 @@ public interface SimuladoMapper {
     @Mapping(target = "questoes", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "bancaId", source = "banca.id")
+    @Mapping(target = "cargoId", source = "cargo.id")
     Simulado toEntity(SimuladoSummaryDto dto);
 
     @Mapping(target = "id", source = "itemId")

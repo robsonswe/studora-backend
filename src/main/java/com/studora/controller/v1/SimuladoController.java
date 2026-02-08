@@ -42,7 +42,9 @@ public class SimuladoController {
     @ApiResponse(responseCode = "200", description = "Lista de simulados")
     @ApiResponse(responseCode = "404", description = "Nenhum simulado encontrado",
         content = @Content(mediaType = "application/problem+json",
-            schema = @Schema(implementation = ProblemDetail.class)))
+            schema = @Schema(implementation = ProblemDetail.class),
+            examples = @ExampleObject(value = "{\"type\": \"about:blank\", \"title\": \"Recurso não encontrado\", \"status\": 404, \"detail\": \"Nenhum simulado encontrado\", \"instance\": \"/api/v1/simulados\", \"timestamp\": \"2026-02-08T18:00:00Z\"}")
+        ))
     public PageResponse<SimuladoSummaryDto> listSimulados(
             @Parameter(hidden = true) @PageableDefault(size = 20, sort = "createdAt", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable) {
         org.springframework.data.domain.Page<SimuladoSummaryDto> page = simuladoService.findAll(pageable);
@@ -61,7 +63,7 @@ public class SimuladoController {
             @ApiResponse(responseCode = "201", description = "Simulado gerado com sucesso", 
                 content = @Content(
                     schema = @Schema(implementation = SimuladoDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Simulado Geral 2024\", \"startedAt\": null, \"finishedAt\": null, \"bancaId\": 1, \"disciplinas\": [{\"id\": 1, \"quantidade\": 20}]}")
+                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Simulado Geral 2024\", \"startedAt\": null, \"finishedAt\": null, \"banca\": {\"id\": 1, \"nome\": \"FCC\"}, \"disciplinas\": [{\"id\": 1, \"nome\": \"Português\", \"quantidade\": 20}]}")
                 )),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",
@@ -91,11 +93,11 @@ public class SimuladoController {
                     examples = {
                         @ExampleObject(
                             name = "Gabarito Escondido",
-                            value = "{\"id\": 1, \"nome\": \"Simulado PC-SP\", \"questoes\": [{\"id\": 10, \"enunciado\": \"...\", \"alternativas\": [{\"id\": 1, \"texto\": \"...\"}]}]}"
+                            value = "{\"id\": 1, \"nome\": \"Simulado PC-SP\", \"startedAt\": \"2024-02-06T18:00:00Z\", \"finishedAt\": null, \"banca\": {\"id\": 1, \"nome\": \"Vunesp\"}, \"cargo\": {\"id\": 10, \"nome\": \"Investigador\"}, \"disciplinas\": [{\"id\": 1, \"nome\": \"Direito Administrativo\", \"quantidade\": 10}], \"questoes\": [{\"id\": 10, \"enunciado\": \"Qual a capital...?\", \"concurso\": {\"id\": 10, \"ano\": 2024, \"bancaId\": 2, \"bancaNome\": \"Cebraspe\", \"instituicaoId\": 3, \"instituicaoNome\": \"Policia Federal\", \"instituicaoArea\": \"Segurança\"}, \"subtemas\": [{\"id\": 5, \"nome\": \"Habeas Corpus\", \"temaId\": 20, \"temaNome\": \"Remédios Constitucionais\", \"disciplinaId\": 100, \"disciplinaNome\": \"Direito Constitucional\"}], \"cargos\": [{\"id\": 1, \"nome\": \"Agente\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\"}], \"alternativas\": [{\"id\": 1, \"texto\": \"Brasília\"}]}]}"
                         ),
                         @ExampleObject(
                             name = "Gabarito Visível",
-                            value = "{\"id\": 1, \"nome\": \"Simulado PC-SP\", \"finishedAt\": \"2024-02-06T18:00:00Z\", \"questoes\": [{\"id\": 10, \"enunciado\": \"...\", \"alternativas\": [{\"id\": 1, \"texto\": \"...\", \"correta\": true}]}]}"
+                            value = "{\"id\": 1, \"nome\": \"Simulado PC-SP\", \"startedAt\": \"2024-02-06T18:00:00Z\", \"finishedAt\": \"2024-02-06T20:00:00Z\", \"banca\": {\"id\": 1, \"nome\": \"Vunesp\"}, \"cargo\": {\"id\": 10, \"nome\": \"Investigador\"}, \"disciplinas\": [{\"id\": 1, \"nome\": \"Direito Administrativo\", \"quantidade\": 10}], \"questoes\": [{\"id\": 10, \"enunciado\": \"Qual a capital...?\", \"concurso\": {\"id\": 10, \"ano\": 2024, \"bancaId\": 2, \"bancaNome\": \"Cebraspe\", \"instituicaoId\": 3, \"instituicaoNome\": \"Policia Federal\", \"instituicaoArea\": \"Segurança\"}, \"subtemas\": [{\"id\": 5, \"nome\": \"Habeas Corpus\", \"temaId\": 20, \"temaNome\": \"Remédios Constitucionais\", \"disciplinaId\": 100, \"disciplinaNome\": \"Direito Constitucional\"}], \"cargos\": [{\"id\": 1, \"nome\": \"Agente\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\"}], \"alternativas\": [{\"id\": 1, \"texto\": \"Brasília\", \"correta\": true}]}]}"
                         )
                     }
                 )),

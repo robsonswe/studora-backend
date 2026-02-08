@@ -14,7 +14,7 @@ public class Views {
     /**
      * View para exibir detalhes do objeto mas OMITIR gabarito, justificativas e histórico.
      */
-    public interface RespostaOculta extends Summary {}
+    public interface RespostaOculta extends Geracao {}
     
     /**
      * View completa para exibir todos os detalhes, incluindo gabarito e histórico.

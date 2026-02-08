@@ -26,13 +26,13 @@ public class SimuladoSummaryDto {
     @JsonView(Views.Summary.class)
     private LocalDateTime finishedAt;
 
-    @Schema(description = "ID da banca de preferência", example = "1")
+    @Schema(description = "Banca de preferência")
     @JsonView(Views.Geracao.class)
-    private Long bancaId;
+    private com.studora.dto.banca.BancaSummaryDto banca;
 
-    @Schema(description = "ID do cargo de preferência", example = "10")
+    @Schema(description = "Cargo de preferência")
     @JsonView(Views.Geracao.class)
-    private Long cargoId;
+    private com.studora.dto.cargo.CargoSummaryDto cargo;
 
     @Schema(description = "Lista de áreas de preferência", example = "[\"Jurídica\"]")
     @JsonView(Views.Geracao.class)
@@ -48,13 +48,13 @@ public class SimuladoSummaryDto {
 
     @Schema(description = "Seleção de disciplinas")
     @JsonView(Views.Geracao.class)
-    private java.util.List<SimuladoItemSelectionDto> disciplinas;
+    private java.util.List<DisciplinaSimuladoDto> disciplinas;
 
     @Schema(description = "Seleção de temas")
     @JsonView(Views.Geracao.class)
-    private java.util.List<SimuladoItemSelectionDto> temas;
+    private java.util.List<TemaSimuladoDto> temas;
 
     @Schema(description = "Seleção de subtemas")
     @JsonView(Views.Geracao.class)
-    private java.util.List<SimuladoItemSelectionDto> subtemas;
+    private java.util.List<SubtemaSimuladoDto> subtemas;
 }

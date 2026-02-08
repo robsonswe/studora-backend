@@ -146,7 +146,7 @@ class QuestaoControllerTest {
             .andExpect(
                 jsonPath("$.enunciado").value("Qual a capital do Brasil?")
             )
-            .andExpect(jsonPath("$.cargos[0]").value(cargo.getId()));
+            .andExpect(jsonPath("$.cargos[0].id").value(cargo.getId()));
     }
 
     @Test
@@ -189,7 +189,7 @@ class QuestaoControllerTest {
             .andExpect(jsonPath("$.alternativas.length()").value(2))
             // By default (no responses), gabarito IS HIDDEN
             .andExpect(jsonPath("$.alternativas[0].correta").doesNotExist())
-            .andExpect(jsonPath("$.cargos[0]").value(cargo.getId()));
+            .andExpect(jsonPath("$.cargos[0].id").value(cargo.getId()));
     }
 
     @Test
@@ -323,7 +323,7 @@ class QuestaoControllerTest {
             .andExpect(jsonPath("$.content.length()").value(2))
             // Q1: Hidden
             .andExpect(jsonPath("$.content[0].id").value(q1.getId()))
-            .andExpect(jsonPath("$.content[0].concursoId").value(concurso.getId()))
+            .andExpect(jsonPath("$.content[0].concurso.id").value(concurso.getId()))
             .andExpect(jsonPath("$.content[0].alternativas[0].texto").value("Alt 1"))
             .andExpect(jsonPath("$.content[0].alternativas[0].correta").doesNotExist())
             // Q2: Visible
@@ -390,7 +390,7 @@ class QuestaoControllerTest {
             .andExpect(jsonPath("$.enunciado").value("New Enunciado"))
             .andExpect(jsonPath("$.anulada").value(true))
             .andExpect(jsonPath("$.alternativas.length()").value(2))
-            .andExpect(jsonPath("$.cargos[0]").value(cargo.getId()));
+            .andExpect(jsonPath("$.cargos[0].id").value(cargo.getId()));
     }
 
     @Test
@@ -613,6 +613,6 @@ class QuestaoControllerTest {
             )
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.cargos.length()").value(1))
-            .andExpect(jsonPath("$.cargos[0]").value(cargo2.getId()));
+            .andExpect(jsonPath("$.cargos[0].id").value(cargo2.getId()));
     }
 }

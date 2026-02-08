@@ -94,7 +94,7 @@ class SimuladoControllerTest {
                 .content(TestUtil.asJsonString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.nome").value("Simulado Teste"))
-                .andExpect(jsonPath("$.bancaId").value(1))
+                .andExpect(jsonPath("$.banca.id").value(1))
                 .andExpect(jsonPath("$.ignorarRespondidas").value(true))
                 .andExpect(jsonPath("$.disciplinas").exists())
                 .andExpect(jsonPath("$.questoes").doesNotExist());
@@ -164,7 +164,7 @@ class SimuladoControllerTest {
         mockMvc.perform(get("/api/v1/simulados"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].nome").value("List Test"))
-                .andExpect(jsonPath("$.content[0].bancaId").value(1))
+                .andExpect(jsonPath("$.content[0].banca.id").value(1))
                 .andExpect(jsonPath("$.content[0].questoes").doesNotExist());
     }
 
