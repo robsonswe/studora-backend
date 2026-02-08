@@ -9,16 +9,16 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
-@Mapper(componentModel = "spring", uses = {InstituicaoMapper.class, BancaMapper.class})
+@Mapper(componentModel = "spring", uses = {InstituicaoMapper.class, BancaMapper.class, CargoMapper.class})
 public interface ConcursoMapper {
 
-    @Mapping(target = "instituicaoId", source = "instituicao.id")
-    @Mapping(target = "bancaId", source = "banca.id")
+    @Mapping(target = "instituicao", source = "instituicao")
+    @Mapping(target = "banca", source = "banca")
     @Mapping(target = "cargos", source = "concursoCargos")
     ConcursoSummaryDto toSummaryDto(Concurso concurso);
 
-    @Mapping(target = "instituicaoId", source = "instituicao.id")
-    @Mapping(target = "bancaId", source = "banca.id")
+    @Mapping(target = "instituicao", source = "instituicao")
+    @Mapping(target = "banca", source = "banca")
     @Mapping(target = "cargos", source = "concursoCargos")
     ConcursoDetailDto toDetailDto(Concurso concurso);
 
@@ -40,13 +40,21 @@ public interface ConcursoMapper {
     @Mapping(target = "updatedAt", ignore = true)
     void updateEntityFromDto(ConcursoUpdateRequest request, @MappingTarget Concurso concurso);
 
-    default java.util.List<Long> mapCargos(java.util.Set<com.studora.entity.ConcursoCargo> concursoCargos) {
+    default java.util.List<com.studora.dto.cargo.CargoSummaryDto> mapCargos(java.util.Set<com.studora.entity.ConcursoCargo> concursoCargos) {
         if (concursoCargos == null) {
             return java.util.Collections.emptyList();
         }
         return concursoCargos.stream()
-                .map(cc -> cc.getCargo().getId())
-                .sorted()
+                .map(cc -> {
+                    com.studora.entity.Cargo cargo = cc.getCargo();
+                    com.studora.dto.cargo.CargoSummaryDto dto = new com.studora.dto.cargo.CargoSummaryDto();
+                    dto.setId(cargo.getId());
+                    dto.setNome(cargo.getNome());
+                    dto.setNivel(cargo.getNivel());
+                    dto.setArea(cargo.getArea());
+                    return dto;
+                })
+                .sorted(java.util.Comparator.comparing(com.studora.dto.cargo.CargoSummaryDto::getNome))
                 .collect(java.util.stream.Collectors.toList());
     }
 }

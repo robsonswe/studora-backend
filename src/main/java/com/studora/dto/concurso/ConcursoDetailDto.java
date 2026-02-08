@@ -10,12 +10,10 @@ import java.util.List;
 @Data
 public class ConcursoDetailDto {
     private Long id;
-    private Long instituicaoId;
-    private Long bancaId;
     private InstituicaoSummaryDto instituicao;
     private BancaSummaryDto banca;
     private Integer ano;
     private Integer mes;
     private String edital;
-    private List<Long> cargos;
+    private List<com.studora.dto.cargo.CargoSummaryDto> cargos;
 }

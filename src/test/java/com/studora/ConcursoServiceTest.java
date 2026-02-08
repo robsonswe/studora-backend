@@ -59,6 +59,7 @@ class ConcursoServiceTest {
         ConcursoMapper realMapper = org.mapstruct.factory.Mappers.getMapper(ConcursoMapper.class);
         InstituicaoMapper instMapper = org.mapstruct.factory.Mappers.getMapper(InstituicaoMapper.class);
         BancaMapper bancaMapper = org.mapstruct.factory.Mappers.getMapper(BancaMapper.class);
+        com.studora.mapper.CargoMapper cargoMapper = org.mapstruct.factory.Mappers.getMapper(com.studora.mapper.CargoMapper.class);
         
         ReflectionTestUtils.setField(realMapper, "instituicaoMapper", instMapper);
         ReflectionTestUtils.setField(realMapper, "bancaMapper", bancaMapper);
@@ -136,7 +137,7 @@ class ConcursoServiceTest {
         assertEquals(1L, result.getId());
         assertEquals(2023, result.getAno());
         assertEquals(1, result.getCargos().size());
-        assertEquals(10L, result.getCargos().get(0));
+        assertEquals(10L, result.getCargos().get(0).getId());
     }
 
     @Test
@@ -215,7 +216,7 @@ class ConcursoServiceTest {
         ConcursoDetailDto result = concursoService.update(id, req);
         
         assertEquals(1, result.getCargos().size());
-        assertEquals(20L, result.getCargos().get(0));
+        assertEquals(20L, result.getCargos().get(0).getId());
     }
     
     @Test

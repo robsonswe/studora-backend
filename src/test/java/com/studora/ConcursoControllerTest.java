@@ -95,11 +95,11 @@ class ConcursoControllerTest {
                     .content(TestUtil.asJsonString(concursoCreateRequest))
             )
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.instituicaoId").value(instituicao.getId()))
-            .andExpect(jsonPath("$.bancaId").value(banca.getId()))
+            .andExpect(jsonPath("$.instituicao.id").value(instituicao.getId()))
+            .andExpect(jsonPath("$.banca.id").value(banca.getId()))
             .andExpect(jsonPath("$.ano").value(2023))
             .andExpect(jsonPath("$.mes").value(1))
-            .andExpect(jsonPath("$.cargos[0]").value(cargo1.getId()));
+            .andExpect(jsonPath("$.cargos[0].id").value(cargo1.getId()));
     }
 
     @Test
@@ -159,11 +159,11 @@ class ConcursoControllerTest {
         mockMvc
             .perform(get("/api/v1/concursos/{id}", concurso.getId()))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.instituicaoId").value(instituicao.getId()))
-            .andExpect(jsonPath("$.bancaId").value(banca.getId()))
+            .andExpect(jsonPath("$.instituicao.id").value(instituicao.getId()))
+            .andExpect(jsonPath("$.banca.id").value(banca.getId()))
             .andExpect(jsonPath("$.ano").value(2023))
             .andExpect(jsonPath("$.mes").value(6))
-            .andExpect(jsonPath("$.cargos[0]").value(cargo1.getId()));
+            .andExpect(jsonPath("$.cargos[0].id").value(cargo1.getId()));
     }
 
     @Test
@@ -250,11 +250,11 @@ class ConcursoControllerTest {
                     .content(TestUtil.asJsonString(concursoUpdateRequest))
             )
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.instituicaoId").value(instituicao2.getId()))
-            .andExpect(jsonPath("$.bancaId").value(banca2.getId()))
+            .andExpect(jsonPath("$.instituicao.id").value(instituicao2.getId()))
+            .andExpect(jsonPath("$.banca.id").value(banca2.getId()))
             .andExpect(jsonPath("$.ano").value(2023))
             .andExpect(jsonPath("$.mes").value(6))
-            .andExpect(jsonPath("$.cargos[0]").value(cargo2.getId()))
+            .andExpect(jsonPath("$.cargos[0].id").value(cargo2.getId()))
             .andExpect(jsonPath("$.cargos.length()").value(1));
     }
 

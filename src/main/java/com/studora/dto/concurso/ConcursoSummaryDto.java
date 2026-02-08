@@ -9,11 +9,11 @@ public class ConcursoSummaryDto {
     @Schema(description = "ID único do concurso", example = "1")
     private Long id;
 
-    @Schema(description = "ID da instituição organizadora", example = "1")
-    private Long instituicaoId;
+    @Schema(description = "Instituição organizadora")
+    private com.studora.dto.instituicao.InstituicaoSummaryDto instituicao;
 
-    @Schema(description = "ID da banca organizadora", example = "1")
-    private Long bancaId;
+    @Schema(description = "Banca organizadora")
+    private com.studora.dto.banca.BancaSummaryDto banca;
 
     @Schema(description = "Ano de realização do concurso", example = "2023")
     private Integer ano;
@@ -24,6 +24,6 @@ public class ConcursoSummaryDto {
     @Schema(description = "Identificação do edital do concurso", example = "https://exemplo.com/edital.pdf")
     private String edital;
 
-    @Schema(description = "Lista de IDs dos cargos", example = "[1, 2]")
-    private java.util.List<Long> cargos;
+    @Schema(description = "Lista de cargos associados ao concurso")
+    private java.util.List<com.studora.dto.cargo.CargoSummaryDto> cargos;
 }

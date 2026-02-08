@@ -47,7 +47,7 @@ public class ConcursoController {
                 content = @Content(
                     mediaType = "application/json",
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"instituicaoId\": 1, \"bancaId\": 1, \"ano\": 2023, \"mes\": 5, \"edital\": \"https://exemplo.com/edital.pdf\", \"cargos\": [1, 2]}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"instituicao\": {\"id\": 1, \"nome\": \"Polícia Federal\", \"area\": \"Policial\"}, \"banca\": {\"id\": 1, \"nome\": \"Cebraspe\"}, \"ano\": 2023, \"mes\": 5, \"edital\": \"https://exemplo.com/edital.pdf\", \"cargos\": [{\"id\": 1, \"nome\": \"Agente\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\"}]}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -88,7 +88,7 @@ public class ConcursoController {
             @ApiResponse(responseCode = "200", description = "Concurso encontrado", 
                 content = @Content(
                     schema = @Schema(implementation = ConcursoDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"instituicaoId\": 1, \"bancaId\": 1, \"ano\": 2023, \"mes\": 6, \"edital\": \"Edital 01/2023\", \"cargos\": [1, 2]}")
+                    examples = @ExampleObject(value = "{\"id\": 1, \"instituicao\": {\"id\": 1, \"nome\": \"Polícia Federal\", \"area\": \"Policial\"}, \"banca\": {\"id\": 1, \"nome\": \"Cebraspe\"}, \"ano\": 2023, \"mes\": 6, \"edital\": \"Edital 01/2023\", \"cargos\": [{\"id\": 1, \"nome\": \"Agente\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\"}]}")
                 )),
             @ApiResponse(responseCode = "404", description = "Concurso não encontrado",
                 content = @Content(mediaType = "application/problem+json",
@@ -109,7 +109,7 @@ public class ConcursoController {
             @ApiResponse(responseCode = "201", description = "Concurso criado com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = ConcursoDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 2, \"instituicaoId\": 2, \"bancaId\": 2, \"ano\": 2024, \"mes\": 1, \"edital\": \"Edital 01/2024\", \"cargos\": [1, 2]}")
+                    examples = @ExampleObject(value = "{\"id\": 2, \"instituicao\": {\"id\": 2, \"nome\": \"Tribunal de Justiça\", \"area\": \"Judiciária\"}, \"banca\": {\"id\": 2, \"nome\": \"FGV\"}, \"ano\": 2024, \"mes\": 1, \"edital\": \"Edital 01/2024\", \"cargos\": [{\"id\": 10, \"nome\": \"Analista\", \"nivel\": \"SUPERIOR\", \"area\": \"Judiciária\"}]}")
                 )),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",
@@ -136,7 +136,7 @@ public class ConcursoController {
             @ApiResponse(responseCode = "200", description = "Concurso atualizado com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = ConcursoDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"instituicaoId\": 1, \"bancaId\": 1, \"ano\": 2023, \"mes\": 6, \"edital\": \"Edital 01/2023 - Atualizado\", \"cargos\": [1, 2]}")
+                    examples = @ExampleObject(value = "{\"id\": 1, \"instituicao\": {\"id\": 1, \"nome\": \"Polícia Federal\", \"area\": \"Policial\"}, \"banca\": {\"id\": 1, \"nome\": \"Cebraspe\"}, \"ano\": 2023, \"mes\": 6, \"edital\": \"Edital 01/2023 - Atualizado\", \"cargos\": [{\"id\": 1, \"nome\": \"Agente\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\"}]}")
                 )),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",
