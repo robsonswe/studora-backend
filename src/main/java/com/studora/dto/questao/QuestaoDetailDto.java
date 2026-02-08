@@ -23,10 +23,6 @@ public class QuestaoDetailDto {
     @JsonView(Views.RespostaOculta.class)
     private Long concursoId;
 
-    @Schema(description = "Dados do concurso ao qual a questão pertence")
-    @JsonView(Views.RespostaOculta.class)
-    private ConcursoSummaryDto concurso;
-
     @Schema(description = "Texto do enunciado da questão", example = "Qual é a capital do Brasil?")
     @JsonView(Views.RespostaOculta.class)
     private String enunciado;
@@ -46,10 +42,6 @@ public class QuestaoDetailDto {
     @Schema(description = "IDs dos subtemas associados à questão", example = "[1, 2]")
     @JsonView(Views.RespostaOculta.class)
     private List<Long> subtemaIds;
-
-    @Schema(description = "Dados dos subtemas associados à questão")
-    @JsonView(Views.RespostaOculta.class)
-    private List<SubtemaSummaryDto> subtemas;
 
     @Schema(description = "IDs dos cargos associados à questão", example = "[1]")
     @JsonView(Views.RespostaOculta.class)

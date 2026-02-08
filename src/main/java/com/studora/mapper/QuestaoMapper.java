@@ -16,12 +16,12 @@ public interface QuestaoMapper {
     @Mapping(target = "cargos", source = "questaoCargos")
     @Mapping(target = "alternativas", source = "alternativas")
     @Mapping(target = "respostas", source = "respostas")
+    @Mapping(target = "subtemaIds", source = "subtemas")
     QuestaoSummaryDto toSummaryDto(Questao questao);
 
     @Mapping(target = "concursoId", source = "concurso.id")
-    @Mapping(target = "concurso", source = "concurso")
     @Mapping(target = "alternativas", source = "alternativas")
-    @Mapping(target = "subtemas", source = "subtemas")
+    @Mapping(target = "subtemaIds", source = "subtemas")
     @Mapping(target = "cargos", source = "questaoCargos")
     @Mapping(target = "respostas", source = "respostas")
     QuestaoDetailDto toDetailDto(Questao questao);
@@ -52,6 +52,16 @@ public interface QuestaoMapper {
         }
         return questaoCargos.stream()
                 .map(qc -> qc.getConcursoCargo().getCargo().getId())
+                .sorted()
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    default java.util.List<Long> mapSubtemas(java.util.Set<com.studora.entity.Subtema> subtemas) {
+        if (subtemas == null) {
+            return java.util.Collections.emptyList();
+        }
+        return subtemas.stream()
+                .map(com.studora.entity.Subtema::getId)
                 .sorted()
                 .collect(java.util.stream.Collectors.toList());
     }

@@ -65,7 +65,6 @@ class QuestaoServiceTest {
         respostaMapper = org.mapstruct.factory.Mappers.getMapper(RespostaMapper.class);
         
         ReflectionTestUtils.setField(questaoMapper, "alternativaMapper", alternativaMapper);
-        ReflectionTestUtils.setField(questaoMapper, "subtemaMapper", subtemaMapper);
         ReflectionTestUtils.setField(questaoMapper, "respostaMapper", respostaMapper);
 
         questaoService = new QuestaoService(
