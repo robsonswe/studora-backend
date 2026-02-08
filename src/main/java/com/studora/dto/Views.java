@@ -5,6 +5,11 @@ public class Views {
      * View básica (ex: listagens).
      */
     public interface Summary {}
+
+    /**
+     * View para o retorno da geração do simulado (inclui todos os filtros).
+     */
+    public interface Geracao extends Summary {}
     
     /**
      * View para exibir detalhes do objeto mas OMITIR gabarito, justificativas e histórico.

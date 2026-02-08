@@ -59,6 +59,14 @@ public class SimuladoService {
     public SimuladoDetailDto gerarSimulado(SimuladoGenerationRequest request) {
         log.info("Gerando simulado: {}", request.getNome());
         
+        boolean atLeastOneSelection = (request.getDisciplinas() != null && !request.getDisciplinas().isEmpty()) ||
+                                     (request.getTemas() != null && !request.getTemas().isEmpty()) ||
+                                     (request.getSubtemas() != null && !request.getSubtemas().isEmpty());
+        
+        if (!atLeastOneSelection) {
+            throw new ValidationException("Pelo menos uma seleção (disciplinas, temas ou subtemas) deve ser fornecida.");
+        }
+
         int totalSubtemas = request.getSubtemas() != null ? request.getSubtemas().stream().mapToInt(SimuladoGenerationRequest.ItemSelection::getQuantidade).sum() : 0;
         int totalTemas = request.getTemas() != null ? request.getTemas().stream().mapToInt(SimuladoGenerationRequest.ItemSelection::getQuantidade).sum() : 0;
         int totalDisciplinas = request.getDisciplinas() != null ? request.getDisciplinas().stream().mapToInt(SimuladoGenerationRequest.ItemSelection::getQuantidade).sum() : 0;
@@ -70,6 +78,28 @@ public class SimuladoService {
 
         Simulado simulado = new Simulado();
         simulado.setNome(request.getNome());
+        simulado.setBancaId(request.getBancaId());
+        simulado.setCargoId(request.getCargoId());
+        simulado.setAreas(request.getAreas());
+        simulado.setNivel(request.getNivel());
+        simulado.setIgnorarRespondidas(request.getIgnorarRespondidas());
+        
+        if (request.getDisciplinas() != null) {
+            simulado.setDisciplinas(request.getDisciplinas().stream()
+                .map(i -> new com.studora.entity.SimuladoItemSelection(i.getId(), i.getQuantidade()))
+                .collect(Collectors.toList()));
+        }
+        if (request.getTemas() != null) {
+            simulado.setTemas(request.getTemas().stream()
+                .map(i -> new com.studora.entity.SimuladoItemSelection(i.getId(), i.getQuantidade()))
+                .collect(Collectors.toList()));
+        }
+        if (request.getSubtemas() != null) {
+            simulado.setSubtemas(request.getSubtemas().stream()
+                .map(i -> new com.studora.entity.SimuladoItemSelection(i.getId(), i.getQuantidade()))
+                .collect(Collectors.toList()));
+        }
+
         Set<Long> collectedIds = new HashSet<>();
 
         // 1. Subtemas (Mais específicos)
@@ -99,8 +129,12 @@ public class SimuladoService {
             }
         }
 
+        if (collectedIds.size() < totalRequested) {
+            throw new ValidationException("Não foi possível encontrar o número solicitado de questões. Solicitadas: " + totalRequested + ", encontradas: " + collectedIds.size());
+        }
+
         List<Questao> questions = questaoRepository.findAllById(collectedIds);
-        simulado.setQuestoes(new HashSet<>(questions));
+        simulado.setQuestoes(new ArrayList<>(questions));
 
         return simuladoMapper.toDetailDto(simuladoRepository.save(simulado));
     }
@@ -119,10 +153,12 @@ public class SimuladoService {
         Simulado simulado = simuladoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Simulado", "ID", id));
         
-        if (simulado.getStartedAt() == null) {
-            simulado.setStartedAt(LocalDateTime.now());
-            simulado = simuladoRepository.save(simulado);
+        if (simulado.getStartedAt() != null) {
+            throw new ValidationException("Este simulado já foi iniciado.");
         }
+
+        simulado.setStartedAt(LocalDateTime.now());
+        simulado = simuladoRepository.save(simulado);
         return simuladoMapper.toDetailDto(simulado);
     }
 
@@ -131,7 +167,7 @@ public class SimuladoService {
                 .orElseThrow(() -> new ResourceNotFoundException("Simulado", "ID", id));
         
         if (simulado.getFinishedAt() != null) {
-            return simuladoMapper.toDetailDto(simulado);
+            throw new ValidationException("Este simulado já foi finalizado.");
         }
 
         int totalQuestions = simulado.getQuestoes().size();

@@ -1,8 +1,10 @@
 package com.studora.mapper;
 
 import com.studora.dto.simulado.SimuladoDetailDto;
+import com.studora.dto.simulado.SimuladoItemSelectionDto;
 import com.studora.dto.simulado.SimuladoSummaryDto;
 import com.studora.entity.Simulado;
+import com.studora.entity.SimuladoItemSelection;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -21,4 +23,10 @@ public interface SimuladoMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Simulado toEntity(SimuladoSummaryDto dto);
+
+    @Mapping(target = "id", source = "itemId")
+    SimuladoItemSelectionDto toItemSelectionDto(SimuladoItemSelection entity);
+
+    @Mapping(target = "itemId", source = "id")
+    SimuladoItemSelection toItemSelectionEntity(SimuladoItemSelectionDto dto);
 }

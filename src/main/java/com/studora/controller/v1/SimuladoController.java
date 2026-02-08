@@ -1,11 +1,15 @@
 package com.studora.controller.v1;
 
 import com.fasterxml.jackson.annotation.JsonView;
+import com.studora.dto.PageResponse;
 import com.studora.dto.Views;
 import com.studora.dto.simulado.SimuladoDetailDto;
+import com.studora.dto.simulado.SimuladoSummaryDto;
 import com.studora.dto.request.SimuladoGenerationRequest;
 import com.studora.service.SimuladoService;
+import com.studora.util.PaginationUtils;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -13,6 +17,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.json.MappingJacksonValue;
@@ -26,25 +33,47 @@ public class SimuladoController {
 
     private final SimuladoService simuladoService;
 
+    @GetMapping
+    @JsonView(Views.Geracao.class)
+    @Operation(
+        summary = "Listar simulados",
+        description = "Retorna uma lista paginada de simulados com seus filtros, mas sem as questões. Retorna 404 se nenhum simulado for encontrado."
+    )
+    @ApiResponse(responseCode = "200", description = "Lista de simulados")
+    @ApiResponse(responseCode = "404", description = "Nenhum simulado encontrado",
+        content = @Content(mediaType = "application/problem+json",
+            schema = @Schema(implementation = ProblemDetail.class)))
+    public PageResponse<SimuladoSummaryDto> listSimulados(
+            @Parameter(hidden = true) @PageableDefault(size = 20, sort = "createdAt", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable) {
+        org.springframework.data.domain.Page<SimuladoSummaryDto> page = simuladoService.findAll(pageable);
+        if (page.isEmpty()) {
+            throw new com.studora.exception.ResourceNotFoundException("Nenhum simulado encontrado");
+        }
+        return new PageResponse<>(page);
+    }
+
     @PostMapping("/gerar")
     @ResponseStatus(HttpStatus.CREATED)
-    @JsonView(Views.Summary.class)
+    @JsonView(Views.Geracao.class)
     @Operation(
         summary = "Gerar um novo simulado",
         responses = {
             @ApiResponse(responseCode = "201", description = "Simulado gerado com sucesso", 
                 content = @Content(
                     schema = @Schema(implementation = SimuladoDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Simulado Geral 2024\", \"status\": \"GERADO\"}")
+                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Simulado Geral 2024\", \"startedAt\": null, \"finishedAt\": null, \"bancaId\": 1, \"disciplinas\": [{\"id\": 1, \"quantidade\": 20}]}")
                 )),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class))),
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Bad Request\",\"status\":400,\"detail\":\"O nome do simulado é obrigatório\",\"instance\":\"/api/v1/simulados/gerar\"}"
+                    ))),
             @ApiResponse(responseCode = "422", description = "Questões insuficientes",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Entidade não processável\",\"status\":422,\"detail\":\"Não há questões suficientes para os critérios fornecidos.\",\"instance\":\"/api/v1/simulados/gerar\"}"
+                        value = "{\"type\":\"about:blank\",\"title\":\"Entidade não processável\",\"status\":422,\"detail\":\"Não foi possível encontrar o número solicitado de questões. Solicitadas: 20, encontradas: 5\",\"instance\":\"/api/v1/simulados/gerar\"}"
                     )))
         }
     )
@@ -61,12 +90,12 @@ public class SimuladoController {
                     schema = @Schema(implementation = SimuladoDetailDto.class),
                     examples = {
                         @ExampleObject(
-                            name = "Simulado em andamento",
-                            value = "{\"id\": 1, \"nome\": \"Simulado PC-SP\", \"questoes\": [{\"id\": 10, \"enunciado\": \"...\"}]}"
+                            name = "Gabarito Escondido",
+                            value = "{\"id\": 1, \"nome\": \"Simulado PC-SP\", \"questoes\": [{\"id\": 10, \"enunciado\": \"...\", \"alternativas\": [{\"id\": 1, \"texto\": \"...\"}]}]}"
                         ),
                         @ExampleObject(
-                            name = "Simulado finalizado",
-                            value = "{\"id\": 1, \"nome\": \"Simulado PC-SP\", \"finishedAt\": \"2024-02-06T18:00:00Z\", \"score\": 85.0}"
+                            name = "Gabarito Visível",
+                            value = "{\"id\": 1, \"nome\": \"Simulado PC-SP\", \"finishedAt\": \"2024-02-06T18:00:00Z\", \"questoes\": [{\"id\": 10, \"enunciado\": \"...\", \"alternativas\": [{\"id\": 1, \"texto\": \"...\", \"correta\": true}]}]}"
                         )
                     }
                 )),
@@ -92,14 +121,14 @@ public class SimuladoController {
     }
 
     @PatchMapping("/{id}/iniciar")
-    @JsonView(Views.RespostaOculta.class)
+    @JsonView(Views.Summary.class)
     @Operation(
         summary = "Registrar início do simulado",
         responses = {
             @ApiResponse(responseCode = "200", description = "Simulado iniciado", 
                 content = @Content(
                     schema = @Schema(implementation = SimuladoDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Simulado PC-SP\", \"startedAt\": \"2024-02-06T18:00:00Z\"}")
+                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Simulado PC-SP\", \"startedAt\": \"2024-02-06T18:00:00Z\", \"finishedAt\": null}")
                 )),
             @ApiResponse(responseCode = "404", description = "Simulado não encontrado",
                 content = @Content(mediaType = "application/problem+json",
@@ -120,14 +149,14 @@ public class SimuladoController {
     }
 
     @PatchMapping("/{id}/finalizar")
-    @JsonView(Views.RespostaVisivel.class)
+    @JsonView(Views.Summary.class)
     @Operation(
         summary = "Registrar término do simulado",
         responses = {
             @ApiResponse(responseCode = "200", description = "Simulado finalizado", 
                 content = @Content(
                     schema = @Schema(implementation = SimuladoDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Simulado PC-SP\", \"finishedAt\": \"2024-02-06T20:00:00Z\"}")
+                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Simulado PC-SP\", \"startedAt\": \"2024-02-06T18:00:00Z\", \"finishedAt\": \"2024-02-06T20:00:00Z\"}")
                 )),
             @ApiResponse(responseCode = "404", description = "Simulado não encontrado",
                 content = @Content(mediaType = "application/problem+json",

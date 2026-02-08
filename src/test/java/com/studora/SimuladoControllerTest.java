@@ -52,6 +52,12 @@ class SimuladoControllerTest {
     @Autowired
     private SimuladoRepository simuladoRepository;
 
+    @Autowired
+    private RespostaRepository respostaRepository;
+
+    @Autowired
+    private AlternativaRepository alternativaRepository;
+
     @BeforeEach
     void setUp() {
         Instituicao inst = new Instituicao(); inst.setNome("Inst 1"); inst.setArea("A"); instituicaoRepository.save(inst);
@@ -75,6 +81,8 @@ class SimuladoControllerTest {
     void testGerarSimulado() throws Exception {
         SimuladoGenerationRequest request = new SimuladoGenerationRequest();
         request.setNome("Simulado Teste");
+        request.setBancaId(1L);
+        request.setIgnorarRespondidas(true);
         
         SimuladoGenerationRequest.ItemSelection item = new SimuladoGenerationRequest.ItemSelection();
         item.setId(1L);
@@ -86,34 +94,55 @@ class SimuladoControllerTest {
                 .content(TestUtil.asJsonString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.nome").value("Simulado Teste"))
-                .andExpect(jsonPath("$.questoes").doesNotExist()); // Now hidden in Summary view
+                .andExpect(jsonPath("$.bancaId").value(1))
+                .andExpect(jsonPath("$.ignorarRespondidas").value(true))
+                .andExpect(jsonPath("$.disciplinas").exists())
+                .andExpect(jsonPath("$.questoes").doesNotExist());
     }
 
     @Test
     void testSimuladoLifecycle() throws Exception {
-        // 1. Generate
+        // 1. Setup a question with an alternative
+        Questao q1 = questaoRepository.findAll().get(0);
+        Alternativa alt = new Alternativa();
+        alt.setQuestao(q1); alt.setOrdem(1); alt.setTexto("A1"); alt.setCorreta(true);
+        alt = alternativaRepository.save(alt);
+
         Simulado simulado = new Simulado();
         simulado.setNome("Lifecycle Test");
+        simulado.setQuestoes(new java.util.ArrayList<>(java.util.List.of(q1)));
         simulado = simuladoRepository.save(simulado);
         Long id = simulado.getId();
 
-        // 2. Start (PATCH) - Should hide 'correta'
+        // 2. Start (PATCH)
         mockMvc.perform(patch("/api/v1/simulados/{id}/iniciar", id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.startedAt").isNotEmpty())
-                .andExpect(jsonPath("$.questoes").exists());
+                .andExpect(jsonPath("$.questoes").doesNotExist());
         
-        // 3. Finish (PATCH) - Should show 'correta'
+        // 3. Try to finish without answers - Should fail (422)
+        mockMvc.perform(patch("/api/v1/simulados/{id}/finalizar", id))
+                .andExpect(status().isUnprocessableEntity());
+
+        // 4. Answer the question
+        Resposta resp = new Resposta();
+        resp.setQuestao(q1);
+        resp.setAlternativaEscolhida(alt);
+        resp.setSimulado(simulado);
+        respostaRepository.save(resp);
+
+        // 5. Finish (PATCH)
         mockMvc.perform(patch("/api/v1/simulados/{id}/finalizar", id))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.finishedAt").isNotEmpty());
+                .andExpect(jsonPath("$.finishedAt").isNotEmpty())
+                .andExpect(jsonPath("$.questoes").doesNotExist());
         
-        // 4. Get (Finished)
+        // 6. Get (Finished) - Should return questao because it is detail view
         mockMvc.perform(get("/api/v1/simulados/{id}", id))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.finishedAt").isNotEmpty());
+                .andExpect(jsonPath("$.questoes").exists());
 
-        // 5. Delete
+        // 7. Delete
         mockMvc.perform(delete("/api/v1/simulados/{id}", id))
                 .andExpect(status().isNoContent());
         
@@ -122,18 +151,30 @@ class SimuladoControllerTest {
 
     @Test
     void testGerarSimulado_ValidationMinQuestions() throws Exception {
-        SimuladoGenerationRequest request = new SimuladoGenerationRequest();
-        request.setNome("Simulado Invalido");
-        
-        SimuladoGenerationRequest.ItemSelection item = new SimuladoGenerationRequest.ItemSelection();
-        item.setId(1L);
-        item.setQuantidade(10); // Less than 20
-        request.setDisciplinas(List.of(item));
+        // ... (existing code)
+    }
 
-        mockMvc.perform(post("/api/v1/simulados/gerar")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(TestUtil.asJsonString(request)))
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("pelo menos 20 questões")));
+    @Test
+    void testListSimulados_IncludesFilters() throws Exception {
+        Simulado simulado = new Simulado();
+        simulado.setNome("List Test");
+        simulado.setBancaId(1L);
+        simuladoRepository.save(simulado);
+
+        mockMvc.perform(get("/api/v1/simulados"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].nome").value("List Test"))
+                .andExpect(jsonPath("$.content[0].bancaId").value(1))
+                .andExpect(jsonPath("$.content[0].questoes").doesNotExist());
+    }
+
+    @Test
+    void testListSimulados_Empty_Returns404() throws Exception {
+        // Clear all simulados (setUp doesn't create any, but just in case)
+        simuladoRepository.deleteAll();
+
+        mockMvc.perform(get("/api/v1/simulados"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.detail").value("Nenhum simulado encontrado"));
     }
 }

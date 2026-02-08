@@ -115,7 +115,7 @@ class SimuladoServiceTest {
         simulado.setStartedAt(java.time.LocalDateTime.now().minusHours(1));
 
         Questao q1 = new Questao(); q1.setId(10L);
-        simulado.setQuestoes(new java.util.LinkedHashSet<>(java.util.List.of(q1)));
+        simulado.setQuestoes(new java.util.ArrayList<>(java.util.List.of(q1)));
 
         when(simuladoRepository.findByIdWithQuestoes(1L)).thenReturn(Optional.of(simulado));
         when(respostaRepository.countBySimuladoId(1L)).thenReturn(1);
@@ -138,7 +138,7 @@ class SimuladoServiceTest {
 
         Questao q1 = new Questao(); q1.setId(10L);
         Questao q2 = new Questao(); q2.setId(11L);
-        simulado.setQuestoes(new java.util.LinkedHashSet<>(java.util.List.of(q1, q2)));
+        simulado.setQuestoes(new java.util.ArrayList<>(java.util.List.of(q1, q2)));
 
         when(simuladoRepository.findByIdWithQuestoes(1L)).thenReturn(Optional.of(simulado));
         // Only one question answered

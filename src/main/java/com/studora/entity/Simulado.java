@@ -34,14 +34,53 @@ public class Simulado extends BaseEntity {
     @Schema(description = "Data e hora de término do simulado")
     private LocalDateTime finishedAt;
 
+    @Column(name = "banca_id")
+    @Schema(description = "ID da banca de preferência usada na geração")
+    private Long bancaId;
+
+    @Column(name = "cargo_id")
+    @Schema(description = "ID do cargo de preferência usado na geração")
+    private Long cargoId;
+
+    @ElementCollection
+    @CollectionTable(name = "simulado_area", joinColumns = @JoinColumn(name = "simulado_id"))
+    @Column(name = "area")
+    @Schema(description = "Áreas de preferência usadas na geração")
+    private java.util.List<String> areas;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "nivel")
+    @Schema(description = "Nível do cargo usado como teto na geração")
+    private NivelCargo nivel;
+
+    @Column(name = "ignorar_respondidas")
+    @Schema(description = "Se questões respondidas foram ignoradas na geração")
+    private Boolean ignorarRespondidas;
+
+    @ElementCollection
+    @CollectionTable(name = "simulado_disciplina", joinColumns = @JoinColumn(name = "simulado_id"))
+    @Schema(description = "Seleção de disciplinas usadas na geração")
+    private java.util.List<SimuladoItemSelection> disciplinas;
+
+    @ElementCollection
+    @CollectionTable(name = "simulado_tema", joinColumns = @JoinColumn(name = "simulado_id"))
+    @Schema(description = "Seleção de temas usados na geração")
+    private java.util.List<SimuladoItemSelection> temas;
+
+    @ElementCollection
+    @CollectionTable(name = "simulado_subtema", joinColumns = @JoinColumn(name = "simulado_id"))
+    @Schema(description = "Seleção de subtemas usados na geração")
+    private java.util.List<SimuladoItemSelection> subtemas;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "simulado_questao",
         joinColumns = @JoinColumn(name = "simulado_id"),
         inverseJoinColumns = @JoinColumn(name = "questao_id")
     )
+    @OrderColumn(name = "ordem")
     @Schema(description = "Questões que compõem este simulado")
-    private Set<Questao> questoes = new LinkedHashSet<>();
+    private java.util.List<Questao> questoes = new java.util.ArrayList<>();
 
     @Override
     public boolean equals(Object o) {
