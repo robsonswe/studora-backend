@@ -132,7 +132,8 @@ public class QuestaoController {
     @Operation(
         summary = "Obter questão por ID",
         description = "Retorna os detalhes de uma questão. O gabarito (campo 'correta' e 'justificativa') e o histórico de respostas são VISÍVEIS " +
-                      "apenas se a questão tiver sido respondida nos últimos 30 dias (1 mês). Caso contrário (não respondida ou resposta antiga), o gabarito é ocultado.",
+                      "apenas se a questão tiver sido respondida nos últimos 30 dias (1 mês). Caso contrário (não respondida ou resposta antiga), o gabarito é ocultado. " +
+                      "Use o parâmetro 'admin=true' para forçar a exibição do gabarito.",
         responses = {
             @ApiResponse(responseCode = "200", description = "Questão encontrada", 
                 content = @Content(
@@ -143,7 +144,7 @@ public class QuestaoController {
                             value = "{\"id\": 1, \"enunciado\": \"Questão exemplo?\", \"concursoId\": 1, \"anulada\": false, \"desatualizada\": false, \"imageUrl\": null, \"cargos\": [1], \"alternativas\": [{\"id\": 1, \"texto\": \"Opção A\"}]}"
                         ),
                         @ExampleObject(
-                            name = "Gabarito Visível (Respondida recentemente)",
+                            name = "Gabarito Visível (Respondida recentemente ou admin=true)",
                             value = "{\"id\": 1, \"enunciado\": \"Questão exemplo?\", \"concursoId\": 1, \"anulada\": false, \"desatualizada\": false, \"imageUrl\": null, \"cargos\": [1], \"alternativas\": [{\"id\": 1, \"texto\": \"Opção A\", \"correta\": true, \"justificativa\": \"Explicação...\"}], \"respostas\": [{\"id\": 10, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"createdAt\": \"2026-02-07T10:00:00\"}]}"
                         )
                     }
@@ -157,8 +158,18 @@ public class QuestaoController {
         }
     )
     @GetMapping("/{id}")
-    public MappingJacksonValue getQuestaoById(@PathVariable Long id) {
+    public MappingJacksonValue getQuestaoById(
+            @PathVariable Long id,
+            @Parameter(description = "Se verdadeiro, força a exibição do gabarito mesmo sem respostas recentes.")
+            @RequestParam(required = false, defaultValue = "false") boolean admin) {
         QuestaoDetailDto questao = questaoService.getQuestaoDetailById(id);
+        
+        if (admin) {
+            MappingJacksonValue wrapper = new MappingJacksonValue(questao);
+            wrapper.setSerializationView(com.studora.dto.Views.QuestaoVisivel.class);
+            return wrapper;
+        }
+        
         return wrapWithView(questao);
     }
 

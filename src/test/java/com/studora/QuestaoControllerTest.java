@@ -252,6 +252,35 @@ class QuestaoControllerTest {
     }
 
     @Test
+    void testGetQuestaoById_VisibleIfAdmin() throws Exception {
+        Questao questao = new Questao();
+        questao.setEnunciado("Admin Test");
+        questao.setConcurso(concurso);
+        questao = questaoRepository.save(questao);
+
+        com.studora.entity.Alternativa alt = new com.studora.entity.Alternativa();
+        alt.setQuestao(questao);
+        alt.setOrdem(1); alt.setTexto("A"); alt.setCorreta(true);
+        alt.setJustificativa("Justificativa Admin");
+        alt = alternativaRepository.save(alt);
+        questao.getAlternativas().add(alt);
+
+        // Without admin: hidden (since no responses)
+        mockMvc
+            .perform(get("/api/v1/questoes/" + questao.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.alternativas[0].correta").doesNotExist());
+
+        // With admin=true: visible
+        mockMvc
+            .perform(get("/api/v1/questoes/" + questao.getId()).param("admin", "true"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.alternativas[0].correta").exists())
+            .andExpect(jsonPath("$.alternativas[0].correta").value(true))
+            .andExpect(jsonPath("$.alternativas[0].justificativa").value("Justificativa Admin"));
+    }
+
+    @Test
     void testGetQuestaoById_NotFound() throws Exception {
         mockMvc
             .perform(get("/api/v1/questoes/{id}", 99999L))
