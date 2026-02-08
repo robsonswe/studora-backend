@@ -12,6 +12,9 @@ public class TemaSummaryDto {
     @Schema(description = "ID da disciplina à qual o tema pertence", example = "1")
     private Long disciplinaId;
 
+    @Schema(description = "Nome da disciplina à qual o tema pertence", example = "Direito Constitucional")
+    private String disciplinaNome;
+
     @Schema(description = "Nome do tema", example = "Direitos Fundamentais")
     private String nome;
 }

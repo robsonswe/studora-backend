@@ -13,6 +13,7 @@ import org.mapstruct.MappingTarget;
 public interface TemaMapper {
 
     @Mapping(target = "disciplinaId", source = "disciplina.id")
+    @Mapping(target = "disciplinaNome", source = "disciplina.nome")
     TemaSummaryDto toSummaryDto(Tema tema);
 
     @Mapping(target = "disciplina", source = "disciplina")

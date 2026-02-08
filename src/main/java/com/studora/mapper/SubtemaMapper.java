@@ -13,6 +13,9 @@ import org.mapstruct.MappingTarget;
 public interface SubtemaMapper {
 
     @Mapping(target = "temaId", source = "tema.id")
+    @Mapping(target = "temaNome", source = "tema.nome")
+    @Mapping(target = "disciplinaId", source = "tema.disciplina.id")
+    @Mapping(target = "disciplinaNome", source = "tema.disciplina.nome")
     SubtemaSummaryDto toSummaryDto(Subtema subtema);
 
     @Mapping(target = "tema", source = "tema")

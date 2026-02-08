@@ -47,7 +47,7 @@ public class TemaController {
                 content = @Content(
                     mediaType = "application/json",
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\"}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 ))
         }
@@ -74,7 +74,7 @@ public class TemaController {
             @ApiResponse(responseCode = "200", description = "Tema encontrado", 
                 content = @Content(
                     schema = @Schema(implementation = TemaDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1}")
+                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\"}")
                 )),
             @ApiResponse(responseCode = "404", description = "Tema não encontrado")
         }
@@ -91,7 +91,7 @@ public class TemaController {
                 content = @Content(
                     mediaType = "application/json",
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1}]"
+                        value = "[{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\"}]"
                     )
                 ))
         }
@@ -107,7 +107,7 @@ public class TemaController {
             @ApiResponse(responseCode = "201", description = "Tema criado com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = TemaDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 2, \"nome\": \"Organização do Estado\", \"disciplinaId\": 1}")
+                    examples = @ExampleObject(value = "{\"id\": 2, \"nome\": \"Organização do Estado\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\"}")
                 )),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",
@@ -129,7 +129,7 @@ public class TemaController {
             @ApiResponse(responseCode = "200", description = "Tema atualizado com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = TemaDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Direitos Fundamentais Atualizado\", \"disciplinaId\": 1}")
+                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Direitos Fundamentais Atualizado\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\"}")
                 )),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",
