@@ -53,6 +53,18 @@ public class QuestaoSpecification {
                 predicates.add(cb.equal(root.join("questaoCargos").get("concursoCargo").get("cargo").get("id"), filter.getCargoId()));
             }
 
+            if (filter.getInstituicaoArea() != null) {
+                predicates.add(cb.equal(cb.lower(root.get("concurso").get("instituicao").get("area")), filter.getInstituicaoArea().toLowerCase()));
+            }
+
+            if (filter.getCargoArea() != null) {
+                predicates.add(cb.equal(cb.lower(root.join("questaoCargos").get("concursoCargo").get("cargo").get("area")), filter.getCargoArea().toLowerCase()));
+            }
+
+            if (filter.getCargoNivel() != null) {
+                predicates.add(cb.equal(root.join("questaoCargos").get("concursoCargo").get("cargo").get("nivel"), filter.getCargoNivel()));
+            }
+
             // Taxonomy branch
             if (filter.getSubtemaId() != null) {
                 predicates.add(cb.equal(root.join("subtemas").get("id"), filter.getSubtemaId()));

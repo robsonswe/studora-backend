@@ -28,6 +28,15 @@ public class QuestaoFilter {
     @Schema(description = "Filtrar por ID do subtema", example = "1")
     private Long subtemaId;
 
+    @Schema(description = "Filtrar por área da instituição", example = "Judiciária")
+    private String instituicaoArea;
+
+    @Schema(description = "Filtrar por área do cargo", example = "Tecnologia da Informação")
+    private String cargoArea;
+
+    @Schema(description = "Filtrar por nível do cargo", example = "SUPERIOR")
+    private com.studora.entity.NivelCargo cargoNivel;
+
     @Schema(description = "Filtrar por questões anuladas (true) ou não anuladas (false)", example = "false")
     private Boolean anulada;
 

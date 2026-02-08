@@ -73,11 +73,13 @@ public class QuestaoService {
         QuestaoFilter filter = new QuestaoFilter();
         filter.setBancaId(randomFilter.getBancaId());
         filter.setInstituicaoId(randomFilter.getInstituicaoId());
-        filter.setConcursoId(randomFilter.getConcursoId());
         filter.setCargoId(randomFilter.getCargoId());
         filter.setDisciplinaId(randomFilter.getDisciplinaId());
         filter.setTemaId(randomFilter.getTemaId());
         filter.setSubtemaId(randomFilter.getSubtemaId());
+        filter.setInstituicaoArea(randomFilter.getInstituicaoArea());
+        filter.setCargoArea(randomFilter.getCargoArea());
+        filter.setCargoNivel(randomFilter.getCargoNivel());
         
         // 1. Force desatualizada to false (not an option for random endpoint)
         filter.setDesatualizada(false);

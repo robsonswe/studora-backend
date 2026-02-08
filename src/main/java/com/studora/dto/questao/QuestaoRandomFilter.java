@@ -13,9 +13,6 @@ public class QuestaoRandomFilter {
     @Schema(description = "Filtrar por ID da instituição", example = "1")
     private Long instituicaoId;
 
-    @Schema(description = "Filtrar por ID do concurso", example = "1")
-    private Long concursoId;
-
     @Schema(description = "Filtrar por ID do cargo", example = "1")
     private Long cargoId;
 
@@ -27,6 +24,15 @@ public class QuestaoRandomFilter {
 
     @Schema(description = "Filtrar por ID do subtema", example = "1")
     private Long subtemaId;
+
+    @Schema(description = "Filtrar por área da instituição", example = "Judiciária")
+    private String instituicaoArea;
+
+    @Schema(description = "Filtrar por área do cargo", example = "Tecnologia da Informação")
+    private String cargoArea;
+
+    @Schema(description = "Filtrar por nível do cargo", example = "SUPERIOR")
+    private com.studora.entity.NivelCargo cargoNivel;
 
     @Schema(description = "Filtrar por questões anuladas (true) ou não anuladas (false). Padrão: false.", example = "false")
     @io.swagger.v3.oas.annotations.Parameter(description = "Se verdadeiro, permite que questões anuladas sejam retornadas. Por padrão, elas são excluídas.")
