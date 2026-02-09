@@ -87,7 +87,7 @@ public class SimuladoController {
     @Operation(
         summary = "Obter detalhes de um simulado",
         responses = {
-            @ApiResponse(responseCode = "200", description = "Simulado encontrado", 
+            @ApiResponse(responseCode = "200", description = "Simulado encontrado",
                 content = @Content(
                     schema = @Schema(implementation = SimuladoDetailDto.class),
                     examples = {
@@ -113,11 +113,8 @@ public class SimuladoController {
         SimuladoDetailDto detail = simuladoService.getSimuladoDetailById(id);
         MappingJacksonValue wrapper = new MappingJacksonValue(detail);
 
-        if (detail.getFinishedAt() != null) {
-            wrapper.setSerializationView(Views.RespostaVisivel.class);
-        } else {
-            wrapper.setSerializationView(Views.RespostaOculta.class);
-        }
+        // Always show responses for simulado context - filtering is handled by business logic
+        wrapper.setSerializationView(Views.RespostaVisivel.class);
 
         return wrapper;
     }

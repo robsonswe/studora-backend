@@ -3,6 +3,7 @@ package com.studora.entity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(
@@ -48,13 +49,13 @@ public class Alternativa extends BaseEntity {
     @Schema(description = "Justificativa da alternativa", example = "Esta é a alternativa correta porque...")
     private String justificativa;
 
-    @OneToOne(
+    @OneToMany(
         mappedBy = "alternativaEscolhida",
         cascade = CascadeType.ALL,
         fetch = FetchType.LAZY
     )
-    @Schema(description = "Resposta associada a esta alternativa")
-    private Resposta resposta;
+    @Schema(description = "Respostas associadas a esta alternativa")
+    private Set<Resposta> respostas = new java.util.LinkedHashSet<>();
 
 
     public Alternativa() {}
@@ -108,12 +109,12 @@ public class Alternativa extends BaseEntity {
         this.justificativa = (justificativa != null && !justificativa.trim().isEmpty()) ? justificativa : null;
     }
 
-    public Resposta getResposta() {
-        return resposta;
+    public Set<Resposta> getRespostas() {
+        return respostas;
     }
 
-    public void setResposta(Resposta resposta) {
-        this.resposta = resposta;
+    public void setRespostas(Set<Resposta> respostas) {
+        this.respostas = respostas;
     }
 
 }

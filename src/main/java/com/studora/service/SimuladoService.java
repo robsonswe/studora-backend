@@ -5,6 +5,7 @@ import com.studora.dto.simulado.SimuladoDetailDto;
 import com.studora.dto.request.SimuladoGenerationRequest;
 import com.studora.dto.simulado.SimuladoSummaryDto;
 import com.studora.entity.Questao;
+import com.studora.entity.Resposta;
 import com.studora.entity.Simulado;
 import com.studora.exception.ResourceNotFoundException;
 import com.studora.exception.ValidationException;
@@ -12,6 +13,7 @@ import com.studora.mapper.SimuladoMapper;
 import com.studora.repository.QuestaoRepository;
 import com.studora.repository.RespostaRepository;
 import com.studora.repository.SimuladoRepository;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -60,7 +62,37 @@ public class SimuladoService {
     public SimuladoDetailDto getSimuladoDetailById(Long id) {
         Simulado simulado = simuladoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Simulado", "ID", id));
+        
+        // Get all responses for this specific simulado
+        List<Resposta> simuladoResponses = respostaRepository.findBySimuladoId(id);
+        
         SimuladoDetailDto dto = simuladoMapper.toDetailDto(simulado);
+        
+        // Process the DTO to filter responses to only include those for this simulado
+        if (dto.getQuestoes() != null) {
+            for (var questaoDto : dto.getQuestoes()) {
+                if (questaoDto.getRespostas() != null) {
+                    // Filter responses to only include those that belong to this simulado
+                    List<com.studora.dto.resposta.RespostaSummaryDto> filteredResponses = 
+                        questaoDto.getRespostas().stream()
+                            .filter(resp -> resp.getSimuladoId() != null && resp.getSimuladoId().equals(id))
+                            .collect(Collectors.toList());
+                    
+                    questaoDto.setRespostas(filteredResponses);
+
+                    // If not answered in this simulado, hide the correct answers and justifications
+                    if (filteredResponses.isEmpty()) {
+                        if (questaoDto.getAlternativas() != null) {
+                            questaoDto.getAlternativas().forEach(a -> {
+                                a.setCorreta(null);
+                                a.setJustificativa(null);
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        
         enrichSimuladoDto(simulado, dto);
         return dto;
     }
@@ -146,8 +178,8 @@ public class SimuladoService {
             }
         }
 
-        if (collectedIds.size() < totalRequested) {
-            throw new ValidationException("Não foi possível encontrar o número solicitado de questões. Solicitadas: " + totalRequested + ", encontradas: " + collectedIds.size());
+        if (collectedIds.size() < 20) {
+            throw new ValidationException("Não foi possível encontrar o número mínimo de 20 questões para gerar o simulado. Encontradas: " + collectedIds.size());
         }
 
         List<Questao> questions = questaoRepository.findAllById(collectedIds);
