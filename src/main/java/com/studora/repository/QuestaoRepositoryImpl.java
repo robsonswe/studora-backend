@@ -2,6 +2,7 @@ package com.studora.repository;
 
 import com.studora.dto.request.SimuladoGenerationRequest;
 import com.studora.entity.NivelCargo;
+import java.time.LocalDateTime;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
@@ -91,8 +92,13 @@ public class QuestaoRepositoryImpl implements QuestaoRepositoryCustom {
         }
 
         // Ignorar Respondidas
+        LocalDateTime threshold = LocalDateTime.now().minusMonths(1);
         if (Boolean.TRUE.equals(req.getIgnorarRespondidas())) {
+            // Stricter: Exclude ALL answered questions
             whereClauses.add("NOT EXISTS (SELECT 1 FROM Resposta r WHERE r.questao.id = q.id)");
+        } else {
+            // Default: Exclude only RECENTLY answered questions (within 30 days)
+            whereClauses.add("NOT EXISTS (SELECT 1 FROM Resposta r WHERE r.questao.id = q.id AND r.createdAt >= :threshold)");
         }
 
         // Nivel Filtering (Hard Constraint for 'Teto')
@@ -163,6 +169,10 @@ public class QuestaoRepositoryImpl implements QuestaoRepositoryCustom {
 
         // Set Parameters
         query.setParameter("scopeId", scopeId);
+        if (hql.indexOf(":threshold") != -1) {
+            query.setParameter("threshold", threshold);
+        }
+        
         if (excludeIds != null && !excludeIds.isEmpty() && !excludeIds.contains(-1L)) {
             query.setParameter("excludeIds", excludeIds);
         }

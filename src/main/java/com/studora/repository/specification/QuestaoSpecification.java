@@ -19,11 +19,7 @@ public class QuestaoSpecification {
             Root<Resposta> respostaRoot = subquery.from(Resposta.class);
             subquery.select(respostaRoot.get("questao").get("id"));
             
-            // Format threshold as ISO string for string comparison in SQLite
-            String thresholdStr = threshold.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-            
-            // Use cast to String for the column and compare with the literal string
-            subquery.where(cb.greaterThanOrEqualTo(respostaRoot.get("createdAt").as(String.class), thresholdStr));
+            subquery.where(cb.greaterThanOrEqualTo(respostaRoot.get("createdAt"), threshold));
             
             return cb.not(root.get("id").in(subquery));
         };

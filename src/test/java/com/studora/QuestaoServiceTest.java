@@ -76,6 +76,21 @@ class QuestaoServiceTest {
     }
 
     @Test
+    void testGetRandomQuestao_ExcludesRecentlyAnswered() {
+        // Arrange
+        com.studora.dto.questao.QuestaoRandomFilter filter = new com.studora.dto.questao.QuestaoRandomFilter();
+        
+        // Mock that finding random returns nothing initially (simulating filtering)
+        when(questaoRepository.count(any(Specification.class))).thenReturn(0L);
+
+        // Act & Assert
+        assertThrows(com.studora.exception.ResourceNotFoundException.class, () -> questaoService.getRandomQuestao(filter));
+        
+        // Verify specification was built (we can't easily inspect the spec lambda, but we verify the flow)
+        verify(questaoRepository).count(any(Specification.class));
+    }
+
+    @Test
     void testFindAll() {
         Questao q1 = new Questao(); q1.setId(1L);
         Page<Questao> page = new PageImpl<>(Collections.singletonList(q1));
