@@ -103,6 +103,8 @@ class RespostaServiceTest {
         RespostaCreateRequest req = new RespostaCreateRequest();
         req.setQuestaoId(1L);
         req.setAlternativaId(1L);
+        req.setDificuldadeId(1);
+        req.setJustificativa("Test reasoning");
 
         when(questaoRepository.findById(1L)).thenReturn(Optional.of(q));
         when(alternativaRepository.findById(1L)).thenReturn(Optional.of(alt));
