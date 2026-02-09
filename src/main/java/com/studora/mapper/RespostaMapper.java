@@ -28,5 +28,6 @@ public interface RespostaMapper {
     @Mapping(target = "simulado", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "dificuldade", expression = "java(com.studora.entity.Dificuldade.fromId(request.getDificuldadeId()))")
     Resposta toEntity(RespostaCreateRequest request);
 }

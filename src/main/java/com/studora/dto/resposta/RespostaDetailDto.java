@@ -37,6 +37,9 @@ public class RespostaDetailDto {
     @Schema(description = "ID do simulado ao qual a resposta pertence (opcional)", example = "1")
     private Long simuladoId;
 
+    @Schema(description = "Grau de dificuldade percebido pelo usuário")
+    private com.studora.entity.Dificuldade dificuldade;
+
     @Schema(description = "Data e hora em que a resposta foi registrada", example = "2023-06-15T10:30:00")
     private LocalDateTime createdAt;
     

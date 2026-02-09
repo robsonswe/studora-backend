@@ -45,7 +45,7 @@ public class RespostaController {
                 content = @Content(
                     mediaType = "application/json",
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"tempoRespostaSegundos\": 45}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"tempoRespostaSegundos\": 45, \"dificuldade\": \"MEDIA\"}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 ))
         }
@@ -67,9 +67,14 @@ public class RespostaController {
             @ApiResponse(responseCode = "200", description = "Resposta encontrada", 
                 content = @Content(
                     schema = @Schema(implementation = RespostaSummaryDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"tempoRespostaSegundos\": 45}")
+                    examples = @ExampleObject(value = "{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"tempoRespostaSegundos\": 45, \"dificuldade\": \"MEDIA\"}")
                 )),
-            @ApiResponse(responseCode = "404", description = "Resposta não encontrada")
+            @ApiResponse(responseCode = "404", description = "Resposta não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Resposta não encontrada com o ID fornecido.\",\"instance\":\"/api/v1/respostas/1\"}"
+                    )))
         }
     )
     @GetMapping("/{id}")
@@ -85,7 +90,7 @@ public class RespostaController {
                     mediaType = "application/json",
                     array = @ArraySchema(schema = @Schema(implementation = RespostaSummaryDto.class)),
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"tempoRespostaSegundos\": 45}]"
+                        value = "[{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"tempoRespostaSegundos\": 45, \"dificuldade\": \"MEDIA\"}]"
                     )
                 ))
         }
@@ -102,7 +107,7 @@ public class RespostaController {
                 content = @Content(
                     schema = @Schema(implementation = RespostaDetailDto.class),
                     examples = @ExampleObject(
-                        value = "{\"id\": 2, \"questaoId\": 1, \"alternativaId\": 2, \"correta\": true, \"justificativa\": \"Explicação...\", \"tempoRespostaSegundos\": 30}"
+                        value = "{\"id\": 1, \"questaoId\": 1, \"alternativaId\": 1, \"correta\": true, \"justificativa\": \"Raciocínio lógico...\", \"tempoRespostaSegundos\": 45, \"simuladoId\": 1, \"dificuldade\": \"MEDIA\", \"createdAt\": \"2026-02-08T23:43:45.023Z\", \"alternativas\": [{\"id\": 1, \"ordem\": 1, \"texto\": \"A resposta correta é a opção A\", \"correta\": true, \"justificativa\": \"Esta é a alternativa correta porque...\"}]}"
                     )
                 )),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
@@ -111,7 +116,12 @@ public class RespostaController {
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/v1/respostas\",\"errors\":{\"questaoId\":\"não deve ser nulo\"}}"
                     ))),
-            @ApiResponse(responseCode = "422", description = "Regras de negócio violadas (ex: questão anulada)")
+            @ApiResponse(responseCode = "422", description = "Regras de negócio violadas (ex: questão anulada)",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Entidade não processável\",\"status\":422,\"detail\":\"Não é possível responder a uma questão que foi anulada ou está desatualizada.\",\"instance\":\"/api/v1/respostas\"}"
+                    )))
         }
     )
     @PostMapping
@@ -123,7 +133,12 @@ public class RespostaController {
         summary = "Excluir resposta",
         responses = {
             @ApiResponse(responseCode = "204", description = "Resposta excluída com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Resposta não encontrada")
+            @ApiResponse(responseCode = "404", description = "Resposta não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Resposta não encontrada com o ID fornecido.\",\"instance\":\"/api/v1/respostas/1\"}"
+                    )))
         }
     )
     @DeleteMapping("/{id}")

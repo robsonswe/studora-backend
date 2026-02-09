@@ -29,6 +29,9 @@ public class RespostaSummaryDto {
     @Schema(description = "Justificativa da resposta", example = "Raciocínio lógico...")
     private String justificativa;
 
+    @Schema(description = "Grau de dificuldade percebido pelo usuário")
+    private com.studora.entity.Dificuldade dificuldade;
+
     @Schema(description = "Tempo levado para responder em segundos", example = "45")
     private Integer tempoRespostaSegundos;
 
