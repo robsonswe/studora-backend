@@ -7,7 +7,7 @@ import com.studora.entity.Resposta;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = {AlternativaMapper.class})
 public interface RespostaMapper {
 
     @Mapping(target = "questaoId", source = "questao.id")
@@ -20,6 +20,7 @@ public interface RespostaMapper {
     @Mapping(target = "alternativaId", source = "alternativaEscolhida.id")
     @Mapping(target = "correta", source = "alternativaEscolhida.correta")
     @Mapping(target = "simuladoId", source = "simulado.id")
+    @Mapping(target = "alternativas", source = "questao.alternativas")
     RespostaDetailDto toDetailDto(Resposta resposta);
 
     @Mapping(target = "id", ignore = true)
