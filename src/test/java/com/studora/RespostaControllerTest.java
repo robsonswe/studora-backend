@@ -97,7 +97,8 @@ class RespostaControllerTest {
                     .content(TestUtil.asJsonString(respostaCreateRequest))
             )
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.questaoId").value(questao.getId()));
+            .andExpect(jsonPath("$.questaoId").value(questao.getId()))
+            .andExpect(jsonPath("$.dificuldade").value("MEDIA"));
     }
 
     @Test
@@ -105,12 +106,14 @@ class RespostaControllerTest {
         Resposta resposta = new Resposta();
         resposta.setQuestao(questao);
         resposta.setAlternativaEscolhida(alternativa);
+        resposta.setDificuldade(Dificuldade.FACIL);
         resposta = respostaRepository.save(resposta);
 
         mockMvc
             .perform(get("/api/v1/respostas/{id}", resposta.getId()))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.id").value(resposta.getId()));
+            .andExpect(jsonPath("$.id").value(resposta.getId()))
+            .andExpect(jsonPath("$.dificuldade").value("FACIL"));
     }
 
     @Test
