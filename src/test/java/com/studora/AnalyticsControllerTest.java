@@ -61,15 +61,19 @@ class AnalyticsControllerTest {
                 .totalAttempts(100)
                 .correctAttempts(70)
                 .masteryScore(70.0)
+                .children(Collections.emptyList())
                 .build();
 
-        when(analyticsService.getDisciplinasMastery()).thenReturn(List.of(dto));
+        org.springframework.data.domain.Page<TopicMasteryDto> page = new org.springframework.data.domain.PageImpl<>(
+                List.of(dto), org.springframework.data.domain.PageRequest.of(0, 20), 1);
+
+        when(analyticsService.getDisciplinasMastery(any(), any(), any(), anyString(), anyString())).thenReturn(page);
 
         mockMvc.perform(get("/api/v1/analytics/disciplinas")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].nome").value("Direito"))
-                .andExpect(jsonPath("$[0].masteryScore").value(70.0));
+                .andExpect(jsonPath("$.content[0].nome").value("Direito"))
+                .andExpect(jsonPath("$.totalElements").value(1));
     }
 
     @Test
@@ -81,7 +85,12 @@ class AnalyticsControllerTest {
                 .correctAttempts(70)
                 .masteryScore(70.0)
                 .children(List.of(
-                    TopicMasteryDto.builder().id(10L).nome("Tema 1").totalAttempts(10).build()
+                    TopicMasteryDto.builder()
+                        .id(10L)
+                        .nome("Tema 1")
+                        .totalAttempts(10)
+                        .children(Collections.emptyList())
+                        .build()
                 ))
                 .build();
 

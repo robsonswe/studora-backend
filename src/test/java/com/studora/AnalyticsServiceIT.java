@@ -122,14 +122,22 @@ class AnalyticsServiceIT {
     @Test
     void testTopicMasteryHierarchical() {
         createResponse(q1, q1Correct, LocalDateTime.now(), 10, Dificuldade.FACIL);
+        createResponse(q1, q1Wrong, LocalDateTime.now(), 20, Dificuldade.CHUTE);
         
         // Create another discipline without responses
         Disciplina d2 = disciplinaRepository.save(new Disciplina("Empty Disc"));
         
-        // List disciplines
-        List<TopicMasteryDto> list = analyticsService.getDisciplinasMastery();
+        // List disciplines (paginated)
+        org.springframework.data.domain.Page<TopicMasteryDto> page = analyticsService.getDisciplinasMastery(
+                null, null, org.springframework.data.domain.PageRequest.of(0, 20), "nome", "ASC");
+        
+        List<TopicMasteryDto> list = page.getContent();
         assertEquals(1, list.size()); // "Direito" should be here, "Empty Disc" should NOT
         assertEquals("Direito", list.get(0).getNome());
+        
+        // Check difficultyStats for CHUTE in list
+        assertNotNull(list.get(0).getDifficultyStats().get("CHUTE"));
+        assertEquals(1, list.get(0).getDifficultyStats().get("CHUTE").getTotal());
 
         // Detail of "Direito"
         TopicMasteryDto detail = analyticsService.getDisciplinaMasteryDetail(list.get(0).getId());
@@ -138,10 +146,56 @@ class AnalyticsServiceIT {
         
         TopicMasteryDto temaDetail = detail.getChildren().get(0);
         assertEquals("Constitucional", temaDetail.getNome());
-        assertFalse(temaDetail.getChildren().isEmpty());
+        assertFalse(temaDetail.getChildren().isEmpty(), "Tema should have subthemes");
         
         TopicMasteryDto subtemaDetail = temaDetail.getChildren().get(0);
         assertEquals("Direitos Fundamentais", subtemaDetail.getNome());
+        
+        // Verify stats in deep child
+        assertNotNull(subtemaDetail.getDifficultyStats().get("FACIL"));
+        assertEquals(1, subtemaDetail.getDifficultyStats().get("FACIL").getTotal());
+    }
+
+    @Test
+    void testDisciplinasMasteryFilteringAndSorting() {
+        // disc1 (Direito): 1 correct FACIL = 100% mastery
+        createResponse(q1, q1Correct, LocalDateTime.now(), 10, Dificuldade.FACIL);
+
+        // Create disc2 (Português): 1 wrong FACIL = 0% mastery
+        Disciplina d2 = disciplinaRepository.save(new Disciplina("Português"));
+        Tema t2 = temaRepository.save(new Tema(d2, "Gramática"));
+        Subtema s2 = subtemaRepository.save(new Subtema(t2, "Sintaxe"));
+        Questao q2 = new Questao(q1.getConcurso(), "Questao 2");
+        q2.setSubtemas(new java.util.HashSet<>(java.util.List.of(s2)));
+        q2 = questaoRepository.save(q2);
+        Alternativa q2Wrong = new Alternativa();
+        q2Wrong.setQuestao(q2);
+        q2Wrong.setTexto("Errada");
+        q2Wrong.setCorreta(false);
+        q2Wrong.setOrdem(1);
+        q2Wrong = alternativaRepository.save(q2Wrong);
+        createResponse(q2, q2Wrong, LocalDateTime.now(), 10, Dificuldade.FACIL);
+
+        // 1. Filter minMastery=50 -> only disc1
+        var page = analyticsService.getDisciplinasMastery(50.0, 100.0, org.springframework.data.domain.PageRequest.of(0, 10), "nome", "ASC");
+        assertEquals(1, page.getTotalElements());
+        assertEquals("Direito", page.getContent().get(0).getNome());
+
+        // 2. Filter maxMastery=50 -> only d2 (Português)
+        page = analyticsService.getDisciplinasMastery(0.0, 50.0, org.springframework.data.domain.PageRequest.of(0, 10), "nome", "ASC");
+        assertEquals(1, page.getTotalElements());
+        assertEquals("Português", page.getContent().get(0).getNome());
+
+        // 3. Filter min > max (80 > 50) -> should ignore min, use max=50 -> only d2
+        page = analyticsService.getDisciplinasMastery(80.0, 50.0, org.springframework.data.domain.PageRequest.of(0, 10), "nome", "ASC");
+        assertEquals(1, page.getTotalElements());
+        assertEquals("Português", page.getContent().get(0).getNome());
+
+        // 4. Sort by mastery DESC -> disc1 (100) then d2 (0)
+        page = analyticsService.getDisciplinasMastery(null, null, org.springframework.data.domain.PageRequest.of(0, 10), "masteryScore", "DESC");
+        assertEquals(2, page.getTotalElements());
+        assertEquals("Direito", page.getContent().get(0).getNome());
+        assertEquals("Português", page.getContent().get(1).getNome());
     }
 
     @Test

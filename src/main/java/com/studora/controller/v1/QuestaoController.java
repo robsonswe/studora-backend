@@ -47,6 +47,7 @@ public class QuestaoController {
 
     @Operation(
         summary = "Obter questões",
+        description = "Retorna uma página de questões. O gabarito e o histórico são visíveis apenas para questões respondidas nos últimos 30 dias, a menos que o parâmetro 'admin=true' seja fornecido.",
         responses = {
             @ApiResponse(responseCode = "200", description = "Página de questões retornada com sucesso",
                 content = @Content(
@@ -57,7 +58,7 @@ public class QuestaoController {
                             value = "{\"content\": [{\"id\": 1, \"enunciado\": \"Questão 1?\", \"concurso\": {\"id\": 10, \"ano\": 2024, \"bancaId\": 2, \"bancaNome\": \"Cebraspe\", \"instituicaoId\": 3, \"instituicaoNome\": \"Policia Federal\", \"instituicaoArea\": \"Segurança\"}, \"subtemas\": [{\"id\": 5, \"nome\": \"Habeas Corpus\", \"temaId\": 20, \"temaNome\": \"Remédios Constitucionais\", \"disciplinaId\": 100, \"disciplinaNome\": \"Direito Constitucional\"}], \"cargos\": [{\"id\": 1, \"nome\": \"Agente\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\"}], \"anulada\": false, \"desatualizada\": false, \"respondida\": false, \"imageUrl\": null, \"alternativas\": [{\"id\": 1, \"texto\": \"Opção A\"}]}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                         ),
                         @ExampleObject(
-                            name = "Página de Questões (Gabaritos Visíveis)",
+                            name = "Página de Questões (Gabaritos Visíveis - admin=true)",
                             value = "{\"content\": [{\"id\": 2, \"enunciado\": \"Questão 2?\", \"concurso\": {\"id\": 10, \"ano\": 2024, \"bancaId\": 2, \"bancaNome\": \"Cebraspe\", \"instituicaoId\": 3, \"instituicaoNome\": \"Policia Federal\", \"instituicaoArea\": \"Segurança\"}, \"subtemas\": [{\"id\": 5, \"nome\": \"Habeas Corpus\", \"temaId\": 20, \"temaNome\": \"Remédios Constitucionais\", \"disciplinaId\": 100, \"disciplinaNome\": \"Direito Constitucional\"}], \"cargos\": [{\"id\": 1, \"nome\": \"Agente\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\"}], \"anulada\": false, \"desatualizada\": false, \"respondida\": true, \"imageUrl\": \"https://exemplo.com/img.png\", \"alternativas\": [{\"id\": 2, \"texto\": \"Opção B\", \"correta\": true, \"justificativa\": \"...\"}], \"respostas\": [{\"id\": 50, \"correta\": true, \"dificuldade\": \"MEDIA\", \"createdAt\": \"2026-02-07T12:00:00\"}]}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                         )
                     }
@@ -76,27 +77,31 @@ public class QuestaoController {
             @ParameterObject @Valid QuestaoFilter filter,
             @Parameter(hidden = true) @PageableDefault(size = AppConstants.DEFAULT_PAGE_SIZE) Pageable pageable,
             @RequestParam(defaultValue = "id") String sort,
-            @RequestParam(defaultValue = "DESC") String direction) {
+            @RequestParam(defaultValue = "DESC") String direction,
+            @Parameter(description = "Se verdadeiro, força a exibição do gabarito mesmo sem respostas recentes.")
+            @RequestParam(required = false, defaultValue = "false") boolean admin) {
         
         Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, Map.of(), List.of());
         Page<QuestaoSummaryDto> questoes = questaoService.findAll(filter, finalPageable);
         
-        // Apply visibility rules by nulling fields for those that should be hidden
-        java.time.LocalDateTime monthAgo = java.time.LocalDateTime.now().minusMonths(1);
-        questoes.getContent().forEach(q -> {
-            boolean hasRecent = q.getRespostas() != null && q.getRespostas().stream()
-                    .anyMatch(r -> r.getCreatedAt() != null && r.getCreatedAt().isAfter(monthAgo));
-            
-            if (!hasRecent) {
-                if (q.getAlternativas() != null) {
-                    q.getAlternativas().forEach(alt -> {
-                        alt.setCorreta(null);
-                        alt.setJustificativa(null);
-                    });
+        if (!admin) {
+            // Apply visibility rules by nulling fields for those that should be hidden
+            java.time.LocalDateTime monthAgo = java.time.LocalDateTime.now().minusMonths(1);
+            questoes.getContent().forEach(q -> {
+                boolean hasRecent = q.getRespostas() != null && q.getRespostas().stream()
+                        .anyMatch(r -> r.getCreatedAt() != null && r.getCreatedAt().isAfter(monthAgo));
+                
+                if (!hasRecent) {
+                    if (q.getAlternativas() != null) {
+                        q.getAlternativas().forEach(alt -> {
+                            alt.setCorreta(null);
+                            alt.setJustificativa(null);
+                        });
+                    }
+                    q.setRespostas(null);
                 }
-                q.setRespostas(null);
-            }
-        });
+            });
+        }
 
         return ResponseEntity.ok(new PageResponse<>(questoes));
     }

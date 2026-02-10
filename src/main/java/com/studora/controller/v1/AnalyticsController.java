@@ -4,6 +4,8 @@ import com.studora.dto.analytics.ConsistencyDto;
 import com.studora.dto.analytics.EvolutionDto;
 import com.studora.dto.analytics.LearningRateDto;
 import com.studora.dto.analytics.TopicMasteryDto;
+import com.studora.dto.PageResponse;
+import com.studora.common.constants.AppConstants;
 import com.studora.service.AnalyticsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -13,6 +15,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -58,13 +62,13 @@ public class AnalyticsController {
 
     @Operation(
         summary = "Obter domínio por disciplinas",
-        description = "Retorna uma lista de disciplinas que possuem pelo menos uma questão respondida, com suas respectivas estatísticas de domínio.",
+        description = "Retorna uma lista paginada de disciplinas que possuem pelo menos uma questão respondida, com suas respectivas estatísticas de domínio.",
         responses = {
-            @ApiResponse(responseCode = "200", description = "Lista de domínio por disciplinas retornada com sucesso",
+            @ApiResponse(responseCode = "200", description = "Página de domínio por disciplinas retornada com sucesso",
                 content = @Content(
                     mediaType = "application/json",
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"nome\": \"Direito Administrativo\", \"totalAttempts\": 50, \"correctAttempts\": 40, \"avgTimeSeconds\": 45, \"difficultyStats\": {\"FACIL\": {\"total\": 20, \"correct\": 18}, \"MEDIA\": {\"total\": 20, \"correct\": 15}, \"DIFICIL\": {\"total\": 10, \"correct\": 7}}, \"masteryScore\": 80.0}]"
+                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Direito Administrativo\", \"totalAttempts\": 50, \"correctAttempts\": 40, \"avgTimeSeconds\": 45, \"difficultyStats\": {\"FACIL\": {\"total\": 20, \"correct\": 18}, \"MEDIA\": {\"total\": 20, \"correct\": 15}, \"DIFICIL\": {\"total\": 10, \"correct\": 7}}, \"masteryScore\": 80.0}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -76,8 +80,15 @@ public class AnalyticsController {
         }
     )
     @GetMapping("/disciplinas")
-    public ResponseEntity<List<TopicMasteryDto>> getDisciplinasMastery() {
-        return ResponseEntity.ok(analyticsService.getDisciplinasMastery());
+    public ResponseEntity<PageResponse<TopicMasteryDto>> getDisciplinasMastery(
+            @RequestParam(required = false) Double minMastery,
+            @RequestParam(required = false) Double maxMastery,
+            @Parameter(hidden = true) @PageableDefault(size = AppConstants.DEFAULT_PAGE_SIZE) Pageable pageable,
+            @RequestParam(defaultValue = "nome") String sort,
+            @RequestParam(defaultValue = "ASC") String direction) {
+        
+        return ResponseEntity.ok(new PageResponse<>(
+                analyticsService.getDisciplinasMastery(minMastery, maxMastery, pageable, sort, direction)));
     }
 
     @Operation(

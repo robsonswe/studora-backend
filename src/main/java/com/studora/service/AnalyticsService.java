@@ -71,11 +71,71 @@ public class AnalyticsService {
     }
 
     @Transactional(readOnly = true)
-    public List<TopicMasteryDto> getDisciplinasMastery() {
+    public org.springframework.data.domain.Page<TopicMasteryDto> getDisciplinasMastery(
+            Double minMastery, Double maxMastery, 
+            org.springframework.data.domain.Pageable pageable, 
+            String sort, String direction) {
+        
         List<Resposta> allResponses = respostaRepository.findAllWithFullDetails();
-        return calculateMasteryForDisciplinas(allResponses).stream()
+        
+        // 1. Calculate all available disciplinas with attempts
+        List<TopicMasteryDto> allMastery = disciplinaRepository.findAll().stream()
+                .map(d -> buildHierarchyForDisciplina(d, allResponses))
                 .filter(m -> m.getTotalAttempts() > 0)
                 .collect(Collectors.toList());
+
+        // 2. Apply Filters
+        if (minMastery != null && maxMastery != null && minMastery > maxMastery) {
+            // Ignore min if min > max
+            allMastery = allMastery.stream()
+                    .filter(m -> m.getMasteryScore() <= maxMastery)
+                    .collect(Collectors.toList());
+        } else {
+            if (minMastery != null) {
+                allMastery = allMastery.stream()
+                        .filter(m -> m.getMasteryScore() >= minMastery)
+                        .collect(Collectors.toList());
+            }
+            if (maxMastery != null) {
+                allMastery = allMastery.stream()
+                        .filter(m -> m.getMasteryScore() <= maxMastery)
+                        .collect(Collectors.toList());
+            }
+        }
+
+        // 3. Apply Sorting
+        Comparator<TopicMasteryDto> comparator;
+        boolean isAsc = "ASC".equalsIgnoreCase(direction);
+
+        if ("masteryScore".equalsIgnoreCase(sort)) {
+            comparator = Comparator.comparing(TopicMasteryDto::getMasteryScore);
+            if (!isAsc) comparator = comparator.reversed();
+            // Tie-breakers: nome ASC, id ASC
+            comparator = comparator.thenComparing(TopicMasteryDto::getNome)
+                                   .thenComparing(TopicMasteryDto::getId);
+        } else {
+            // Default: nome ASC, id ASC
+            comparator = Comparator.comparing(TopicMasteryDto::getNome)
+                                   .thenComparing(TopicMasteryDto::getId);
+            if (!isAsc && "nome".equalsIgnoreCase(sort)) {
+                 // If user explicitly asked for nome DESC
+                 comparator = Comparator.comparing(TopicMasteryDto::getNome).reversed()
+                                        .thenComparing(TopicMasteryDto::getId);
+            }
+        }
+
+        allMastery.sort(comparator);
+
+        // 4. Paginate
+        int start = (int) pageable.getOffset();
+        int end = Math.min((start + pageable.getPageSize()), allMastery.size());
+        
+        List<TopicMasteryDto> pagedList = new ArrayList<>();
+        if (start < allMastery.size()) {
+            pagedList = allMastery.subList(start, end);
+        }
+
+        return new org.springframework.data.domain.PageImpl<>(pagedList, pageable, allMastery.size());
     }
 
     @Transactional(readOnly = true)
@@ -84,20 +144,29 @@ public class AnalyticsService {
                 .orElseThrow(() -> new ResourceNotFoundException("Disciplina", "ID", id));
 
         List<Resposta> allResponses = respostaRepository.findAllWithFullDetails();
+        TopicMasteryDto dto = buildHierarchyForDisciplina(disciplina, allResponses);
         
+        if (dto.getTotalAttempts() == 0) {
+             throw new ResourceNotFoundException("Analytics para Disciplina", "ID", id);
+        }
+        
+        return dto;
+    }
+
+    private TopicMasteryDto buildHierarchyForDisciplina(Disciplina disciplina, List<Resposta> allResponses) {
         // Filter responses for this disciplina
         List<Resposta> discResponses = allResponses.stream()
                 .filter(r -> r.getQuestao().getSubtemas().stream()
-                        .anyMatch(s -> s.getTema().getDisciplina().getId().equals(id)))
+                        .anyMatch(s -> s.getTema().getDisciplina().getId().equals(disciplina.getId())))
                 .toList();
 
-        TopicMasteryDto dto = buildMasteryDto(disciplina.getId(), disciplina.getNome(), discResponses);
+        TopicMasteryDto discDto = buildMasteryDto(disciplina.getId(), disciplina.getNome(), discResponses);
         
-        // Calculate Themes for this Disciplina
-        List<TopicMasteryDto> temas = calculateMasteryForTemas(allResponses, id).stream()
+        // Build Temas
+        List<TopicMasteryDto> temas = calculateMasteryForTemas(allResponses, disciplina.getId()).stream()
                 .filter(t -> t.getTotalAttempts() > 0)
                 .peek(temaDto -> {
-                    // For each theme, calculate its subthemes
+                    // Build Subtemas for each Tema
                     List<TopicMasteryDto> subtemas = calculateMasteryForSubtemas(allResponses, temaDto.getId()).stream()
                             .filter(s -> s.getTotalAttempts() > 0)
                             .toList();
@@ -105,8 +174,8 @@ public class AnalyticsService {
                 })
                 .toList();
         
-        dto.setChildren(temas);
-        return dto;
+        discDto.setChildren(temas);
+        return discDto;
     }
 
     @Transactional(readOnly = true)
@@ -245,14 +314,12 @@ public class AnalyticsService {
     private TopicMasteryDto buildMasteryDto(Long id, String nome, List<Resposta> topicResponses) {
         int total = topicResponses.size();
         int correct = (int) topicResponses.stream().filter(this::isCorrect).count();
-        int guesses = (int) topicResponses.stream().filter(r -> r.getDificuldade() == Dificuldade.CHUTE).count();
         double avgTime = topicResponses.stream()
                 .mapToInt(r -> r.getTempoRespostaSegundos() != null ? r.getTempoRespostaSegundos() : 0)
                 .average().orElse(0.0);
 
         Map<String, TopicMasteryDto.DifficultyStat> diffStats = new HashMap<>();
         for (Dificuldade d : Dificuldade.values()) {
-            if (d == Dificuldade.CHUTE) continue;
             List<Resposta> filtered = topicResponses.stream().filter(r -> r.getDificuldade() == d).toList();
             if (!filtered.isEmpty()) {
                 long c = filtered.stream().filter(this::isCorrect).count();
@@ -268,7 +335,6 @@ public class AnalyticsService {
                 .totalAttempts(total)
                 .correctAttempts(correct)
                 .avgTimeSeconds((int) avgTime)
-                .guessCount(guesses)
                 .difficultyStats(diffStats)
                 .masteryScore(calculateMasteryScore(topicResponses))
                 .build();
