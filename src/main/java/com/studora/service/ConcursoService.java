@@ -1,5 +1,6 @@
 package com.studora.service;
 
+import com.studora.dto.concurso.ConcursoFilter;
 import com.studora.dto.concurso.ConcursoDetailDto;
 import com.studora.dto.concurso.ConcursoSummaryDto;
 import com.studora.dto.request.ConcursoCreateRequest;
@@ -13,10 +14,12 @@ import com.studora.exception.ResourceNotFoundException;
 import com.studora.exception.ValidationException;
 import com.studora.mapper.ConcursoMapper;
 import com.studora.repository.*;
+import com.studora.repository.specification.ConcursoSpecification;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,9 +41,25 @@ public class ConcursoService {
     private final ConcursoMapper concursoMapper;
 
     @Transactional(readOnly = true)
-    public Page<ConcursoSummaryDto> findAll(Pageable pageable) {
-        return concursoRepository.findAll(pageable)
-                .map(concursoMapper::toSummaryDto);
+    public Page<ConcursoSummaryDto> findAll(ConcursoFilter filter, Pageable pageable) {
+        Specification<Concurso> spec = ConcursoSpecification.withFilter(filter);
+        
+        // 1. Fetch the page of concursos (initially without full details to keep pagination simple)
+        Page<Concurso> page = concursoRepository.findAll(spec, pageable);
+        
+        if (page.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        // 2. Extract IDs and fetch full details in a single query
+        List<Long> ids = page.getContent().stream().map(Concurso::getId).toList();
+        List<Concurso> withDetails = concursoRepository.findAllByIdsWithDetails(ids);
+        
+        // 3. Map to DTOs while maintaining the original page order
+        java.util.Map<Long, Concurso> detailsMap = withDetails.stream()
+                .collect(java.util.stream.Collectors.toMap(Concurso::getId, c -> c));
+        
+        return page.map(c -> concursoMapper.toSummaryDto(detailsMap.getOrDefault(c.getId(), c)));
     }
 
     @Transactional(readOnly = true)

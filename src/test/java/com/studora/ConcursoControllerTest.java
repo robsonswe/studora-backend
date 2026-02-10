@@ -259,6 +259,81 @@ class ConcursoControllerTest {
     }
 
     @Test
+    void testGetAllConcursos_WithFilters() throws Exception {
+        Instituicao instituicao1 = new Instituicao();
+        instituicao1.setNome("Instituição Filter 1");
+        instituicao1.setArea("TI");
+        instituicao1 = instituicaoRepository.save(instituicao1);
+
+        Banca banca1 = new Banca();
+        banca1.setNome("Banca Filter 1");
+        banca1 = bancaRepository.save(banca1);
+
+        Instituicao instituicao2 = new Instituicao();
+        instituicao2.setNome("Instituição Filter 2");
+        instituicao2.setArea("ADM");
+        instituicao2 = instituicaoRepository.save(instituicao2);
+
+        Banca banca2 = new Banca();
+        banca2.setNome("Banca Filter 2");
+        banca2 = bancaRepository.save(banca2);
+
+        Concurso c1 = new Concurso(instituicao1, banca1, 2023, 1);
+        ConcursoCargo cc1 = new ConcursoCargo();
+        cc1.setCargo(cargo1); // Cargo 1: SUPERIOR, TI
+        c1.addConcursoCargo(cc1);
+        c1 = concursoRepository.save(c1);
+
+        Concurso c2 = new Concurso(instituicao2, banca2, 2024, 2);
+        ConcursoCargo cc2 = new ConcursoCargo();
+        cc2.setCargo(cargo2); // Cargo 2: MEDIO, ADM
+        c2.addConcursoCargo(cc2);
+        c2 = concursoRepository.save(c2);
+
+        // Filter by bancaId
+        mockMvc
+            .perform(get("/api/v1/concursos").param("bancaId", banca1.getId().toString()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].banca.id").value(banca1.getId()));
+
+        // Filter by instituicaoId
+        mockMvc
+            .perform(get("/api/v1/concursos").param("instituicaoId", instituicao2.getId().toString()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].instituicao.id").value(instituicao2.getId()));
+
+        // Filter by cargoId
+        mockMvc
+            .perform(get("/api/v1/concursos").param("cargoId", cargo1.getId().toString()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].cargos[0].id").value(cargo1.getId()));
+
+        // Filter by instituicaoArea
+        mockMvc
+            .perform(get("/api/v1/concursos").param("instituicaoArea", "TI"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].instituicao.area").value("TI"));
+
+        // Filter by cargoArea
+        mockMvc
+            .perform(get("/api/v1/concursos").param("cargoArea", "ADM"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].cargos[0].area").value("ADM"));
+
+        // Filter by cargoNivel
+        mockMvc
+            .perform(get("/api/v1/concursos").param("cargoNivel", "MEDIO"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].cargos[0].nivel").value("MEDIO"));
+    }
+
+    @Test
     void testDeleteConcurso() throws Exception {
         Instituicao instituicao = new Instituicao();
         instituicao.setNome("Instituição Del Test");

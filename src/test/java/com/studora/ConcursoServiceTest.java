@@ -40,6 +40,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 class ConcursoServiceTest {
 
@@ -103,9 +104,9 @@ class ConcursoServiceTest {
         Concurso c2 = new Concurso(inst, banca, 2024, 2);
         
         Page<Concurso> page = new PageImpl<>(Arrays.asList(c1, c2));
-        when(concursoRepository.findAll(any(Pageable.class))).thenReturn(page);
+        when(concursoRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
 
-        Page<ConcursoSummaryDto> result = concursoService.findAll(Pageable.unpaged());
+        Page<ConcursoSummaryDto> result = concursoService.findAll(new com.studora.dto.concurso.ConcursoFilter(), Pageable.unpaged());
         assertEquals(2, result.getTotalElements());
     }
 

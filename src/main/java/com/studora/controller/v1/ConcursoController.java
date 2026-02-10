@@ -2,6 +2,7 @@ package com.studora.controller.v1;
 
 import com.studora.dto.concurso.ConcursoSummaryDto;
 import com.studora.dto.concurso.ConcursoDetailDto;
+import com.studora.dto.concurso.ConcursoFilter;
 import com.studora.dto.PageResponse;
 import com.studora.dto.request.ConcursoCreateRequest;
 import com.studora.dto.request.ConcursoUpdateRequest;
@@ -15,6 +16,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -60,6 +62,7 @@ public class ConcursoController {
     )
     @GetMapping
     public ResponseEntity<PageResponse<ConcursoSummaryDto>> getAllConcursos(
+            @ParameterObject @Valid ConcursoFilter filter,
             @Parameter(hidden = true) @PageableDefault(size = AppConstants.DEFAULT_PAGE_SIZE) Pageable pageable,
             @RequestParam(defaultValue = "ano") String sort,
             @RequestParam(defaultValue = "DESC") String direction) {
@@ -77,7 +80,7 @@ public class ConcursoController {
         );
 
         Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, mapping, tieBreakers);
-        Page<ConcursoSummaryDto> concursos = concursoService.findAll(finalPageable);
+        Page<ConcursoSummaryDto> concursos = concursoService.findAll(filter, finalPageable);
         return ResponseEntity.ok(new PageResponse<>(concursos));
     }
 
