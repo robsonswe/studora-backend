@@ -32,14 +32,13 @@ public class TopicMasteryDto {
     @Schema(description = "Estatísticas por dificuldade")
     private Map<String, DifficultyStat> difficultyStats;
 
-    @Schema(description = "Total de acertos por chute")
-    private Integer guessCount;
-
     @Schema(description = "Pontuação de domínio (ponderada pela dificuldade)")
     private Double masteryScore;
 
+    @Builder.Default
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_EMPTY)
     @Schema(description = "Tópicos filhos (ex: Temas de uma Disciplina, ou Subtemas de um Tema)")
-    private java.util.List<TopicMasteryDto> children;
+    private java.util.List<TopicMasteryDto> children = new java.util.ArrayList<>();
 
     @Data
     @AllArgsConstructor
