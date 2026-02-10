@@ -64,7 +64,7 @@ public class AnalyticsController {
                 content = @Content(
                     mediaType = "application/json",
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"nome\": \"Direito Administrativo\", \"totalAttempts\": 50, \"correctAttempts\": 40, \"avgTimeSeconds\": 45.5, \"difficultyDistribution\": {\"FACIL\": 0.8, \"MEDIA\": 0.7, \"DIFICIL\": 0.5}, \"masteryScore\": 80.0}]"
+                        value = "[{\"id\": 1, \"nome\": \"Direito Administrativo\", \"totalAttempts\": 50, \"correctAttempts\": 40, \"avgTimeSeconds\": 45, \"difficultyStats\": {\"FACIL\": {\"total\": 20, \"correct\": 18}, \"MEDIA\": {\"total\": 20, \"correct\": 15}, \"DIFICIL\": {\"total\": 10, \"correct\": 7}}, \"masteryScore\": 80.0}]"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -88,7 +88,7 @@ public class AnalyticsController {
                 content = @Content(
                     mediaType = "application/json",
                     examples = @ExampleObject(
-                        value = "{\"id\": 1, \"nome\": \"Direito Administrativo\", \"totalAttempts\": 50, \"correctAttempts\": 40, \"masteryScore\": 80.0, \"children\": [{\"id\": 10, \"nome\": \"Atos Administrativos\", \"totalAttempts\": 20, \"correctAttempts\": 18, \"masteryScore\": 90.0, \"children\": []}]}"
+                        value = "{\"id\": 1, \"nome\": \"Direito Administrativo\", \"totalAttempts\": 50, \"correctAttempts\": 40, \"avgTimeSeconds\": 45, \"difficultyStats\": {\"FACIL\": {\"total\": 20, \"correct\": 18}, \"MEDIA\": {\"total\": 30, \"correct\": 22}}, \"masteryScore\": 80.0, \"children\": [{\"id\": 10, \"nome\": \"Atos Administrativos\", \"totalAttempts\": 20, \"correctAttempts\": 18, \"avgTimeSeconds\": 40, \"difficultyStats\": {\"FACIL\": {\"total\": 10, \"correct\": 10}, \"MEDIA\": {\"total\": 10, \"correct\": 8}}, \"masteryScore\": 90.0, \"children\": [{\"id\": 100, \"nome\": \"Conceito de Ato\", \"totalAttempts\": 5, \"correctAttempts\": 5, \"avgTimeSeconds\": 30, \"difficultyStats\": {\"FACIL\": {\"total\": 5, \"correct\": 5}}, \"masteryScore\": 100.0, \"children\": null}]}]}"
                     )
                 )),
             @ApiResponse(responseCode = "404", description = "Disciplina não encontrada",

@@ -100,10 +100,10 @@ public class AnalyticsService {
                     // For each theme, calculate its subthemes
                     List<TopicMasteryDto> subtemas = calculateMasteryForSubtemas(allResponses, temaDto.getId()).stream()
                             .filter(s -> s.getTotalAttempts() > 0)
-                            .collect(Collectors.toList());
+                            .toList();
                     temaDto.setChildren(subtemas);
                 })
-                .collect(Collectors.toList());
+                .toList();
         
         dto.setChildren(temas);
         return dto;
