@@ -19,7 +19,6 @@ public class OpenApiConfig {
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
                 .components(new Components())
-                .servers(List.of(new Server().url("/api/v1").description("Servidor Local - v1")))
                 .info(new Info()
                         .title("Studora API")
                         .version("1.0.0")
