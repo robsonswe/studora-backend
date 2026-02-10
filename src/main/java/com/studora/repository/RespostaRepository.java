@@ -52,4 +52,19 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     @Modifying
     @Query("UPDATE Resposta r SET r.simulado = null WHERE r.simulado.id = :simuladoId")
     void detachSimulado(@Param("simuladoId") Long simuladoId);
+
+    @Query("SELECT DISTINCT r FROM Resposta r " +
+           "JOIN FETCH r.questao q " +
+           "JOIN FETCH r.alternativaEscolhida " +
+           "JOIN FETCH q.alternativas " +
+           "ORDER BY r.createdAt ASC")
+    List<Resposta> findAllWithFullDetails();
+
+    @Query("SELECT DISTINCT r FROM Resposta r " +
+           "JOIN FETCH r.questao q " +
+           "JOIN FETCH r.alternativaEscolhida " +
+           "JOIN FETCH q.alternativas " +
+           "WHERE r.createdAt >= :since " +
+           "ORDER BY r.createdAt ASC")
+    List<Resposta> findAllWithFullDetailsSince(@Param("since") java.time.LocalDateTime since);
 }
