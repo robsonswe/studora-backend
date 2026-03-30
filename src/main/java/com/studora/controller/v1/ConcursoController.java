@@ -49,7 +49,7 @@ public class ConcursoController {
                 content = @Content(
                     mediaType = "application/json",
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"instituicao\": {\"id\": 1, \"nome\": \"PF\", \"area\": \"Policial\"}, \"banca\": {\"id\": 1, \"nome\": \"Cebraspe\"}, \"ano\": 2024, \"mes\": 5, \"edital\": \"https://exemplo.com/edital.pdf\", \"cargos\": [{\"id\": 1, \"cargoId\": 1, \"cargoNome\": \"Agente\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\", \"inscrito\": true}]}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"instituicao\": {\"id\": 1, \"nome\": \"PF\", \"area\": \"Policial\"}, \"banca\": {\"id\": 1, \"nome\": \"Cebraspe\"}, \"ano\": 2024, \"mes\": 5, \"edital\": \"https://exemplo.com/edital.pdf\", \"cargos\": [{\"id\": 1, \"cargoId\": 1, \"cargoNome\": \"Agente\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\", \"inscrito\": true, \"topicos\": [{\"id\": 1, \"temaId\": 1, \"temaNome\": \"Poderes\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Administrativo\", \"nome\": \"Atos Administrativos\", \"totalEstudos\": 2, \"ultimoEstudo\": \"2026-01-15T10:30:00\"}]}]}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -91,7 +91,7 @@ public class ConcursoController {
             @ApiResponse(responseCode = "200", description = "Concurso encontrado", 
                 content = @Content(
                     schema = @Schema(implementation = ConcursoDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"instituicao\": {\"id\": 1, \"nome\": \"Polícia Federal\", \"area\": \"Policial\"}, \"banca\": {\"id\": 1, \"nome\": \"Cebraspe\"}, \"ano\": 2023, \"mes\": 6, \"edital\": \"Edital 01/2023\", \"cargos\": [{\"id\": 1, \"cargoId\": 1, \"cargoNome\": \"Agente\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\", \"inscrito\": false}]}")
+                    examples = @ExampleObject(value = "{\"id\": 1, \"instituicao\": {\"id\": 1, \"nome\": \"Polícia Federal\", \"area\": \"Policial\"}, \"banca\": {\"id\": 1, \"nome\": \"Cebraspe\"}, \"ano\": 2023, \"mes\": 6, \"edital\": \"Edital 01/2023\", \"cargos\": [{\"id\": 1, \"cargoId\": 1, \"cargoNome\": \"Agente\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\", \"inscrito\": false, \"topicos\": [{\"id\": 1, \"temaId\": 5, \"temaNome\": \"Poderes\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Administrativo\", \"nome\": \"Atos Administrativos\", \"totalEstudos\": 3, \"ultimoEstudo\": \"2026-02-20T14:00:00\"}, {\"id\": 2, \"temaId\": 5, \"temaNome\": \"Poderes\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Administrativo\", \"nome\": \"Atos Vinculados\", \"totalEstudos\": 0, \"ultimoEstudo\": null}]}]}")
                 )),
             @ApiResponse(responseCode = "404", description = "Concurso não encontrado",
                 content = @Content(mediaType = "application/problem+json",
@@ -112,7 +112,7 @@ public class ConcursoController {
             @ApiResponse(responseCode = "201", description = "Concurso criado com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = ConcursoDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 2, \"instituicao\": {\"id\": 2, \"nome\": \"Tribunal de Justiça\", \"area\": \"Judiciária\"}, \"banca\": {\"id\": 2, \"nome\": \"FGV\"}, \"ano\": 2024, \"mes\": 1, \"edital\": \"Edital 01/2024\", \"cargos\": [{\"id\": 10, \"cargoId\": 10, \"cargoNome\": \"Analista\", \"nivel\": \"SUPERIOR\", \"area\": \"Judiciária\", \"inscrito\": false}]}")
+                    examples = @ExampleObject(value = "{\"id\": 2, \"instituicao\": {\"id\": 2, \"nome\": \"Tribunal de Justiça\", \"area\": \"Judiciária\"}, \"banca\": {\"id\": 2, \"nome\": \"FGV\"}, \"ano\": 2024, \"mes\": 1, \"edital\": \"Edital 01/2024\", \"cargos\": [{\"id\": 10, \"cargoId\": 10, \"cargoNome\": \"Analista\", \"nivel\": \"SUPERIOR\", \"area\": \"Judiciária\", \"inscrito\": false, \"topicos\": [{\"id\": 5, \"temaId\": 3, \"temaNome\": \"Poderes\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Administrativo\", \"nome\": \"Atos Administrativos\", \"totalEstudos\": 0, \"ultimoEstudo\": null}]}]}")
                 )),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",
@@ -139,7 +139,7 @@ public class ConcursoController {
             @ApiResponse(responseCode = "200", description = "Concurso atualizado com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = ConcursoDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"instituicao\": {\"id\": 1, \"nome\": \"Polícia Federal\", \"area\": \"Policial\"}, \"banca\": {\"id\": 1, \"nome\": \"Cebraspe\"}, \"ano\": 2023, \"mes\": 5, \"edital\": \"https://exemplo.com/edital.pdf\", \"cargos\": [{\"id\": 1, \"cargoId\": 1, \"cargoNome\": \"Agente\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\", \"inscrito\": false}]}")
+                    examples = @ExampleObject(value = "{\"id\": 1, \"instituicao\": {\"id\": 1, \"nome\": \"Polícia Federal\", \"area\": \"Policial\"}, \"banca\": {\"id\": 1, \"nome\": \"Cebraspe\"}, \"ano\": 2023, \"mes\": 5, \"edital\": \"https://exemplo.com/edital.pdf\", \"cargos\": [{\"id\": 1, \"cargoId\": 1, \"cargoNome\": \"Agente\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\", \"inscrito\": false, \"topicos\": [{\"id\": 5, \"temaId\": 3, \"temaNome\": \"Poderes\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Administrativo\", \"nome\": \"Atos Administrativos\", \"totalEstudos\": 0, \"ultimoEstudo\": null}]}]}")
                 )),
 
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
@@ -189,8 +189,20 @@ public class ConcursoController {
         summary = "Alternar status de inscrição em um cargo de um concurso",
         responses = {
             @ApiResponse(responseCode = "200", description = "Status de inscrição alterado com sucesso",
-                content = @Content(schema = @Schema(implementation = com.studora.dto.concurso.ConcursoCargoSummaryDto.class))),
-            @ApiResponse(responseCode = "404", description = "Associação concurso-cargo não encontrada")
+                content = @Content(
+                    examples = @ExampleObject(value = "{\"id\": 1, \"cargoId\": 1, \"cargoNome\": \"Agente\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\", \"inscrito\": true}"))),
+            @ApiResponse(responseCode = "422", description = "Já inscrito em outro cargo",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Entidade não processável\",\"status\":422,\"detail\":\"Você já está inscrito em outro cargo para este concurso. Desinscreva-se primeiro.\",\"instance\":\"/api/v1/concursos/cargos/1/inscricao\"}"
+                    ))),
+            @ApiResponse(responseCode = "404", description = "Associação concurso-cargo não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar ConcursoCargo com ID: '1'\",\"instance\":\"/api/v1/concursos/cargos/1/inscricao\"}"
+                    )))
         }
     )
     @PatchMapping("/cargos/{concursoCargoId}/inscricao")

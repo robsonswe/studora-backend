@@ -2,20 +2,30 @@ package com.studora;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import com.studora.dto.request.ConcursoCreateRequest;
 import com.studora.dto.request.ConcursoUpdateRequest;
 import com.studora.entity.Banca;
 import com.studora.entity.Concurso;
 import com.studora.entity.ConcursoCargo;
+import com.studora.entity.ConcursoCargoSubtema;
 import com.studora.entity.Cargo;
+import com.studora.entity.Disciplina;
 import com.studora.entity.Instituicao;
+import com.studora.entity.Subtema;
+import com.studora.entity.Tema;
 import com.studora.repository.BancaRepository;
 import com.studora.repository.ConcursoCargoRepository;
+import com.studora.repository.ConcursoCargoSubtemaRepository;
 import com.studora.repository.ConcursoRepository;
 import com.studora.repository.CargoRepository;
+import com.studora.repository.DisciplinaRepository;
 import com.studora.repository.InstituicaoRepository;
+import com.studora.repository.SubtemaRepository;
+import com.studora.repository.TemaRepository;
 import com.studora.util.TestUtil;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +37,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -36,6 +47,9 @@ class ConcursoControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private EntityManager entityManager;
 
     @Autowired
     private ConcursoRepository concursoRepository;
@@ -51,6 +65,18 @@ class ConcursoControllerTest {
 
     @Autowired
     private ConcursoCargoRepository concursoCargoRepository;
+
+    @Autowired
+    private DisciplinaRepository disciplinaRepository;
+
+    @Autowired
+    private TemaRepository temaRepository;
+
+    @Autowired
+    private SubtemaRepository subtemaRepository;
+
+    @Autowired
+    private ConcursoCargoSubtemaRepository concursoCargoSubtemaRepository;
 
     private Cargo cargo1;
     private Cargo cargo2;
@@ -508,5 +534,447 @@ class ConcursoControllerTest {
             .perform(patch("/api/v1/concursos/cargos/{concursoCargoId}/inscricao", cc2.getId()))
             .andExpect(status().isUnprocessableEntity())
             .andExpect(jsonPath("$.detail").value("Você já está inscrito em outro cargo para este concurso. Desinscreva-se primeiro."));
+    }
+
+    @Test
+    void testGetConcursoById_WithTopicos() throws Exception {
+        Disciplina disciplina = new Disciplina("Direito Administrativo Topicos");
+        disciplina = disciplinaRepository.save(disciplina);
+
+        Tema tema = new Tema();
+        tema.setNome("Poderes");
+        tema.setDisciplina(disciplina);
+        tema = temaRepository.save(tema);
+
+        Subtema subtema1 = new Subtema();
+        subtema1.setNome("Espécies de Atos");
+        subtema1.setTema(tema);
+        subtema1 = subtemaRepository.save(subtema1);
+
+        Subtema subtema2 = new Subtema();
+        subtema2.setNome("Atos Vinculados");
+        subtema2.setTema(tema);
+        subtema2 = subtemaRepository.save(subtema2);
+
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Instituição Topicos Test");
+        instituicao.setArea("Educação");
+        instituicao = instituicaoRepository.save(instituicao);
+
+        Banca banca = new Banca();
+        banca.setNome("Banca Topicos Test");
+        banca = bancaRepository.save(banca);
+
+        Concurso concurso = new Concurso(instituicao, banca, 2023, 6);
+        concurso = concursoRepository.save(concurso);
+
+        ConcursoCargo cc = new ConcursoCargo();
+        cc.setConcurso(concurso);
+        cc.setCargo(cargo1);
+        cc = concursoCargoRepository.save(cc);
+        concurso.addConcursoCargo(cc); // Bidirectional
+
+        ConcursoCargoSubtema ccs1 = new ConcursoCargoSubtema();
+        ccs1.setSubtema(subtema1);
+        cc.addConcursoCargoSubtema(ccs1); // Bidirectional helper
+        concursoCargoSubtemaRepository.save(ccs1);
+
+        ConcursoCargoSubtema ccs2 = new ConcursoCargoSubtema();
+        ccs2.setSubtema(subtema2);
+        cc.addConcursoCargoSubtema(ccs2); // Bidirectional helper
+        concursoCargoSubtemaRepository.save(ccs2);
+
+        mockMvc
+            .perform(get("/api/v1/concursos/{id}", concurso.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.cargos[0].topicos.length()").value(2))
+            .andExpect(jsonPath("$.cargos[0].topicos[0].nome").value("Atos Vinculados"))
+            .andExpect(jsonPath("$.cargos[0].topicos[0].temaId").value(tema.getId()))
+            .andExpect(jsonPath("$.cargos[0].topicos[0].temaNome").value("Poderes"))
+            .andExpect(jsonPath("$.cargos[0].topicos[0].disciplinaId").value(disciplina.getId()))
+            .andExpect(jsonPath("$.cargos[0].topicos[0].disciplinaNome").value("Direito Administrativo Topicos"))
+            .andExpect(jsonPath("$.cargos[0].topicos[1].nome").value("Espécies de Atos"));
+    }
+
+    @Test
+    void testGetAllConcursos_WithTopicos() throws Exception {
+        Disciplina disciplina = new Disciplina("Direito Topicos List");
+        disciplina = disciplinaRepository.save(disciplina);
+
+        Tema tema = new Tema();
+        tema.setNome("Tema Topicos List");
+        tema.setDisciplina(disciplina);
+        tema = temaRepository.save(tema);
+
+        Subtema subtema = new Subtema();
+        subtema.setNome("Subtema Topicos List");
+        subtema.setTema(tema);
+        subtema = subtemaRepository.save(subtema);
+
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Instituição Topicos List");
+        instituicao.setArea("Educação");
+        instituicao = instituicaoRepository.save(instituicao);
+
+        Banca banca = new Banca();
+        banca.setNome("Banca Topicos List");
+        banca = bancaRepository.save(banca);
+
+        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
+        concurso = concursoRepository.save(concurso);
+
+        ConcursoCargo cc = new ConcursoCargo();
+        cc.setConcurso(concurso);
+        cc.setCargo(cargo1);
+        cc = concursoCargoRepository.save(cc);
+        concurso.addConcursoCargo(cc); // Bidirectional
+
+        ConcursoCargoSubtema ccs = new ConcursoCargoSubtema();
+        ccs.setSubtema(subtema);
+        cc.addConcursoCargoSubtema(ccs); // Bidirectional helper
+        concursoCargoSubtemaRepository.save(ccs);
+
+        mockMvc
+            .perform(get("/api/v1/concursos").param("instituicaoId", instituicao.getId().toString()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].cargos[0].topicos.length()").value(1))
+            .andExpect(jsonPath("$.content[0].cargos[0].topicos[0].nome").value("Subtema Topicos List"))
+            .andExpect(jsonPath("$.content[0].cargos[0].topicos[0].temaNome").value("Tema Topicos List"))
+            .andExpect(jsonPath("$.content[0].cargos[0].topicos[0].disciplinaNome").value("Direito Topicos List"));
+    }
+
+    @Test
+    void testCreateConcurso_TopicosIsEmpty() throws Exception {
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Instituição Create Topicos");
+        instituicao.setArea("Educação");
+        instituicao = instituicaoRepository.save(instituicao);
+
+        Banca banca = new Banca();
+        banca.setNome("Banca Create Topicos");
+        banca = bancaRepository.save(banca);
+
+        ConcursoCreateRequest request = new ConcursoCreateRequest();
+        request.setInstituicaoId(instituicao.getId());
+        request.setBancaId(banca.getId());
+        request.setAno(2023);
+        request.setMes(7);
+        request.setCargos(List.of(cargo1.getId()));
+
+        mockMvc
+            .perform(
+                post("/api/v1/concursos")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(request))
+            )
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.cargos[0].topicos.length()").value(0));
+    }
+
+    @Test
+    void testUpdateConcurso_TopicosIsEmpty() throws Exception {
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Instituição Update Topicos");
+        instituicao.setArea("Educação");
+        instituicao = instituicaoRepository.save(instituicao);
+
+        Banca banca = new Banca();
+        banca.setNome("Banca Update Topicos");
+        banca = bancaRepository.save(banca);
+
+        Concurso concurso = new Concurso(instituicao, banca, 2022, 12);
+        concurso = concursoRepository.save(concurso);
+
+        ConcursoCargo cc = new ConcursoCargo();
+        cc.setConcurso(concurso);
+        cc.setCargo(cargo1);
+        cc = concursoCargoRepository.save(cc);
+        concurso.addConcursoCargo(cc);
+
+        ConcursoUpdateRequest request = new ConcursoUpdateRequest();
+        request.setInstituicaoId(instituicao.getId());
+        request.setBancaId(banca.getId());
+        request.setAno(2023);
+        request.setMes(12);
+        request.setCargos(List.of(cargo1.getId()));
+
+        mockMvc
+            .perform(
+                put("/api/v1/concursos/{id}", concurso.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(request))
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.cargos[0].topicos.length()").value(0));
+    }
+
+    @Test
+    void testDeleteConcurso_CascadeToTopicos() throws Exception {
+        Disciplina disciplina = new Disciplina("Direito Cascade");
+        disciplina = disciplinaRepository.save(disciplina);
+
+        Tema tema = new Tema();
+        tema.setNome("Tema Cascade");
+        tema.setDisciplina(disciplina);
+        tema = temaRepository.save(tema);
+
+        Subtema subtema = new Subtema();
+        subtema.setNome("Subtema Cascade");
+        subtema.setTema(tema);
+        subtema = subtemaRepository.save(subtema);
+
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Instituição Cascade");
+        instituicao.setArea("Educação");
+        instituicao = instituicaoRepository.save(instituicao);
+
+        Banca banca = new Banca();
+        banca.setNome("Banca Cascade");
+        banca = bancaRepository.save(banca);
+
+        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
+        concurso = concursoRepository.save(concurso);
+
+        ConcursoCargo cc = new ConcursoCargo();
+        cc.setConcurso(concurso);
+        cc.setCargo(cargo1);
+        cc = concursoCargoRepository.save(cc);
+        concurso.addConcursoCargo(cc);
+
+        ConcursoCargoSubtema ccs = new ConcursoCargoSubtema();
+        ccs.setSubtema(subtema);
+        cc.addConcursoCargoSubtema(ccs);
+        concursoCargoSubtemaRepository.save(ccs);
+        long ccsId = ccs.getId();
+
+        mockMvc
+            .perform(delete("/api/v1/concursos/{id}", concurso.getId()))
+            .andExpect(status().isNoContent());
+
+        entityManager.flush();
+        entityManager.clear();
+        assertFalse(concursoCargoSubtemaRepository.existsById(ccsId));
+    }
+
+    @Test
+    void testCreateConcurso_WithTopicos() throws Exception {
+        Disciplina disciplina = new Disciplina("Direito Topicos Create");
+        disciplina = disciplinaRepository.save(disciplina);
+
+        Tema tema = new Tema();
+        tema.setNome("Tema Topicos Create");
+        tema.setDisciplina(disciplina);
+        tema = temaRepository.save(tema);
+
+        Subtema subtema = new Subtema();
+        subtema.setNome("Subtema Topicos Create");
+        subtema.setTema(tema);
+        subtema = subtemaRepository.save(subtema);
+
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Instituição Topicos Create");
+        instituicao.setArea("Educação");
+        instituicao = instituicaoRepository.save(instituicao);
+
+        Banca banca = new Banca();
+        banca.setNome("Banca Topicos Create");
+        banca = bancaRepository.save(banca);
+
+        ConcursoCreateRequest request = new ConcursoCreateRequest();
+        request.setInstituicaoId(instituicao.getId());
+        request.setBancaId(banca.getId());
+        request.setAno(2023);
+        request.setMes(3);
+        request.setCargos(List.of(cargo1.getId()));
+        request.setTopicos(Map.of(subtema.getId(), List.of(cargo1.getId())));
+
+        mockMvc
+            .perform(
+                post("/api/v1/concursos")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(request))
+            )
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.cargos[0].topicos.length()").value(1))
+            .andExpect(jsonPath("$.cargos[0].topicos[0].id").value(subtema.getId()))
+            .andExpect(jsonPath("$.cargos[0].topicos[0].nome").value("Subtema Topicos Create"));
+    }
+
+    @Test
+    void testCreateConcurso_TopicosSubtemaNotFound() throws Exception {
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Instituição Topicos 404");
+        instituicao.setArea("Educação");
+        instituicao = instituicaoRepository.save(instituicao);
+
+        Banca banca = new Banca();
+        banca.setNome("Banca Topicos 404");
+        banca = bancaRepository.save(banca);
+
+        ConcursoCreateRequest request = new ConcursoCreateRequest();
+        request.setInstituicaoId(instituicao.getId());
+        request.setBancaId(banca.getId());
+        request.setAno(2023);
+        request.setMes(4);
+        request.setCargos(List.of(cargo1.getId()));
+        request.setTopicos(Map.of(99999L, List.of(cargo1.getId())));
+
+        mockMvc
+            .perform(
+                post("/api/v1/concursos")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(request))
+            )
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.detail").value("Não foi possível encontrar Subtema com ID: '99999'"));
+    }
+
+    @Test
+    void testCreateConcurso_TopicosCargoNotInConcurso() throws Exception {
+        Subtema subtema = new Subtema();
+        subtema.setNome("Subtema Topicos Invalid Cargo");
+        Tema tema = new Tema();
+        tema.setNome("Tema Temp");
+        tema.setDisciplina(new Disciplina("Disc Temp"));
+        disciplinaRepository.save(tema.getDisciplina());
+        tema = temaRepository.save(tema);
+        subtema.setTema(tema);
+        subtema = subtemaRepository.save(subtema);
+
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Instituição Topicos Invalid");
+        instituicao.setArea("Educação");
+        instituicao = instituicaoRepository.save(instituicao);
+
+        Banca banca = new Banca();
+        banca.setNome("Banca Topicos Invalid");
+        banca = bancaRepository.save(banca);
+
+        ConcursoCreateRequest request = new ConcursoCreateRequest();
+        request.setInstituicaoId(instituicao.getId());
+        request.setBancaId(banca.getId());
+        request.setAno(2023);
+        request.setMes(8);
+        request.setCargos(List.of(cargo1.getId()));
+        request.setTopicos(Map.of(subtema.getId(), List.of(99999L)));
+
+        mockMvc
+            .perform(
+                post("/api/v1/concursos")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(request))
+            )
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(jsonPath("$.detail").value("O cargo ID 99999 não está associado a este concurso."));
+    }
+
+    @Test
+    void testCreateConcurso_TopicosEmptyCargoList() throws Exception {
+        Subtema subtema = new Subtema();
+        subtema.setNome("Subtema Topicos Empty");
+        Tema tema = new Tema();
+        tema.setNome("Tema Temp 2");
+        tema.setDisciplina(new Disciplina("Disc Temp 2"));
+        disciplinaRepository.save(tema.getDisciplina());
+        tema = temaRepository.save(tema);
+        subtema.setTema(tema);
+        subtema = subtemaRepository.save(subtema);
+
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Instituição Topicos Empty");
+        instituicao.setArea("Educação");
+        instituicao = instituicaoRepository.save(instituicao);
+
+        Banca banca = new Banca();
+        banca.setNome("Banca Topicos Empty");
+        banca = bancaRepository.save(banca);
+
+        ConcursoCreateRequest request = new ConcursoCreateRequest();
+        request.setInstituicaoId(instituicao.getId());
+        request.setBancaId(banca.getId());
+        request.setAno(2023);
+        request.setMes(9);
+        request.setCargos(List.of(cargo1.getId()));
+        request.setTopicos(Map.of(subtema.getId(), List.of()));
+
+        mockMvc
+            .perform(
+                post("/api/v1/concursos")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(request))
+            )
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(jsonPath("$.detail").value("O subtema ID " + subtema.getId() + " deve estar associado a pelo menos 1 cargo."));
+    }
+
+    @Test
+    void testUpdateConcurso_ModifyTopicos() throws Exception {
+        Disciplina disciplina = new Disciplina("Direito Topicos Update");
+        disciplina = disciplinaRepository.save(disciplina);
+
+        Tema tema = new Tema();
+        tema.setNome("Tema Topicos Update");
+        tema.setDisciplina(disciplina);
+        tema = temaRepository.save(tema);
+
+        Subtema subtema1 = new Subtema();
+        subtema1.setNome("Subtema Update 1");
+        subtema1.setTema(tema);
+        subtema1 = subtemaRepository.save(subtema1);
+
+        Subtema subtema2 = new Subtema();
+        subtema2.setNome("Subtema Update 2");
+        subtema2.setTema(tema);
+        subtema2 = subtemaRepository.save(subtema2);
+
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Instituição Topicos Update");
+        instituicao.setArea("Educação");
+        instituicao = instituicaoRepository.save(instituicao);
+
+        Banca banca = new Banca();
+        banca.setNome("Banca Topicos Update");
+        banca = bancaRepository.save(banca);
+
+        Concurso concurso = new Concurso(instituicao, banca, 2023, 10);
+        concurso = concursoRepository.save(concurso);
+
+        ConcursoCargo cc = new ConcursoCargo();
+        cc.setConcurso(concurso);
+        cc.setCargo(cargo1);
+        cc = concursoCargoRepository.save(cc);
+        concurso.addConcursoCargo(cc);
+
+        // Create initial topicos
+        ConcursoCargoSubtema ccs = new ConcursoCargoSubtema();
+        ccs.setSubtema(subtema1);
+        cc.addConcursoCargoSubtema(ccs);
+        concursoCargoSubtemaRepository.save(ccs);
+
+        // Update: remove subtema1, add subtema2
+        ConcursoUpdateRequest request = new ConcursoUpdateRequest();
+        request.setInstituicaoId(instituicao.getId());
+        request.setBancaId(banca.getId());
+        request.setAno(2023);
+        request.setMes(10);
+        request.setCargos(List.of(cargo1.getId()));
+        request.setTopicos(Map.of(subtema2.getId(), List.of(cargo1.getId())));
+
+        mockMvc
+            .perform(
+                put("/api/v1/concursos/{id}", concurso.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(request))
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.cargos[0].topicos.length()").value(1))
+            .andExpect(jsonPath("$.cargos[0].topicos[0].id").value(subtema2.getId()))
+            .andExpect(jsonPath("$.cargos[0].topicos[0].nome").value("Subtema Update 2"));
+
+        entityManager.flush();
+        entityManager.clear();
+
+        // Verify old topicos was removed
+        assertFalse(concursoCargoSubtemaRepository.existsById(ccs.getId()));
     }
 }

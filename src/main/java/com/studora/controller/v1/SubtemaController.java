@@ -49,7 +49,7 @@ public class SubtemaController {
                 content = @Content(
                     mediaType = "application/json",
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Atos Administrativos\", \"temaId\": 5, \"temaNome\": \"Poderes\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Administrativo\"}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Atos Administrativos\", \"temaId\": 5, \"temaNome\": \"Poderes\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Administrativo\", \"totalEstudos\": 3, \"ultimoEstudo\": \"2026-01-15T10:30:00\"}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -83,7 +83,7 @@ public class SubtemaController {
             @ApiResponse(responseCode = "200", description = "Subtema encontrado", 
                 content = @Content(
                     schema = @Schema(implementation = SubtemaDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Habeas Corpus\", \"temaId\": 1, \"temaNome\": \"Remédios Constitucionais\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\"}")
+                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Habeas Corpus\", \"temaId\": 1, \"temaNome\": \"Remédios Constitucionais\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\", \"totalEstudos\": 5, \"ultimoEstudo\": \"2026-02-20T14:00:00\"}")
                 )),
             @ApiResponse(responseCode = "404", description = "Subtema não encontrado",
                 content = @Content(mediaType = "application/problem+json",
@@ -105,7 +105,7 @@ public class SubtemaController {
                 content = @Content(
                     mediaType = "application/json",
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"nome\": \"Atos Administrativos\", \"temaId\": 5, \"temaNome\": \"Poderes\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Administrativo\"}]"
+                        value = "[{\"id\": 1, \"nome\": \"Atos Administrativos\", \"temaId\": 5, \"temaNome\": \"Poderes\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Administrativo\", \"totalEstudos\": 2, \"ultimoEstudo\": \"2026-03-01T09:15:00\"}]"
                     )
                 ))
         }
@@ -121,7 +121,7 @@ public class SubtemaController {
             @ApiResponse(responseCode = "201", description = "Subtema criado com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = SubtemaDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 3, \"nome\": \"Direito à Vida\", \"temaId\": 1, \"temaNome\": \"Direitos Fundamentais\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\"}")
+                    examples = @ExampleObject(value = "{\"id\": 3, \"nome\": \"Direito à Vida\", \"temaId\": 1, \"temaNome\": \"Direitos Fundamentais\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\", \"totalEstudos\": 0, \"ultimoEstudo\": null}")
                 )),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",
@@ -148,7 +148,7 @@ public class SubtemaController {
             @ApiResponse(responseCode = "200", description = "Subtema atualizado com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = SubtemaDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Habeas Corpus e Habeas Data\", \"temaId\": 1, \"temaNome\": \"Remédios Constitucionais\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\"}")
+                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Habeas Corpus e Habeas Data\", \"temaId\": 1, \"temaNome\": \"Remédios Constitucionais\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\", \"totalEstudos\": 5, \"ultimoEstudo\": \"2026-02-20T14:00:00\"}")
                 )),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",

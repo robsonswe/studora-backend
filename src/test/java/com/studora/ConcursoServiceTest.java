@@ -50,6 +50,9 @@ class ConcursoServiceTest {
     @Mock private CargoRepository cargoRepository;
     @Mock private ConcursoCargoRepository concursoCargoRepository;
     @Mock private QuestaoCargoRepository questaoCargoRepository;
+    @Mock private com.studora.repository.EstudoSubtemaRepository estudoSubtemaRepository;
+    @Mock private com.studora.repository.SubtemaRepository subtemaRepository;
+    @Mock private com.studora.repository.ConcursoCargoSubtemaRepository concursoCargoSubtemaRepository;
 
     private ConcursoService concursoService;
 
@@ -72,6 +75,9 @@ class ConcursoServiceTest {
             cargoRepository, 
             concursoCargoRepository, 
             questaoCargoRepository,
+            estudoSubtemaRepository,
+            subtemaRepository,
+            concursoCargoSubtemaRepository,
             realMapper
         );
     }

@@ -20,6 +20,10 @@ public interface ConcursoRepository extends JpaRepository<Concurso, Long>, JpaSp
            "JOIN FETCH c.banca " +
            "LEFT JOIN FETCH c.concursoCargos cc " +
            "LEFT JOIN FETCH cc.cargo " +
+           "LEFT JOIN FETCH cc.concursoCargoSubtemas ccs " +
+           "LEFT JOIN FETCH ccs.subtema s " +
+           "LEFT JOIN FETCH s.tema t " +
+           "LEFT JOIN FETCH t.disciplina " +
            "WHERE c.id = :id")
     Optional<Concurso> findByIdWithDetails(@Param("id") Long id);
 
@@ -28,6 +32,10 @@ public interface ConcursoRepository extends JpaRepository<Concurso, Long>, JpaSp
            "JOIN FETCH c.banca " +
            "LEFT JOIN FETCH c.concursoCargos cc " +
            "LEFT JOIN FETCH cc.cargo " +
+           "LEFT JOIN FETCH cc.concursoCargoSubtemas ccs " +
+           "LEFT JOIN FETCH ccs.subtema s " +
+           "LEFT JOIN FETCH s.tema t " +
+           "LEFT JOIN FETCH t.disciplina " +
            "WHERE c.id IN :ids")
     java.util.List<Concurso> findAllByIdsWithDetails(@Param("ids") java.util.List<Long> ids);
 }

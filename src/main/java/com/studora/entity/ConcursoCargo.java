@@ -1,11 +1,27 @@
 package com.studora.entity;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.*;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import java.util.Objects;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -34,7 +50,7 @@ public class ConcursoCargo extends BaseEntity {
 
     @ManyToOne
     @JoinColumn(name = "concurso_id", nullable = false)
-    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @Schema(description = "Concurso associado")
     private Concurso concurso;
 
@@ -55,11 +71,26 @@ public class ConcursoCargo extends BaseEntity {
     )
     @Schema(description = "Associações entre este concurso-cargo e questões")
     @ToString.Exclude
-    private java.util.Set<QuestaoCargo> questaoCargos = new java.util.LinkedHashSet<>();
+    private Set<QuestaoCargo> questaoCargos = new LinkedHashSet<>();
 
     public void addQuestaoCargo(QuestaoCargo questaoCargo) {
         this.questaoCargos.add(questaoCargo);
         questaoCargo.setConcursoCargo(this);
+    }
+
+    @OneToMany(
+        mappedBy = "concursoCargo",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true,
+        fetch = FetchType.LAZY
+    )
+    @Schema(description = "Subtemas associados a este concurso-cargo")
+    @ToString.Exclude
+    private Set<ConcursoCargoSubtema> concursoCargoSubtemas = new LinkedHashSet<>();
+
+    public void addConcursoCargoSubtema(ConcursoCargoSubtema concursoCargoSubtema) {
+        this.concursoCargoSubtemas.add(concursoCargoSubtema);
+        concursoCargoSubtema.setConcursoCargo(this);
     }
 
     @Override

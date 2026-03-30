@@ -39,6 +39,12 @@ public class ConcursoUpdateRequest {
     @Schema(description = "Lista de IDs dos cargos associados ao concurso", example = "[1, 2]", required = true)
     private java.util.List<Long> cargos;
 
+    @Schema(
+        description = "Mapa de subtemas para cargos. Chave: subtemaId, Valor: lista de cargoIds associados a este subtema neste concurso. Cada subtema deve ter pelo menos 1 cargo. Se omitido, os topicos existentes não são alterados.",
+        example = "{\"12\": [1, 2], \"5\": [1]}"
+    )
+    private java.util.Map<Long, java.util.List<Long>> topicos;
+
     // Constructors
     public ConcursoUpdateRequest() {}
 

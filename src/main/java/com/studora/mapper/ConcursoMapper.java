@@ -54,9 +54,30 @@ public interface ConcursoMapper {
                     dto.setNivel(cargo.getNivel());
                     dto.setArea(cargo.getArea());
                     dto.setInscrito(cc.isInscrito());
+                    dto.setTopicos(mapTopicos(cc.getConcursoCargoSubtemas()));
                     return dto;
                 })
                 .sorted(java.util.Comparator.comparing(com.studora.dto.concurso.ConcursoCargoSummaryDto::getCargoNome))
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    default java.util.List<com.studora.dto.subtema.SubtemaSummaryDto> mapTopicos(java.util.Set<com.studora.entity.ConcursoCargoSubtema> concursoCargoSubtemas) {
+        if (concursoCargoSubtemas == null) {
+            return java.util.Collections.emptyList();
+        }
+        return concursoCargoSubtemas.stream()
+                .map(ccs -> {
+                    com.studora.entity.Subtema subtema = ccs.getSubtema();
+                    com.studora.dto.subtema.SubtemaSummaryDto dto = new com.studora.dto.subtema.SubtemaSummaryDto();
+                    dto.setId(subtema.getId());
+                    dto.setNome(subtema.getNome());
+                    dto.setTemaId(subtema.getTema().getId());
+                    dto.setTemaNome(subtema.getTema().getNome());
+                    dto.setDisciplinaId(subtema.getTema().getDisciplina().getId());
+                    dto.setDisciplinaNome(subtema.getTema().getDisciplina().getNome());
+                    return dto;
+                })
+                .sorted(java.util.Comparator.comparing(com.studora.dto.subtema.SubtemaSummaryDto::getNome))
                 .collect(java.util.stream.Collectors.toList());
     }
 }

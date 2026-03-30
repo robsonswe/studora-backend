@@ -1,8 +1,11 @@
 package com.studora.dto.concurso;
 
+import com.studora.dto.subtema.SubtemaSummaryDto;
 import com.studora.entity.NivelCargo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+
+import java.util.List;
 
 @Schema(description = "DTO que representa a associação de um cargo a um concurso com status de inscrição")
 @Data
@@ -24,4 +27,7 @@ public class ConcursoCargoSummaryDto {
 
     @Schema(description = "Indica se o usuário está inscrito para este cargo neste concurso")
     private boolean inscrito;
+
+    @Schema(description = "Subtemas associados a este cargo neste concurso")
+    private List<SubtemaSummaryDto> topicos;
 }
