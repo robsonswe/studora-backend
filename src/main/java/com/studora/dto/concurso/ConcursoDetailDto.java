@@ -16,7 +16,4 @@ public class ConcursoDetailDto {
     private Integer mes;
     private String edital;
     private List<ConcursoCargoSummaryDto> cargos;
-    
-    @Schema(description = "Indica se o usuário está inscrito em algum cargo deste concurso. Pode ser 'false' ou um objeto '{\"cargo\": cargoId}'", example = "{\"cargo\": 1}")
-    private Object inscrito;
 }

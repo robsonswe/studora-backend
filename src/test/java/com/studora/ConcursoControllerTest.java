@@ -460,7 +460,8 @@ class ConcursoControllerTest {
             .perform(get("/api/v1/concursos").param("inscrito", "true"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content.length()").value(1))
-            .andExpect(jsonPath("$.content[0].inscrito.cargo").value(cargo1.getId()));
+            .andExpect(jsonPath("$.content[0].cargos[0].cargoId").value(cargo1.getId()))
+            .andExpect(jsonPath("$.content[0].cargos[0].inscrito").value(true));
 
         // Test GET /concursos?inscrito=false (should be empty if only one concurso exists and it's inscribed)
         mockMvc
@@ -468,11 +469,12 @@ class ConcursoControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content.length()").value(0));
             
-        // Test GET /concursos/{id} polymorphic property
+        // Test GET /concursos/{id}
         mockMvc
             .perform(get("/api/v1/concursos/{id}", concurso.getId()))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.inscrito.cargo").value(cargo1.getId()));
+            .andExpect(jsonPath("$.cargos[0].cargoId").value(cargo1.getId()))
+            .andExpect(jsonPath("$.cargos[0].inscrito").value(true));
     }
 
     @Test

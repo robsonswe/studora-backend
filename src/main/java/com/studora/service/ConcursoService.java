@@ -60,21 +60,7 @@ public class ConcursoService {
         java.util.Map<Long, Concurso> detailsMap = withDetails.stream()
                 .collect(java.util.stream.Collectors.toMap(Concurso::getId, c -> c));
         
-        // 4. Fetch registration info for the current page
-        java.util.List<ConcursoCargo> inscribedCargos = concursoCargoRepository.findAllInscribedByConcursoIds(ids);
-        java.util.Map<Long, Long> registrationMap = inscribedCargos.stream()
-                .collect(java.util.stream.Collectors.toMap(cc -> cc.getConcurso().getId(), cc -> cc.getCargo().getId()));
-
-        return page.map(c -> {
-            ConcursoSummaryDto dto = concursoMapper.toSummaryDto(detailsMap.getOrDefault(c.getId(), c));
-            if (dto.getInscrito() == null || Boolean.FALSE.equals(dto.getInscrito())) {
-                Long cargoId = registrationMap.get(c.getId());
-                if (cargoId != null) {
-                    dto.setInscrito(java.util.Map.of("cargo", cargoId));
-                }
-            }
-            return dto;
-        });
+        return page.map(c -> concursoMapper.toSummaryDto(detailsMap.getOrDefault(c.getId(), c)));
     }
 
     @Transactional(readOnly = true)

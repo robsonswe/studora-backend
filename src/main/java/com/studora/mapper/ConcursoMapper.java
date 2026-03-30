@@ -15,23 +15,12 @@ public interface ConcursoMapper {
     @Mapping(target = "instituicao", source = "instituicao")
     @Mapping(target = "banca", source = "banca")
     @Mapping(target = "cargos", source = "concursoCargos")
-    @Mapping(target = "inscrito", expression = "java(calculateInscrito(concurso.getConcursoCargos()))")
     ConcursoSummaryDto toSummaryDto(Concurso concurso);
 
     @Mapping(target = "instituicao", source = "instituicao")
     @Mapping(target = "banca", source = "banca")
     @Mapping(target = "cargos", source = "concursoCargos")
-    @Mapping(target = "inscrito", expression = "java(calculateInscrito(concurso.getConcursoCargos()))")
     ConcursoDetailDto toDetailDto(Concurso concurso);
-
-    default Object calculateInscrito(java.util.Set<com.studora.entity.ConcursoCargo> concursoCargos) {
-        if (concursoCargos == null) return false;
-        return concursoCargos.stream()
-                .filter(com.studora.entity.ConcursoCargo::isInscrito)
-                .findFirst()
-                .map(cc -> (Object) java.util.Map.of("cargo", cc.getCargo().getId()))
-                .orElse(false);
-    }
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "instituicao", ignore = true)
