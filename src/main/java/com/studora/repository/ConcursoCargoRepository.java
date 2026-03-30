@@ -18,4 +18,8 @@ public interface ConcursoCargoRepository extends JpaRepository<ConcursoCargo, Lo
     boolean existsByCargoId(Long cargoId);
     long countByConcursoId(Long concursoId);
     boolean existsByConcursoIdAndCargoId(Long concursoId, Long cargoId);
+    boolean existsByConcursoIdAndInscritoTrue(Long concursoId);
+
+    @Query("SELECT cc FROM ConcursoCargo cc WHERE cc.concurso.id IN :concursoIds AND cc.inscrito = true")
+    List<ConcursoCargo> findAllInscribedByConcursoIds(@Param("concursoIds") List<Long> concursoIds);
 }

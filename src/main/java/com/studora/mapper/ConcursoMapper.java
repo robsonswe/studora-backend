@@ -15,12 +15,23 @@ public interface ConcursoMapper {
     @Mapping(target = "instituicao", source = "instituicao")
     @Mapping(target = "banca", source = "banca")
     @Mapping(target = "cargos", source = "concursoCargos")
+    @Mapping(target = "inscrito", expression = "java(calculateInscrito(concurso.getConcursoCargos()))")
     ConcursoSummaryDto toSummaryDto(Concurso concurso);
 
     @Mapping(target = "instituicao", source = "instituicao")
     @Mapping(target = "banca", source = "banca")
     @Mapping(target = "cargos", source = "concursoCargos")
+    @Mapping(target = "inscrito", expression = "java(calculateInscrito(concurso.getConcursoCargos()))")
     ConcursoDetailDto toDetailDto(Concurso concurso);
+
+    default Object calculateInscrito(java.util.Set<com.studora.entity.ConcursoCargo> concursoCargos) {
+        if (concursoCargos == null) return false;
+        return concursoCargos.stream()
+                .filter(com.studora.entity.ConcursoCargo::isInscrito)
+                .findFirst()
+                .map(cc -> (Object) java.util.Map.of("cargo", cc.getCargo().getId()))
+                .orElse(false);
+    }
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "instituicao", ignore = true)
@@ -40,21 +51,23 @@ public interface ConcursoMapper {
     @Mapping(target = "updatedAt", ignore = true)
     void updateEntityFromDto(ConcursoUpdateRequest request, @MappingTarget Concurso concurso);
 
-    default java.util.List<com.studora.dto.cargo.CargoSummaryDto> mapCargos(java.util.Set<com.studora.entity.ConcursoCargo> concursoCargos) {
+    default java.util.List<com.studora.dto.concurso.ConcursoCargoSummaryDto> mapCargos(java.util.Set<com.studora.entity.ConcursoCargo> concursoCargos) {
         if (concursoCargos == null) {
             return java.util.Collections.emptyList();
         }
         return concursoCargos.stream()
                 .map(cc -> {
                     com.studora.entity.Cargo cargo = cc.getCargo();
-                    com.studora.dto.cargo.CargoSummaryDto dto = new com.studora.dto.cargo.CargoSummaryDto();
-                    dto.setId(cargo.getId());
-                    dto.setNome(cargo.getNome());
+                    com.studora.dto.concurso.ConcursoCargoSummaryDto dto = new com.studora.dto.concurso.ConcursoCargoSummaryDto();
+                    dto.setId(cc.getId());
+                    dto.setCargoId(cargo.getId());
+                    dto.setCargoNome(cargo.getNome());
                     dto.setNivel(cargo.getNivel());
                     dto.setArea(cargo.getArea());
+                    dto.setInscrito(cc.isInscrito());
                     return dto;
                 })
-                .sorted(java.util.Comparator.comparing(com.studora.dto.cargo.CargoSummaryDto::getNome))
+                .sorted(java.util.Comparator.comparing(com.studora.dto.concurso.ConcursoCargoSummaryDto::getCargoNome))
                 .collect(java.util.stream.Collectors.toList());
     }
 }

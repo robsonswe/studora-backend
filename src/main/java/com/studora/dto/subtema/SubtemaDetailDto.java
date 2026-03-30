@@ -10,4 +10,6 @@ public class SubtemaDetailDto {
     private Long id;
     private TemaSummaryDto tema;
     private String nome;
+    private long totalEstudos;
+    private java.time.LocalDateTime ultimoEstudo;
 }

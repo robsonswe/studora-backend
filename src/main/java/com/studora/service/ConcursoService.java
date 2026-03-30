@@ -3,6 +3,7 @@ package com.studora.service;
 import com.studora.dto.concurso.ConcursoFilter;
 import com.studora.dto.concurso.ConcursoDetailDto;
 import com.studora.dto.concurso.ConcursoSummaryDto;
+import com.studora.dto.concurso.ConcursoCargoSummaryDto;
 import com.studora.dto.request.ConcursoCreateRequest;
 import com.studora.dto.request.ConcursoUpdateRequest;
 import com.studora.entity.Banca;
@@ -59,7 +60,21 @@ public class ConcursoService {
         java.util.Map<Long, Concurso> detailsMap = withDetails.stream()
                 .collect(java.util.stream.Collectors.toMap(Concurso::getId, c -> c));
         
-        return page.map(c -> concursoMapper.toSummaryDto(detailsMap.getOrDefault(c.getId(), c)));
+        // 4. Fetch registration info for the current page
+        java.util.List<ConcursoCargo> inscribedCargos = concursoCargoRepository.findAllInscribedByConcursoIds(ids);
+        java.util.Map<Long, Long> registrationMap = inscribedCargos.stream()
+                .collect(java.util.stream.Collectors.toMap(cc -> cc.getConcurso().getId(), cc -> cc.getCargo().getId()));
+
+        return page.map(c -> {
+            ConcursoSummaryDto dto = concursoMapper.toSummaryDto(detailsMap.getOrDefault(c.getId(), c));
+            if (dto.getInscrito() == null || Boolean.FALSE.equals(dto.getInscrito())) {
+                Long cargoId = registrationMap.get(c.getId());
+                if (cargoId != null) {
+                    dto.setInscrito(java.util.Map.of("cargo", cargoId));
+                }
+            }
+            return dto;
+        });
     }
 
     @Transactional(readOnly = true)
@@ -178,5 +193,29 @@ public class ConcursoService {
             throw new ResourceNotFoundException("Concurso", "ID", id);
         }
         concursoRepository.deleteById(id);
+    }
+
+    public ConcursoCargoSummaryDto toggleInscricao(Long concursoCargoId) {
+        log.info("Togglings inscrição para ConcursoCargo ID: {}", concursoCargoId);
+        ConcursoCargo cc = concursoCargoRepository.findById(concursoCargoId)
+                .orElseThrow(() -> new ResourceNotFoundException("ConcursoCargo", "ID", concursoCargoId));
+        
+        boolean newStatus = !cc.isInscrito();
+        
+        if (newStatus && concursoCargoRepository.existsByConcursoIdAndInscritoTrue(cc.getConcurso().getId())) {
+            throw new ValidationException("Você já está inscrito em outro cargo para este concurso. Desinscreva-se primeiro.");
+        }
+
+        cc.setInscrito(newStatus);
+        cc = concursoCargoRepository.save(cc);
+        
+        ConcursoCargoSummaryDto dto = new ConcursoCargoSummaryDto();
+        dto.setId(cc.getId());
+        dto.setCargoId(cc.getCargo().getId());
+        dto.setCargoNome(cc.getCargo().getNome());
+        dto.setNivel(cc.getCargo().getNivel());
+        dto.setArea(cc.getCargo().getArea());
+        dto.setInscrito(cc.isInscrito());
+        return dto;
     }
 }

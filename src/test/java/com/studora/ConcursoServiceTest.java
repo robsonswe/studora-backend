@@ -138,7 +138,7 @@ class ConcursoServiceTest {
         assertEquals(1L, result.getId());
         assertEquals(2023, result.getAno());
         assertEquals(1, result.getCargos().size());
-        assertEquals(10L, result.getCargos().get(0).getId());
+        assertEquals(10L, result.getCargos().get(0).getCargoId());
     }
 
     @Test
@@ -217,7 +217,7 @@ class ConcursoServiceTest {
         ConcursoDetailDto result = concursoService.update(id, req);
         
         assertEquals(1, result.getCargos().size());
-        assertEquals(20L, result.getCargos().get(0).getId());
+        assertEquals(20L, result.getCargos().get(0).getCargoId());
     }
     
     @Test

@@ -43,13 +43,13 @@ public class ConcursoController {
 
     @Operation(
         summary = "Obter todos os concursos",
-        description = "Retorna uma página com todos os concursos cadastrados.",
+        description = "Retorna uma página com todos os concursos cadastrados, permitindo filtragem por banca, instituição, cargo, área e status de inscrição.",
         responses = {
             @ApiResponse(responseCode = "200", description = "Página de concursos retornada com sucesso",
                 content = @Content(
                     mediaType = "application/json",
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"instituicao\": {\"id\": 1, \"nome\": \"Polícia Federal\", \"area\": \"Policial\"}, \"banca\": {\"id\": 1, \"nome\": \"Cebraspe\"}, \"ano\": 2023, \"mes\": 5, \"edital\": \"https://exemplo.com/edital.pdf\", \"cargos\": [{\"id\": 1, \"nome\": \"Agente\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\"}]}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"instituicao\": {\"id\": 1, \"nome\": \"PF\", \"area\": \"Policial\"}, \"banca\": {\"id\": 1, \"nome\": \"Cebraspe\"}, \"ano\": 2024, \"mes\": 5, \"edital\": \"https://exemplo.com/edital.pdf\", \"cargos\": [{\"id\": 1, \"cargoId\": 1, \"cargoNome\": \"Agente\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\", \"inscrito\": true}], \"inscrito\": {\"cargo\": 1}}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -91,7 +91,7 @@ public class ConcursoController {
             @ApiResponse(responseCode = "200", description = "Concurso encontrado", 
                 content = @Content(
                     schema = @Schema(implementation = ConcursoDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"instituicao\": {\"id\": 1, \"nome\": \"Polícia Federal\", \"area\": \"Policial\"}, \"banca\": {\"id\": 1, \"nome\": \"Cebraspe\"}, \"ano\": 2023, \"mes\": 6, \"edital\": \"Edital 01/2023\", \"cargos\": [{\"id\": 1, \"nome\": \"Agente\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\"}]}")
+                    examples = @ExampleObject(value = "{\"id\": 1, \"instituicao\": {\"id\": 1, \"nome\": \"Polícia Federal\", \"area\": \"Policial\"}, \"banca\": {\"id\": 1, \"nome\": \"Cebraspe\"}, \"ano\": 2023, \"mes\": 6, \"edital\": \"Edital 01/2023\", \"cargos\": [{\"id\": 1, \"cargoId\": 1, \"cargoNome\": \"Agente\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\", \"inscrito\": false}], \"inscrito\": false}")
                 )),
             @ApiResponse(responseCode = "404", description = "Concurso não encontrado",
                 content = @Content(mediaType = "application/problem+json",
@@ -112,7 +112,7 @@ public class ConcursoController {
             @ApiResponse(responseCode = "201", description = "Concurso criado com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = ConcursoDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 2, \"instituicao\": {\"id\": 2, \"nome\": \"Tribunal de Justiça\", \"area\": \"Judiciária\"}, \"banca\": {\"id\": 2, \"nome\": \"FGV\"}, \"ano\": 2024, \"mes\": 1, \"edital\": \"Edital 01/2024\", \"cargos\": [{\"id\": 10, \"nome\": \"Analista\", \"nivel\": \"SUPERIOR\", \"area\": \"Judiciária\"}]}")
+                    examples = @ExampleObject(value = "{\"id\": 2, \"instituicao\": {\"id\": 2, \"nome\": \"Tribunal de Justiça\", \"area\": \"Judiciária\"}, \"banca\": {\"id\": 2, \"nome\": \"FGV\"}, \"ano\": 2024, \"mes\": 1, \"edital\": \"Edital 01/2024\", \"cargos\": [{\"id\": 10, \"cargoId\": 10, \"cargoNome\": \"Analista\", \"nivel\": \"SUPERIOR\", \"area\": \"Judiciária\", \"inscrito\": false}], \"inscrito\": false}")
                 )),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",
@@ -139,8 +139,9 @@ public class ConcursoController {
             @ApiResponse(responseCode = "200", description = "Concurso atualizado com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = ConcursoDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"instituicao\": {\"id\": 1, \"nome\": \"Polícia Federal\", \"area\": \"Policial\"}, \"banca\": {\"id\": 1, \"nome\": \"Cebraspe\"}, \"ano\": 2023, \"mes\": 6, \"edital\": \"Edital 01/2023 - Atualizado\", \"cargos\": [{\"id\": 1, \"nome\": \"Agente\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\"}]}")
+                    examples = @ExampleObject(value = "{\"id\": 1, \"instituicao\": {\"id\": 1, \"nome\": \"Polícia Federal\", \"area\": \"Policial\"}, \"banca\": {\"id\": 1, \"nome\": \"Cebraspe\"}, \"ano\": 2023, \"mes\": 5, \"edital\": \"https://exemplo.com/edital.pdf\", \"cargos\": [{\"id\": 1, \"cargoId\": 1, \"cargoNome\": \"Agente\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\", \"inscrito\": false}], \"inscrito\": false}")
                 )),
+
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
@@ -182,5 +183,18 @@ public class ConcursoController {
     public ResponseEntity<Void> deleteConcurso(@PathVariable Long id) {
         concursoService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+        summary = "Alternar status de inscrição em um cargo de um concurso",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Status de inscrição alterado com sucesso",
+                content = @Content(schema = @Schema(implementation = com.studora.dto.concurso.ConcursoCargoSummaryDto.class))),
+            @ApiResponse(responseCode = "404", description = "Associação concurso-cargo não encontrada")
+        }
+    )
+    @PatchMapping("/cargos/{concursoCargoId}/inscricao")
+    public ResponseEntity<com.studora.dto.concurso.ConcursoCargoSummaryDto> toggleInscricao(@PathVariable Long concursoCargoId) {
+        return ResponseEntity.ok(concursoService.toggleInscricao(concursoCargoId));
     }
 }

@@ -23,4 +23,10 @@ public class SubtemaSummaryDto {
 
     @Schema(description = "Nome do subtema", example = "Espécies de Atos")
     private String nome;
+
+    @Schema(description = "Total de sessões de estudo realizadas para este subtema", example = "2")
+    private long totalEstudos;
+
+    @Schema(description = "Data e hora do último estudo realizado")
+    private java.time.LocalDateTime ultimoEstudo;
 }

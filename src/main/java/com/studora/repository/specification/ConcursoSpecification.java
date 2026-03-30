@@ -41,6 +41,20 @@ public class ConcursoSpecification {
                 predicates.add(cb.equal(root.join("concursoCargos").get("cargo").get("nivel"), filter.getCargoNivel()));
             }
 
+            if (filter.getInscrito() != null) {
+                if (filter.getInscrito()) {
+                    predicates.add(cb.isTrue(root.join("concursoCargos").get("inscrito")));
+                } else {
+                    // Subquery to find concursos that have at least one inscribed cargo
+                    jakarta.persistence.criteria.Subquery<Long> subquery = query.subquery(Long.class);
+                    jakarta.persistence.criteria.Root<com.studora.entity.ConcursoCargo> subRoot = subquery.from(com.studora.entity.ConcursoCargo.class);
+                    subquery.select(subRoot.get("concurso").get("id"));
+                    subquery.where(cb.isTrue(subRoot.get("inscrito")));
+                    
+                    predicates.add(cb.not(root.get("id").in(subquery)));
+                }
+            }
+
             return cb.and(predicates.toArray(new Predicate[0]));
         };
     }

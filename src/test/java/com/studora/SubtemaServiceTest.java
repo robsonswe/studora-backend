@@ -29,6 +29,8 @@ class SubtemaServiceTest {
     private TemaRepository temaRepository;
     @Mock
     private QuestaoRepository questaoRepository;
+    @Mock
+    private com.studora.repository.EstudoSubtemaRepository estudoSubtemaRepository;
 
     private SubtemaService subtemaService;
 
@@ -40,7 +42,7 @@ class SubtemaServiceTest {
         TemaMapper temaMapper = org.mapstruct.factory.Mappers.getMapper(TemaMapper.class);
         ReflectionTestUtils.setField(realMapper, "temaMapper", temaMapper);
         
-        subtemaService = new SubtemaService(subtemaRepository, temaRepository, questaoRepository, realMapper);
+        subtemaService = new SubtemaService(subtemaRepository, temaRepository, questaoRepository, estudoSubtemaRepository, realMapper);
     }
 
     @Test

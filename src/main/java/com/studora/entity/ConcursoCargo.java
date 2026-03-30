@@ -43,6 +43,10 @@ public class ConcursoCargo extends BaseEntity {
     @Schema(description = "Cargo associado")
     private Cargo cargo;
 
+    @Column(nullable = false)
+    @Schema(description = "Indica se o usuário está inscrito para este cargo neste concurso", example = "false")
+    private boolean inscrito = false;
+
     @OneToMany(
         mappedBy = "concursoCargo",
         cascade = CascadeType.ALL,

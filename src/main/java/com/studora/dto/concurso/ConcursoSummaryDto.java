@@ -25,5 +25,8 @@ public class ConcursoSummaryDto {
     private String edital;
 
     @Schema(description = "Lista de cargos associados ao concurso")
-    private java.util.List<com.studora.dto.cargo.CargoSummaryDto> cargos;
+    private java.util.List<ConcursoCargoSummaryDto> cargos;
+
+    @Schema(description = "Indica se o usuário está inscrito em algum cargo deste concurso. Pode ser 'false' ou um objeto '{\"cargo\": cargoId}'", example = "{\"cargo\": 1}")
+    private Object inscrito;
 }

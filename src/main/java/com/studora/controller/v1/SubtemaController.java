@@ -34,9 +34,11 @@ import java.util.Map;
 public class SubtemaController {
 
     private final SubtemaService subtemaService;
+    private final com.studora.service.EstudoSubtemaService estudoSubtemaService;
 
-    public SubtemaController(SubtemaService subtemaService) {
+    public SubtemaController(SubtemaService subtemaService, com.studora.service.EstudoSubtemaService estudoSubtemaService) {
         this.subtemaService = subtemaService;
+        this.estudoSubtemaService = estudoSubtemaService;
     }
 
     @Operation(
@@ -179,6 +181,42 @@ public class SubtemaController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteSubtema(@PathVariable Long id) {
         subtemaService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+        summary = "Adicionar uma sessão de estudo para o subtema",
+        responses = {
+            @ApiResponse(responseCode = "201", description = "Sessão de estudo registrada com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Subtema não encontrado")
+        }
+    )
+    @PostMapping("/{id}/estudos")
+    public ResponseEntity<com.studora.dto.subtema.EstudoSubtemaDto> addEstudo(@PathVariable Long id) {
+        return new ResponseEntity<>(estudoSubtemaService.markAsStudied(id), HttpStatus.CREATED);
+    }
+
+    @Operation(
+        summary = "Listar sessões de estudo de um subtema",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Lista de sessões de estudo retornada com sucesso")
+        }
+    )
+    @GetMapping("/{id}/estudos")
+    public ResponseEntity<List<com.studora.dto.subtema.EstudoSubtemaDto>> getEstudos(@PathVariable Long id) {
+        return ResponseEntity.ok(estudoSubtemaService.getEstudosBySubtema(id));
+    }
+
+    @Operation(
+        summary = "Excluir uma sessão de estudo específica",
+        responses = {
+            @ApiResponse(responseCode = "204", description = "Sessão de estudo excluída com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Sessão de estudo não encontrada")
+        }
+    )
+    @DeleteMapping("/{subtemaId}/estudos/{estudoId}")
+    public ResponseEntity<Void> deleteEstudo(@PathVariable Long subtemaId, @PathVariable Long estudoId) {
+        estudoSubtemaService.deleteEstudo(estudoId);
         return ResponseEntity.noContent().build();
     }
 }

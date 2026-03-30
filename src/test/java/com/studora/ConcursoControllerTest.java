@@ -99,7 +99,7 @@ class ConcursoControllerTest {
             .andExpect(jsonPath("$.banca.id").value(banca.getId()))
             .andExpect(jsonPath("$.ano").value(2023))
             .andExpect(jsonPath("$.mes").value(1))
-            .andExpect(jsonPath("$.cargos[0].id").value(cargo1.getId()));
+            .andExpect(jsonPath("$.cargos[0].cargoId").value(cargo1.getId()));
     }
 
     @Test
@@ -163,7 +163,7 @@ class ConcursoControllerTest {
             .andExpect(jsonPath("$.banca.id").value(banca.getId()))
             .andExpect(jsonPath("$.ano").value(2023))
             .andExpect(jsonPath("$.mes").value(6))
-            .andExpect(jsonPath("$.cargos[0].id").value(cargo1.getId()));
+            .andExpect(jsonPath("$.cargos[0].cargoId").value(cargo1.getId()));
     }
 
     @Test
@@ -254,7 +254,7 @@ class ConcursoControllerTest {
             .andExpect(jsonPath("$.banca.id").value(banca2.getId()))
             .andExpect(jsonPath("$.ano").value(2023))
             .andExpect(jsonPath("$.mes").value(6))
-            .andExpect(jsonPath("$.cargos[0].id").value(cargo2.getId()))
+            .andExpect(jsonPath("$.cargos[0].cargoId").value(cargo2.getId()))
             .andExpect(jsonPath("$.cargos.length()").value(1));
     }
 
@@ -309,7 +309,7 @@ class ConcursoControllerTest {
             .perform(get("/api/v1/concursos").param("cargoId", cargo1.getId().toString()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content.length()").value(1))
-            .andExpect(jsonPath("$.content[0].cargos[0].id").value(cargo1.getId()));
+            .andExpect(jsonPath("$.content[0].cargos[0].cargoId").value(cargo1.getId()));
 
         // Filter by instituicaoArea
         mockMvc
@@ -399,5 +399,112 @@ class ConcursoControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].ano").value(2024))
             .andExpect(jsonPath("$.content[1].ano").value(2023));
+    }
+
+    @Test
+    void testToggleInscricao() throws Exception {
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Instituição Insc Test");
+        instituicao.setArea("Educação");
+        instituicao = instituicaoRepository.save(instituicao);
+
+        Banca banca = new Banca();
+        banca.setNome("Banca Insc Test");
+        banca = bancaRepository.save(banca);
+
+        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
+        concurso = concursoRepository.save(concurso);
+        
+        ConcursoCargo cc = new ConcursoCargo();
+        cc.setConcurso(concurso);
+        cc.setCargo(cargo1);
+        cc.setInscrito(false);
+        cc = concursoCargoRepository.save(cc);
+
+        // Toggle to true
+        mockMvc
+            .perform(patch("/api/v1/concursos/cargos/{concursoCargoId}/inscricao", cc.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.inscrito").value(true));
+
+        // Toggle to false
+        mockMvc
+            .perform(patch("/api/v1/concursos/cargos/{concursoCargoId}/inscricao", cc.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.inscrito").value(false));
+    }
+
+    @Test
+    void testInscritoFilterAndPolymorphicProperty() throws Exception {
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Instituição Filter Test");
+        instituicao.setArea("Educação");
+        instituicao = instituicaoRepository.save(instituicao);
+
+        Banca banca = new Banca();
+        banca.setNome("Banca Filter Test");
+        banca = bancaRepository.save(banca);
+
+        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
+        concurso = concursoRepository.save(concurso);
+        
+        ConcursoCargo cc = new ConcursoCargo();
+        cc.setConcurso(concurso);
+        cc.setCargo(cargo1);
+        cc.setInscrito(true);
+        concurso.addConcursoCargo(cc);
+        concurso = concursoRepository.save(concurso);
+
+        // Test GET /concursos?inscrito=true
+        mockMvc
+            .perform(get("/api/v1/concursos").param("inscrito", "true"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].inscrito.cargo").value(cargo1.getId()));
+
+        // Test GET /concursos?inscrito=false (should be empty if only one concurso exists and it's inscribed)
+        mockMvc
+            .perform(get("/api/v1/concursos").param("inscrito", "false"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(0));
+            
+        // Test GET /concursos/{id} polymorphic property
+        mockMvc
+            .perform(get("/api/v1/concursos/{id}", concurso.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.inscrito.cargo").value(cargo1.getId()));
+    }
+
+    @Test
+    void testOnlyOneCargoPerConcursoConstraint() throws Exception {
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Instituição Constraint Test");
+        instituicao.setArea("Educação");
+        instituicao = instituicaoRepository.save(instituicao);
+
+        Banca banca = new Banca();
+        banca.setNome("Banca Constraint Test");
+        banca = bancaRepository.save(banca);
+
+        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
+        concurso = concursoRepository.save(concurso);
+        
+        ConcursoCargo cc1 = new ConcursoCargo();
+        cc1.setConcurso(concurso);
+        cc1.setCargo(cargo1);
+        cc1.setInscrito(true);
+        cc1 = concursoCargoRepository.save(cc1);
+
+        ConcursoCargo cc2 = new ConcursoCargo();
+        cc2.setConcurso(concurso);
+        cc2.setCargo(cargo2);
+        cc2.setInscrito(false);
+        cc2 = concursoCargoRepository.save(cc2);
+
+        // Try to toggle cc2 to true -> should fail
+        mockMvc
+            .perform(patch("/api/v1/concursos/cargos/{concursoCargoId}/inscricao", cc2.getId()))
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(jsonPath("$.detail").value("Você já está inscrito em outro cargo para este concurso. Desinscreva-se primeiro."));
     }
 }

@@ -24,4 +24,7 @@ public class ConcursoFilter {
 
     @Schema(description = "Filtrar por nível do cargo", example = "SUPERIOR")
     private com.studora.entity.NivelCargo cargoNivel;
+
+    @Schema(description = "Filtrar por concursos nos quais o usuário está inscrito")
+    private Boolean inscrito;
 }

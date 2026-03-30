@@ -32,23 +32,60 @@ public class SubtemaService {
     private final SubtemaRepository subtemaRepository;
     private final TemaRepository temaRepository;
     private final QuestaoRepository questaoRepository;
+    private final com.studora.repository.EstudoSubtemaRepository estudoSubtemaRepository;
     private final SubtemaMapper subtemaMapper;
 
     @Transactional(readOnly = true)
     public Page<SubtemaSummaryDto> findAll(String nome, Pageable pageable) {
+        Page<Subtema> page;
         if (nome != null && !nome.isBlank()) {
-            return subtemaRepository.findByNomeContainingIgnoreCase(nome, pageable)
-                    .map(subtemaMapper::toSummaryDto);
+            page = subtemaRepository.findByNomeContainingIgnoreCase(nome, pageable);
+        } else {
+            page = subtemaRepository.findAll(pageable);
         }
-        return subtemaRepository.findAll(pageable)
-                .map(subtemaMapper::toSummaryDto);
+
+        if (page.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        List<Long> ids = page.getContent().stream().map(Subtema::getId).collect(java.util.stream.Collectors.toList());
+        
+        // Fetch counts
+        java.util.Map<Long, Long> counts = estudoSubtemaRepository.countBySubtemaIds(ids).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                    row -> ((Number) row[0]).longValue(), 
+                    row -> ((Number) row[1]).longValue()));
+        
+        // Fetch latest dates
+        java.util.Map<Long, java.time.LocalDateTime> dates = estudoSubtemaRepository.findLatestStudyDatesBySubtemaIds(ids).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                    row -> ((Number) row[0]).longValue(), 
+                    row -> {
+                        Object val = row[1];
+                        if (val instanceof java.time.LocalDateTime) return (java.time.LocalDateTime) val;
+                        if (val instanceof String) return java.time.LocalDateTime.parse((String) val, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                        return null;
+                    }));
+
+        return page.map(subtema -> {
+            SubtemaSummaryDto dto = subtemaMapper.toSummaryDto(subtema);
+            dto.setTotalEstudos(counts.getOrDefault(subtema.getId(), 0L));
+            dto.setUltimoEstudo(dates.get(subtema.getId()));
+            return dto;
+        });
     }
 
     @Transactional(readOnly = true)
     public SubtemaDetailDto getSubtemaDetailById(Long id) {
         Subtema subtema = subtemaRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Subtema", "ID", id));
-        return subtemaMapper.toDetailDto(subtema);
+        
+        SubtemaDetailDto dto = subtemaMapper.toDetailDto(subtema);
+        dto.setTotalEstudos(estudoSubtemaRepository.countBySubtemaId(id));
+        dto.setUltimoEstudo(estudoSubtemaRepository.findFirstBySubtemaIdOrderByCreatedAtDesc(id)
+                .map(com.studora.entity.EstudoSubtema::getCreatedAt).orElse(null));
+        
+        return dto;
     }
 
     public SubtemaDetailDto create(SubtemaCreateRequest request) {
@@ -99,8 +136,35 @@ public class SubtemaService {
         if (!temaRepository.existsById(temaId)) {
             throw new ResourceNotFoundException("Tema", "ID", temaId);
         }
-        return subtemaRepository.findByTemaId(temaId).stream()
-                .map(subtemaMapper::toSummaryDto)
+        List<Subtema> subtemas = subtemaRepository.findByTemaId(temaId);
+        if (subtemas.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+
+        List<Long> ids = subtemas.stream().map(Subtema::getId).collect(java.util.stream.Collectors.toList());
+        
+        java.util.Map<Long, Long> counts = estudoSubtemaRepository.countBySubtemaIds(ids).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                    row -> ((Number) row[0]).longValue(), 
+                    row -> ((Number) row[1]).longValue()));
+        
+        java.util.Map<Long, java.time.LocalDateTime> dates = estudoSubtemaRepository.findLatestStudyDatesBySubtemaIds(ids).stream()
+                .collect(java.util.stream.Collectors.toMap(
+                    row -> ((Number) row[0]).longValue(), 
+                    row -> {
+                        Object val = row[1];
+                        if (val instanceof java.time.LocalDateTime) return (java.time.LocalDateTime) val;
+                        if (val instanceof String) return java.time.LocalDateTime.parse((String) val, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                        return null;
+                    }));
+
+        return subtemas.stream()
+                .map(subtema -> {
+                    SubtemaSummaryDto dto = subtemaMapper.toSummaryDto(subtema);
+                    dto.setTotalEstudos(counts.getOrDefault(subtema.getId(), 0L));
+                    dto.setUltimoEstudo(dates.get(subtema.getId()));
+                    return dto;
+                })
                 .collect(java.util.stream.Collectors.toList());
     }
 
