@@ -67,4 +67,66 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
            "WHERE r.createdAt >= :since " +
            "ORDER BY r.createdAt ASC")
     List<Resposta> findAllWithFullDetailsSince(@Param("since") java.time.LocalDateTime since);
+
+    // --- Batch: questoesRespondidas (distinct questions with at least 1 resposta) ---
+
+    @Query("SELECT s.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao.subtemas s WHERE s.id IN :ids GROUP BY s.id")
+    List<Object[]> countRespondidasBySubtemaIds(@Param("ids") List<Long> ids);
+
+    @Query("SELECT s.tema.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao.subtemas s WHERE s.tema.id IN :ids GROUP BY s.tema.id")
+    List<Object[]> countRespondidasByTemaIds(@Param("ids") List<Long> ids);
+
+    @Query("SELECT s.tema.disciplina.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao.subtemas s WHERE s.tema.disciplina.id IN :ids GROUP BY s.tema.disciplina.id")
+    List<Object[]> countRespondidasByDisciplinaIds(@Param("ids") List<Long> ids);
+
+    // --- Batch: questoesAcertadas (distinct questions with at least 1 correct resposta) ---
+
+    @Query("SELECT s.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao.subtemas s WHERE s.id IN :ids AND r.alternativaEscolhida.correta = true GROUP BY s.id")
+    List<Object[]> countAcertadasBySubtemaIds(@Param("ids") List<Long> ids);
+
+    @Query("SELECT s.tema.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao.subtemas s WHERE s.tema.id IN :ids AND r.alternativaEscolhida.correta = true GROUP BY s.tema.id")
+    List<Object[]> countAcertadasByTemaIds(@Param("ids") List<Long> ids);
+
+    @Query("SELECT s.tema.disciplina.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao.subtemas s WHERE s.tema.disciplina.id IN :ids AND r.alternativaEscolhida.correta = true GROUP BY s.tema.disciplina.id")
+    List<Object[]> countAcertadasByDisciplinaIds(@Param("ids") List<Long> ids);
+
+    // --- Batch: mediaTempoResposta ---
+
+    @Query("SELECT s.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao.subtemas s WHERE s.id IN :ids AND r.tempoRespostaSegundos IS NOT NULL GROUP BY s.id")
+    List<Object[]> avgTempoBySubtemaIds(@Param("ids") List<Long> ids);
+
+    @Query("SELECT s.tema.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao.subtemas s WHERE s.tema.id IN :ids AND r.tempoRespostaSegundos IS NOT NULL GROUP BY s.tema.id")
+    List<Object[]> avgTempoByTemaIds(@Param("ids") List<Long> ids);
+
+    @Query("SELECT s.tema.disciplina.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao.subtemas s WHERE s.tema.disciplina.id IN :ids AND r.tempoRespostaSegundos IS NOT NULL GROUP BY s.tema.disciplina.id")
+    List<Object[]> avgTempoByDisciplinaIds(@Param("ids") List<Long> ids);
+
+    // --- Batch: all respostas for difficulty stats (fetch once, process in Java) ---
+
+    @Query("SELECT DISTINCT r FROM Resposta r " +
+           "JOIN FETCH r.questao q " +
+           "JOIN FETCH r.alternativaEscolhida " +
+           "JOIN FETCH q.alternativas " +
+           "JOIN q.subtemas s " +
+           "WHERE s.id IN :subtemaIds " +
+           "ORDER BY r.createdAt ASC")
+    List<Resposta> findAllBySubtemaIdsWithDetails(@Param("subtemaIds") List<Long> subtemaIds);
+
+    @Query("SELECT DISTINCT r FROM Resposta r " +
+           "JOIN FETCH r.questao q " +
+           "JOIN FETCH r.alternativaEscolhida " +
+           "JOIN FETCH q.alternativas " +
+           "JOIN q.subtemas s " +
+           "WHERE s.tema.id IN :temaIds " +
+           "ORDER BY r.createdAt ASC")
+    List<Resposta> findAllByTemaIdsWithDetails(@Param("temaIds") List<Long> temaIds);
+
+    @Query("SELECT DISTINCT r FROM Resposta r " +
+           "JOIN FETCH r.questao q " +
+           "JOIN FETCH r.alternativaEscolhida " +
+           "JOIN FETCH q.alternativas " +
+           "JOIN q.subtemas s " +
+           "WHERE s.tema.disciplina.id IN :disciplinaIds " +
+           "ORDER BY r.createdAt ASC")
+    List<Resposta> findAllByDisciplinaIdsWithDetails(@Param("disciplinaIds") List<Long> disciplinaIds);
 }

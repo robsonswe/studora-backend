@@ -9,6 +9,8 @@ import com.studora.dto.request.DisciplinaCreateRequest;
 import com.studora.entity.Disciplina;
 import com.studora.repository.DisciplinaRepository;
 import com.studora.repository.EstudoSubtemaRepository;
+import com.studora.repository.QuestaoRepository;
+import com.studora.repository.RespostaRepository;
 import com.studora.repository.SubtemaRepository;
 import com.studora.repository.TemaRepository;
 import com.studora.service.DisciplinaService;
@@ -34,6 +36,10 @@ class DisciplinaServiceTest {
     @Mock
     private EstudoSubtemaRepository estudoSubtemaRepository;
     @Mock
+    private QuestaoRepository questaoRepository;
+    @Mock
+    private RespostaRepository respostaRepository;
+    @Mock
     private TemaService temaService;
 
     private DisciplinaService disciplinaService;
@@ -53,7 +59,7 @@ class DisciplinaServiceTest {
         MockitoAnnotations.openMocks(this);
         DisciplinaMapper realMapper = org.mapstruct.factory.Mappers.getMapper(DisciplinaMapper.class);
         disciplinaService = new DisciplinaService(disciplinaRepository, temaRepository, subtemaRepository,
-                estudoSubtemaRepository, realMapper, temaService);
+                estudoSubtemaRepository, questaoRepository, respostaRepository, realMapper, temaService);
     }
 
     @Test
@@ -70,6 +76,12 @@ class DisciplinaServiceTest {
         when(estudoSubtemaRepository.countDistinctStudiedSubtemasByDisciplinaIds(any())).thenReturn(emptyObjectList());
         when(temaRepository.findByDisciplinaIds(any())).thenReturn(Collections.emptyList());
         when(temaService.findByDisciplinaId(1L)).thenReturn(Collections.emptyList());
+        // Questao stats mocks
+        when(questaoRepository.countQuestoesByDisciplinaIds(any())).thenReturn(emptyObjectList());
+        when(respostaRepository.countRespondidasByDisciplinaIds(any())).thenReturn(emptyObjectList());
+        when(respostaRepository.countAcertadasByDisciplinaIds(any())).thenReturn(emptyObjectList());
+        when(respostaRepository.avgTempoByDisciplinaIds(any())).thenReturn(emptyObjectList());
+        when(respostaRepository.findAllByDisciplinaIdsWithDetails(any())).thenReturn(Collections.emptyList());
 
         DisciplinaDetailDto result = disciplinaService.getDisciplinaDetailById(1L);
         assertNotNull(result);
@@ -102,6 +114,12 @@ class DisciplinaServiceTest {
         when(estudoSubtemaRepository.countDistinctStudiedSubtemasByTemaIds(List.of(10L, 20L))).thenReturn(
                 listOf(new Object[]{10L, 3L})); // tema 10 fully studied, tema 20 not at all
         when(temaService.findByDisciplinaId(1L)).thenReturn(Collections.emptyList());
+        // Questao stats mocks
+        when(questaoRepository.countQuestoesByDisciplinaIds(List.of(1L))).thenReturn(emptyObjectList());
+        when(respostaRepository.countRespondidasByDisciplinaIds(List.of(1L))).thenReturn(emptyObjectList());
+        when(respostaRepository.countAcertadasByDisciplinaIds(List.of(1L))).thenReturn(emptyObjectList());
+        when(respostaRepository.avgTempoByDisciplinaIds(List.of(1L))).thenReturn(emptyObjectList());
+        when(respostaRepository.findAllByDisciplinaIdsWithDetails(List.of(1L))).thenReturn(Collections.emptyList());
 
         DisciplinaDetailDto result = disciplinaService.getDisciplinaDetailById(1L);
         assertNotNull(result);

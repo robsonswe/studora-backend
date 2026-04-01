@@ -11,9 +11,12 @@ import com.studora.entity.Subtema;
 import com.studora.repository.TemaRepository;
 import com.studora.repository.SubtemaRepository;
 import com.studora.repository.QuestaoRepository;
+import com.studora.repository.RespostaRepository;
 import com.studora.service.SubtemaService;
 import com.studora.mapper.SubtemaMapper;
 import com.studora.mapper.TemaMapper;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +33,8 @@ class SubtemaServiceTest {
     @Mock
     private QuestaoRepository questaoRepository;
     @Mock
+    private RespostaRepository respostaRepository;
+    @Mock
     private com.studora.repository.EstudoSubtemaRepository estudoSubtemaRepository;
 
     private SubtemaService subtemaService;
@@ -42,7 +47,7 @@ class SubtemaServiceTest {
         TemaMapper temaMapper = org.mapstruct.factory.Mappers.getMapper(TemaMapper.class);
         ReflectionTestUtils.setField(realMapper, "temaMapper", temaMapper);
         
-        subtemaService = new SubtemaService(subtemaRepository, temaRepository, questaoRepository, estudoSubtemaRepository, realMapper);
+        subtemaService = new SubtemaService(subtemaRepository, temaRepository, questaoRepository, respostaRepository, estudoSubtemaRepository, realMapper);
     }
 
     @Test
@@ -54,6 +59,16 @@ class SubtemaServiceTest {
         sub.setTema(tema);
 
         when(subtemaRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(sub));
+        when(questaoRepository.countQuestoesBySubtemaIds(any())).thenReturn(new ArrayList<>());
+        when(respostaRepository.countRespondidasBySubtemaIds(any())).thenReturn(new ArrayList<>());
+        when(respostaRepository.countAcertadasBySubtemaIds(any())).thenReturn(new ArrayList<>());
+        when(respostaRepository.avgTempoBySubtemaIds(any())).thenReturn(new ArrayList<>());
+        when(respostaRepository.findAllBySubtemaIdsWithDetails(any())).thenReturn(Collections.emptyList());
+        // Tema enrichment mocks
+        when(estudoSubtemaRepository.countByTemaIds(any())).thenReturn(new ArrayList<>());
+        when(estudoSubtemaRepository.findLatestStudyDatesByTemaIds(any())).thenReturn(new ArrayList<>());
+        when(subtemaRepository.countByTemaIds(any())).thenReturn(new ArrayList<>());
+        when(estudoSubtemaRepository.countDistinctStudiedSubtemasByTemaIds(any())).thenReturn(new ArrayList<>());
 
         SubtemaDetailDto result = subtemaService.getSubtemaDetailById(1L);
         assertNotNull(result);

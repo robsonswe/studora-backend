@@ -1,5 +1,6 @@
 package com.studora.service;
 
+import com.studora.dto.DificuldadeStatDto;
 import com.studora.dto.concurso.ConcursoFilter;
 import com.studora.dto.concurso.ConcursoDetailDto;
 import com.studora.dto.concurso.ConcursoSummaryDto;
@@ -12,7 +13,9 @@ import com.studora.entity.Cargo;
 import com.studora.entity.Concurso;
 import com.studora.entity.ConcursoCargo;
 import com.studora.entity.ConcursoCargoSubtema;
+import com.studora.entity.Dificuldade;
 import com.studora.entity.Instituicao;
+import com.studora.entity.Resposta;
 import com.studora.entity.Subtema;
 import com.studora.exception.ResourceNotFoundException;
 import com.studora.exception.ValidationException;
@@ -28,6 +31,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +54,8 @@ public class ConcursoService {
     private final QuestaoCargoRepository questaoCargoRepository;
     private final EstudoSubtemaRepository estudoSubtemaRepository;
     private final SubtemaRepository subtemaRepository;
+    private final QuestaoRepository questaoRepository;
+    private final RespostaRepository respostaRepository;
     private final ConcursoCargoSubtemaRepository concursoCargoSubtemaRepository;
     private final ConcursoMapper concursoMapper;
 
@@ -359,12 +367,76 @@ public class ConcursoService {
                             return null;
                         }));
 
+        // Questao stats
+        Map<Long, Long> totalQuestoesMap = questaoRepository.countQuestoesBySubtemaIds(subtemaIds).stream()
+                .collect(Collectors.toMap(row -> ((Number) row[0]).longValue(), row -> ((Number) row[1]).longValue()));
+        Map<Long, Long> respondidasMap = respostaRepository.countRespondidasBySubtemaIds(subtemaIds).stream()
+                .collect(Collectors.toMap(row -> ((Number) row[0]).longValue(), row -> ((Number) row[1]).longValue()));
+        Map<Long, Long> acertadasMap = respostaRepository.countAcertadasBySubtemaIds(subtemaIds).stream()
+                .collect(Collectors.toMap(row -> ((Number) row[0]).longValue(), row -> ((Number) row[1]).longValue()));
+        Map<Long, Double> avgTempoMap = respostaRepository.avgTempoBySubtemaIds(subtemaIds).stream()
+                .collect(Collectors.toMap(row -> ((Number) row[0]).longValue(), row -> ((Number) row[1]).doubleValue()));
+
+        // Difficulty stats
+        List<Resposta> allRespostas = respostaRepository.findAllBySubtemaIdsWithDetails(subtemaIds);
+        Map<Long, Map<String, DificuldadeStatDto>> dificuldadeMap = computeDificuldadeStatsBatch(allRespostas,
+                r -> r.getQuestao().getSubtemas().stream().map(Subtema::getId).toList());
+
         for (ConcursoCargoSummaryDto cargo : cargos) {
             if (cargo.getTopicos() == null) continue;
             for (SubtemaSummaryDto topico : cargo.getTopicos()) {
-                topico.setTotalEstudos(counts.getOrDefault(topico.getId(), 0L));
-                topico.setUltimoEstudo(dates.get(topico.getId()));
+                Long topId = topico.getId();
+                topico.setTotalEstudos(counts.getOrDefault(topId, 0L));
+                topico.setUltimoEstudo(dates.get(topId));
+                topico.setTotalQuestoes(totalQuestoesMap.getOrDefault(topId, 0L));
+                topico.setQuestoesRespondidas(respondidasMap.getOrDefault(topId, 0L));
+                topico.setQuestoesAcertadas(acertadasMap.getOrDefault(topId, 0L));
+                topico.setMediaTempoResposta(avgTempoMap.containsKey(topId) ? avgTempoMap.get(topId).intValue() : null);
+                topico.setDificuldadeRespostas(dificuldadeMap.getOrDefault(topId, Collections.emptyMap()));
             }
         }
+    }
+
+    private Map<String, DificuldadeStatDto> computeDificuldadeStatsFromResponses(List<Resposta> responses) {
+        Map<String, DificuldadeStatDto> result = new HashMap<>();
+        for (Dificuldade d : Dificuldade.values()) {
+            result.put(d.name(), new DificuldadeStatDto(0, 0));
+        }
+
+        Map<Long, Resposta> latestByQuestao = new HashMap<>();
+        for (Resposta r : responses) {
+            latestByQuestao.merge(r.getQuestao().getId(), r, (existing, candidate) ->
+                    candidate.getCreatedAt().isAfter(existing.getCreatedAt()) ? candidate : existing);
+        }
+
+        for (Resposta r : latestByQuestao.values()) {
+            String diff = r.getDificuldade() != null ? r.getDificuldade().name() : Dificuldade.MEDIA.name();
+            DificuldadeStatDto stat = result.get(diff);
+            stat.setTotal(stat.getTotal() + 1);
+            if (isCorrect(r)) {
+                stat.setCorretas(stat.getCorretas() + 1);
+            }
+        }
+        return result;
+    }
+
+    private Map<Long, Map<String, DificuldadeStatDto>> computeDificuldadeStatsBatch(
+            List<Resposta> responses, java.util.function.Function<Resposta, List<Long>> scopeIdsExtractor) {
+        Map<Long, List<Resposta>> byScope = new HashMap<>();
+        for (Resposta r : responses) {
+            for (Long scopeId : scopeIdsExtractor.apply(r)) {
+                byScope.computeIfAbsent(scopeId, k -> new ArrayList<>()).add(r);
+            }
+        }
+        Map<Long, Map<String, DificuldadeStatDto>> result = new HashMap<>();
+        for (var entry : byScope.entrySet()) {
+            result.put(entry.getKey(), computeDificuldadeStatsFromResponses(entry.getValue()));
+        }
+        return result;
+    }
+
+    private boolean isCorrect(Resposta r) {
+        if (r.getAlternativaEscolhida() == null) return false;
+        return Boolean.TRUE.equals(r.getAlternativaEscolhida().getCorreta());
     }
 }

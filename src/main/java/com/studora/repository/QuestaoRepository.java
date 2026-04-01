@@ -47,4 +47,15 @@ public interface QuestaoRepository extends JpaRepository<Questao, Long>, JpaSpec
            "LEFT JOIN FETCH r.alternativaEscolhida " +
            "WHERE q.id = :id")
     Optional<Questao> findByIdWithDetails(@Param("id") Long id);
+
+    // --- Batch question count queries ---
+
+    @Query("SELECT s.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s WHERE s.id IN :ids GROUP BY s.id")
+    List<Object[]> countQuestoesBySubtemaIds(@Param("ids") List<Long> ids);
+
+    @Query("SELECT s.tema.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s WHERE s.tema.id IN :ids GROUP BY s.tema.id")
+    List<Object[]> countQuestoesByTemaIds(@Param("ids") List<Long> ids);
+
+    @Query("SELECT s.tema.disciplina.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s WHERE s.tema.disciplina.id IN :ids GROUP BY s.tema.disciplina.id")
+    List<Object[]> countQuestoesByDisciplinaIds(@Param("ids") List<Long> ids);
 }
