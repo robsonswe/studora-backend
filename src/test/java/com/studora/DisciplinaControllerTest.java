@@ -59,7 +59,13 @@ class DisciplinaControllerTest {
         mockMvc
             .perform(get("/api/v1/disciplinas/{id}", disciplina.getId()))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.nome").value("Direito Get Test"));
+            .andExpect(jsonPath("$.nome").value("Direito Get Test"))
+            .andExpect(jsonPath("$.totalEstudos").value(0))
+            .andExpect(jsonPath("$.totalTemas").value(0))
+            .andExpect(jsonPath("$.totalSubtemas").value(0))
+            .andExpect(jsonPath("$.temasEstudados").value(0))
+            .andExpect(jsonPath("$.subtemasEstudados").value(0))
+            .andExpect(jsonPath("$.temas").isArray());
     }
 
     @Test
@@ -81,7 +87,12 @@ class DisciplinaControllerTest {
                 jsonPath("$.content.length()").value(
                     org.hamcrest.Matchers.greaterThanOrEqualTo(2)
                 )
-            );
+            )
+            .andExpect(jsonPath("$.content[0].totalEstudos").exists())
+            .andExpect(jsonPath("$.content[0].totalTemas").exists())
+            .andExpect(jsonPath("$.content[0].totalSubtemas").exists())
+            .andExpect(jsonPath("$.content[0].temasEstudados").exists())
+            .andExpect(jsonPath("$.content[0].subtemasEstudados").exists());
     }
 
     @Test

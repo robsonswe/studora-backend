@@ -84,7 +84,17 @@ public class SubtemaService {
         dto.setTotalEstudos(estudoSubtemaRepository.countBySubtemaId(id));
         dto.setUltimoEstudo(estudoSubtemaRepository.findFirstBySubtemaIdOrderByCreatedAtDesc(id)
                 .map(com.studora.entity.EstudoSubtema::getCreatedAt).orElse(null));
-        
+
+        // Enrich nested tema
+        if (dto.getTema() != null) {
+            Long temaId = dto.getTema().getId();
+            List<Long> singleTemaId = List.of(temaId);
+            dto.getTema().setTotalEstudos(toCountMap(estudoSubtemaRepository.countByTemaIds(singleTemaId)).getOrDefault(temaId, 0L));
+            dto.getTema().setUltimoEstudo(toDateMap(estudoSubtemaRepository.findLatestStudyDatesByTemaIds(singleTemaId)).get(temaId));
+            dto.getTema().setTotalSubtemas(toCountMap(subtemaRepository.countByTemaIds(singleTemaId)).getOrDefault(temaId, 0L));
+            dto.getTema().setSubtemasEstudados(toCountMap(estudoSubtemaRepository.countDistinctStudiedSubtemasByTemaIds(singleTemaId)).getOrDefault(temaId, 0L));
+        }
+
         return dto;
     }
 
@@ -179,5 +189,23 @@ public class SubtemaService {
         }
         
         subtemaRepository.deleteById(id);
+    }
+
+    private java.util.Map<Long, Long> toCountMap(List<Object[]> rows) {
+        return rows.stream().collect(java.util.stream.Collectors.toMap(
+                row -> ((Number) row[0]).longValue(),
+                row -> ((Number) row[1]).longValue()));
+    }
+
+    private java.util.Map<Long, java.time.LocalDateTime> toDateMap(List<Object[]> rows) {
+        return rows.stream().collect(java.util.stream.Collectors.toMap(
+                row -> ((Number) row[0]).longValue(),
+                row -> parseDate(row[1])));
+    }
+
+    private java.time.LocalDateTime parseDate(Object val) {
+        if (val instanceof java.time.LocalDateTime) return (java.time.LocalDateTime) val;
+        if (val instanceof String) return java.time.LocalDateTime.parse((String) val, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        return null;
     }
 }

@@ -47,7 +47,7 @@ public class TemaController {
                 content = @Content(
                     mediaType = "application/json",
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\"}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\", \"totalEstudos\": 5, \"ultimoEstudo\": \"2026-01-15T10:30:00\", \"totalSubtemas\": 3, \"subtemasEstudados\": 2}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 ))
         }
@@ -74,7 +74,7 @@ public class TemaController {
             @ApiResponse(responseCode = "200", description = "Tema encontrado", 
                 content = @Content(
                     schema = @Schema(implementation = TemaDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\"}")
+                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\", \"totalEstudos\": 5, \"ultimoEstudo\": \"2026-02-20T14:00:00\", \"totalSubtemas\": 3, \"subtemasEstudados\": 2, \"subtemas\": []}")
                 )),
             @ApiResponse(responseCode = "404", description = "Tema não encontrado")
         }
@@ -91,7 +91,7 @@ public class TemaController {
                 content = @Content(
                     mediaType = "application/json",
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\"}]"
+                        value = "[{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\", \"totalEstudos\": 5, \"ultimoEstudo\": \"2026-01-15T10:30:00\", \"totalSubtemas\": 3, \"subtemasEstudados\": 2}]"
                     )
                 ))
         }

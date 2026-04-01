@@ -47,7 +47,7 @@ public class DisciplinaController {
                 content = @Content(
                     mediaType = "application/json",
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Direito Constitucional\"}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Direito Constitucional\", \"totalEstudos\": 10, \"ultimoEstudo\": \"2026-01-15T10:30:00\", \"totalTemas\": 5, \"totalSubtemas\": 12, \"temasEstudados\": 2, \"subtemasEstudados\": 8}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -79,7 +79,7 @@ public class DisciplinaController {
             @ApiResponse(responseCode = "200", description = "Disciplina encontrada", 
                 content = @Content(
                     schema = @Schema(implementation = DisciplinaDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Direito Constitucional\"}")
+                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Direito Constitucional\", \"totalEstudos\": 10, \"ultimoEstudo\": \"2026-02-20T14:00:00\", \"totalTemas\": 5, \"totalSubtemas\": 12, \"temasEstudados\": 2, \"subtemasEstudados\": 8, \"temas\": []}")
                 )),
             @ApiResponse(responseCode = "404", description = "Disciplina não encontrada",
                 content = @Content(mediaType = "application/problem+json",
@@ -100,7 +100,7 @@ public class DisciplinaController {
             @ApiResponse(responseCode = "201", description = "Disciplina criada com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = DisciplinaDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 3, \"nome\": \"Direito Administrativo\"}")
+                    examples = @ExampleObject(value = "{\"id\": 3, \"nome\": \"Direito Administrativo\", \"totalEstudos\": 0, \"totalTemas\": 0, \"totalSubtemas\": 0, \"temasEstudados\": 0, \"subtemasEstudados\": 0}")
                 )),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",

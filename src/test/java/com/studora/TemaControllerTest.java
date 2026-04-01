@@ -10,6 +10,9 @@ import com.studora.entity.Tema;
 import com.studora.repository.DisciplinaRepository;
 import com.studora.repository.TemaRepository;
 import com.studora.util.TestUtil;
+import com.studora.entity.Subtema;
+import com.studora.repository.SubtemaRepository;
+import com.studora.repository.EstudoSubtemaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +37,12 @@ class TemaControllerTest {
 
     @Autowired
     private DisciplinaRepository disciplinaRepository;
+
+    @Autowired
+    private SubtemaRepository subtemaRepository;
+
+    @Autowired
+    private EstudoSubtemaRepository estudoSubtemaRepository;
 
     private Disciplina disciplina;
 
@@ -74,7 +83,11 @@ class TemaControllerTest {
             .andExpect(status().isOk())
             .andExpect(
                 jsonPath("$.nome").value("Controle de Constitucionalidade")
-            );
+            )
+            .andExpect(jsonPath("$.totalEstudos").value(0))
+            .andExpect(jsonPath("$.totalSubtemas").value(0))
+            .andExpect(jsonPath("$.subtemasEstudados").value(0))
+            .andExpect(jsonPath("$.subtemas").isArray());
     }
 
     @Test
@@ -103,7 +116,10 @@ class TemaControllerTest {
                 jsonPath("$.content.length()").value(
                     org.hamcrest.Matchers.greaterThanOrEqualTo(2)
                 )
-            );
+            )
+            .andExpect(jsonPath("$.content[0].totalEstudos").exists())
+            .andExpect(jsonPath("$.content[0].totalSubtemas").exists())
+            .andExpect(jsonPath("$.content[0].subtemasEstudados").exists());
     }
 
     @Test
@@ -117,7 +133,10 @@ class TemaControllerTest {
             .perform(get("/api/v1/temas/disciplina/{disciplinaId}", disciplina.getId()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(org.hamcrest.Matchers.greaterThanOrEqualTo(1)))
-            .andExpect(jsonPath("$[0].nome").value("Tema de Disciplina"));
+            .andExpect(jsonPath("$[0].nome").value("Tema de Disciplina"))
+            .andExpect(jsonPath("$[0].totalEstudos").exists())
+            .andExpect(jsonPath("$[0].totalSubtemas").exists())
+            .andExpect(jsonPath("$[0].subtemasEstudados").exists());
     }
 
     @Test
@@ -200,5 +219,36 @@ class TemaControllerTest {
             )
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.detail").value("Já existe um tema com o nome 'atos administrativos' na disciplina com ID: " + disciplina.getId()));
+    }
+
+    @Test
+    void testTemaDetailHasEnrichedNestedDisciplina() throws Exception {
+        // Create a tema with a subtema and a study session
+        Tema tema = new Tema();
+        tema.setNome("Tema Enriched Test");
+        tema.setDisciplina(disciplina);
+        tema = temaRepository.save(tema);
+
+        Subtema subtema = new Subtema();
+        subtema.setNome("Subtema Enriched");
+        subtema.setTema(tema);
+        subtema = subtemaRepository.save(subtema);
+
+        // Add a study session
+        com.studora.entity.EstudoSubtema estudo = new com.studora.entity.EstudoSubtema(subtema);
+        estudoSubtemaRepository.save(estudo);
+
+        // Check that nested disciplina has enriched stats
+        mockMvc
+            .perform(get("/api/v1/temas/{id}", tema.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.totalEstudos").value(1))
+            .andExpect(jsonPath("$.disciplina.id").value(disciplina.getId()))
+            .andExpect(jsonPath("$.disciplina.nome").value(disciplina.getNome()))
+            .andExpect(jsonPath("$.disciplina.totalEstudos").value(1))
+            .andExpect(jsonPath("$.disciplina.totalTemas").value(1))
+            .andExpect(jsonPath("$.disciplina.totalSubtemas").value(1))
+            .andExpect(jsonPath("$.disciplina.subtemasEstudados").value(1))
+            .andExpect(jsonPath("$.disciplina.temasEstudados").value(1));
     }
 }

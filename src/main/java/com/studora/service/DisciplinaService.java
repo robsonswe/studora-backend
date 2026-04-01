@@ -10,6 +10,8 @@ import com.studora.exception.ResourceNotFoundException;
 import com.studora.exception.ValidationException;
 import com.studora.mapper.DisciplinaMapper;
 import com.studora.repository.DisciplinaRepository;
+import com.studora.repository.EstudoSubtemaRepository;
+import com.studora.repository.SubtemaRepository;
 import com.studora.repository.TemaRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +20,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -28,28 +35,71 @@ public class DisciplinaService {
 
     private final DisciplinaRepository disciplinaRepository;
     private final TemaRepository temaRepository;
+    private final SubtemaRepository subtemaRepository;
+    private final EstudoSubtemaRepository estudoSubtemaRepository;
     private final DisciplinaMapper disciplinaMapper;
+    private final TemaService temaService;
 
     @Transactional(readOnly = true)
     public Page<DisciplinaSummaryDto> findAll(String nome, Pageable pageable) {
+        Page<Disciplina> page;
         if (nome != null && !nome.isBlank()) {
-            return disciplinaRepository.findByNomeContainingIgnoreCase(nome, pageable)
-                    .map(disciplinaMapper::toSummaryDto);
+            page = disciplinaRepository.findByNomeContainingIgnoreCase(nome, pageable);
+        } else {
+            page = disciplinaRepository.findAll(pageable);
         }
-        return disciplinaRepository.findAll(pageable)
-                .map(disciplinaMapper::toSummaryDto);
+
+        if (page.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        List<Long> ids = page.getContent().stream().map(Disciplina::getId).toList();
+        Map<Long, Long> totalEstudosMap = toCountMap(estudoSubtemaRepository.countByDisciplinaIds(ids));
+        Map<Long, LocalDateTime> ultimoEstudoMap = toDateMap(estudoSubtemaRepository.findLatestStudyDatesByDisciplinaIds(ids));
+        Map<Long, Long> totalTemasMap = toCountMap(temaRepository.countByDisciplinaIds(ids));
+        Map<Long, Long> totalSubtemasMap = toCountMap(subtemaRepository.countByDisciplinaIds(ids));
+        Map<Long, Long> subtemasEstudadosMap = toCountMap(estudoSubtemaRepository.countDistinctStudiedSubtemasByDisciplinaIds(ids));
+
+        // temasEstudados: count of temas where ALL subtemas have been studied at least once
+        Map<Long, Long> temasEstudadosMap = computeTemasEstudadosByDisciplina(ids);
+
+        return page.map(disciplina -> {
+            DisciplinaSummaryDto dto = disciplinaMapper.toSummaryDto(disciplina);
+            dto.setTotalEstudos(totalEstudosMap.getOrDefault(disciplina.getId(), 0L));
+            dto.setUltimoEstudo(ultimoEstudoMap.get(disciplina.getId()));
+            dto.setTotalTemas(totalTemasMap.getOrDefault(disciplina.getId(), 0L));
+            dto.setTotalSubtemas(totalSubtemasMap.getOrDefault(disciplina.getId(), 0L));
+            dto.setSubtemasEstudados(subtemasEstudadosMap.getOrDefault(disciplina.getId(), 0L));
+            dto.setTemasEstudados(temasEstudadosMap.getOrDefault(disciplina.getId(), 0L));
+            return dto;
+        });
     }
 
     @Transactional(readOnly = true)
     public DisciplinaDetailDto getDisciplinaDetailById(Long id) {
         Disciplina disciplina = disciplinaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Disciplina", "ID", id));
-        return disciplinaMapper.toDetailDto(disciplina);
+
+        DisciplinaDetailDto dto = disciplinaMapper.toDetailDto(disciplina);
+
+        // Enrich with study stats
+        List<Long> discIds = List.of(id);
+        dto.setTotalEstudos(toCountMap(estudoSubtemaRepository.countByDisciplinaIds(discIds)).getOrDefault(id, 0L));
+        dto.setUltimoEstudo(toDateMap(estudoSubtemaRepository.findLatestStudyDatesByDisciplinaIds(discIds)).get(id));
+        dto.setTotalTemas(toCountMap(temaRepository.countByDisciplinaIds(discIds)).getOrDefault(id, 0L));
+        dto.setTotalSubtemas(toCountMap(subtemaRepository.countByDisciplinaIds(discIds)).getOrDefault(id, 0L));
+        dto.setSubtemasEstudados(toCountMap(estudoSubtemaRepository.countDistinctStudiedSubtemasByDisciplinaIds(discIds)).getOrDefault(id, 0L));
+        dto.setTemasEstudados(computeTemasEstudadosByDisciplina(discIds).getOrDefault(id, 0L));
+
+        // Enrich nested temas
+        dto.setTemas(temaService.findByDisciplinaId(id));
+
+        return dto;
     }
 
     public DisciplinaDetailDto create(DisciplinaCreateRequest request) {
         log.info("Criando nova disciplina: {}", request.getNome());
-        
+
         Optional<Disciplina> existing = disciplinaRepository.findByNomeIgnoreCase(request.getNome());
         if (existing.isPresent()) {
             throw new ConflictException("Já existe uma disciplina com o nome '" + request.getNome() + "'");
@@ -61,7 +111,7 @@ public class DisciplinaService {
 
     public DisciplinaDetailDto update(Long id, DisciplinaUpdateRequest request) {
         log.info("Atualizando disciplina ID: {}", id);
-        
+
         Disciplina disciplina = disciplinaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Disciplina", "ID", id));
 
@@ -81,11 +131,60 @@ public class DisciplinaService {
         if (!disciplinaRepository.existsById(id)) {
             throw new ResourceNotFoundException("Disciplina", "ID", id);
         }
-        
+
         if (temaRepository.existsByDisciplinaId(id)) {
             throw new ValidationException("Não é possível excluir uma disciplina que possui temas associados");
         }
-        
+
         disciplinaRepository.deleteById(id);
+    }
+
+    /**
+     * For each disciplina, counts how many of its temas have ALL their subtemas studied at least once.
+     * A tema without subtemas is NOT counted as "estudado".
+     */
+    private Map<Long, Long> computeTemasEstudadosByDisciplina(List<Long> disciplinaIds) {
+        // 1. Get all temas for these disciplinas
+        List<com.studora.entity.Tema> temas = temaRepository.findByDisciplinaIds(disciplinaIds);
+        if (temas.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        List<Long> temaIds = temas.stream().map(com.studora.entity.Tema::getId).toList();
+
+        // 2. Count total subtemas per tema
+        Map<Long, Long> totalSubtemasByTema = toCountMap(subtemaRepository.countByTemaIds(temaIds));
+
+        // 3. Count studied subtemas per tema
+        Map<Long, Long> studiedSubtemasByTema = toCountMap(estudoSubtemaRepository.countDistinctStudiedSubtemasByTemaIds(temaIds));
+
+        // 4. For each disciplina, count temas where all subtemas are studied
+        return temas.stream()
+                .filter(t -> {
+                    Long total = totalSubtemasByTema.get(t.getId());
+                    Long studied = studiedSubtemasByTema.get(t.getId());
+                    return total != null && total > 0 && total.equals(studied);
+                })
+                .collect(Collectors.groupingBy(
+                        t -> t.getDisciplina().getId(),
+                        Collectors.counting()));
+    }
+
+    private Map<Long, Long> toCountMap(List<Object[]> rows) {
+        return rows.stream().collect(Collectors.toMap(
+                row -> ((Number) row[0]).longValue(),
+                row -> ((Number) row[1]).longValue()));
+    }
+
+    private Map<Long, LocalDateTime> toDateMap(List<Object[]> rows) {
+        return rows.stream().collect(Collectors.toMap(
+                row -> ((Number) row[0]).longValue(),
+                row -> parseDate(row[1])));
+    }
+
+    private LocalDateTime parseDate(Object val) {
+        if (val instanceof LocalDateTime) return (LocalDateTime) val;
+        if (val instanceof String) return LocalDateTime.parse((String) val, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        return null;
     }
 }

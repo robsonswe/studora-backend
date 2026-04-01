@@ -41,6 +41,8 @@ class SubtemaStudyControllerTest {
     private EstudoSubtemaRepository estudoSubtemaRepository;
 
     private Subtema subtema;
+    private Tema tema;
+    private Disciplina disciplina;
 
     @BeforeEach
     void setUp() {
@@ -49,11 +51,11 @@ class SubtemaStudyControllerTest {
         temaRepository.deleteAll();
         disciplinaRepository.deleteAll();
 
-        Disciplina disciplina = new Disciplina();
+        disciplina = new Disciplina();
         disciplina.setNome("Direito Estudo");
         disciplina = disciplinaRepository.save(disciplina);
 
-        Tema tema = new Tema();
+        tema = new Tema();
         tema.setNome("Tema Estudo");
         tema.setDisciplina(disciplina);
         tema = temaRepository.save(tema);
@@ -117,5 +119,97 @@ class SubtemaStudyControllerTest {
             .perform(get("/api/v1/subtemas/{id}", subtema.getId()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.totalEstudos").value(0));
+    }
+
+    @Test
+    void testStudySessionUpdatesTemaStats() throws Exception {
+        // Before study: tema has 1 subtema, 0 studied
+        mockMvc
+            .perform(get("/api/v1/temas/{id}", tema.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.totalEstudos").value(0))
+            .andExpect(jsonPath("$.totalSubtemas").value(1))
+            .andExpect(jsonPath("$.subtemasEstudados").value(0));
+
+        // Add a study session
+        mockMvc
+            .perform(post("/api/v1/subtemas/{id}/estudos", subtema.getId()))
+            .andExpect(status().isCreated());
+
+        // After study: tema should reflect the new study
+        mockMvc
+            .perform(get("/api/v1/temas/{id}", tema.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.totalEstudos").value(1))
+            .andExpect(jsonPath("$.totalSubtemas").value(1))
+            .andExpect(jsonPath("$.subtemasEstudados").value(1))
+            .andExpect(jsonPath("$.ultimoEstudo").exists());
+    }
+
+    @Test
+    void testStudySessionUpdatesDisciplinaStats() throws Exception {
+        // Before study
+        mockMvc
+            .perform(get("/api/v1/disciplinas/{id}", disciplina.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.totalEstudos").value(0))
+            .andExpect(jsonPath("$.totalTemas").value(1))
+            .andExpect(jsonPath("$.totalSubtemas").value(1))
+            .andExpect(jsonPath("$.subtemasEstudados").value(0))
+            .andExpect(jsonPath("$.temasEstudados").value(0));
+
+        // Add a study session
+        mockMvc
+            .perform(post("/api/v1/subtemas/{id}/estudos", subtema.getId()))
+            .andExpect(status().isCreated());
+
+        // After study: disciplina should reflect the new study
+        mockMvc
+            .perform(get("/api/v1/disciplinas/{id}", disciplina.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.totalEstudos").value(1))
+            .andExpect(jsonPath("$.totalTemas").value(1))
+            .andExpect(jsonPath("$.totalSubtemas").value(1))
+            .andExpect(jsonPath("$.subtemasEstudados").value(1))
+            .andExpect(jsonPath("$.temasEstudados").value(1)); // all subtemas of all temas studied
+    }
+
+    @Test
+    void testSubtemaDetailHasEnrichedNestedTema() throws Exception {
+        // Add a study session
+        mockMvc
+            .perform(post("/api/v1/subtemas/{id}/estudos", subtema.getId()))
+            .andExpect(status().isCreated());
+
+        // Check that nested tema in subtema detail has enriched stats
+        mockMvc
+            .perform(get("/api/v1/subtemas/{id}", subtema.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.totalEstudos").value(1))
+            .andExpect(jsonPath("$.tema.id").value(tema.getId()))
+            .andExpect(jsonPath("$.tema.totalEstudos").value(1))
+            .andExpect(jsonPath("$.tema.totalSubtemas").value(1))
+            .andExpect(jsonPath("$.tema.subtemasEstudados").value(1))
+            .andExpect(jsonPath("$.tema.ultimoEstudo").exists());
+    }
+
+    @Test
+    void testTemaDetailHasEnrichedNestedDisciplina() throws Exception {
+        // Add a study session
+        mockMvc
+            .perform(post("/api/v1/subtemas/{id}/estudos", subtema.getId()))
+            .andExpect(status().isCreated());
+
+        // Check that nested disciplina in tema detail has enriched stats
+        mockMvc
+            .perform(get("/api/v1/temas/{id}", tema.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.totalEstudos").value(1))
+            .andExpect(jsonPath("$.disciplina.id").value(disciplina.getId()))
+            .andExpect(jsonPath("$.disciplina.totalEstudos").value(1))
+            .andExpect(jsonPath("$.disciplina.totalTemas").value(1))
+            .andExpect(jsonPath("$.disciplina.totalSubtemas").value(1))
+            .andExpect(jsonPath("$.disciplina.subtemasEstudados").value(1))
+            .andExpect(jsonPath("$.disciplina.temasEstudados").value(1));
     }
 }

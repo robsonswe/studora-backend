@@ -34,4 +34,11 @@ public interface TemaRepository extends JpaRepository<Tema, Long> {
     Optional<Tema> findByIdWithDetails(@Param("id") Long id);
 
     Page<Tema> findByNomeContainingIgnoreCase(String nome, Pageable pageable);
+
+    // --- Batch queries ---
+    @org.springframework.data.jpa.repository.Query("SELECT t.disciplina.id, COUNT(t) FROM Tema t WHERE t.disciplina.id IN :disciplinaIds GROUP BY t.disciplina.id")
+    java.util.List<Object[]> countByDisciplinaIds(@org.springframework.data.repository.query.Param("disciplinaIds") List<Long> disciplinaIds);
+
+    @org.springframework.data.jpa.repository.Query("SELECT t FROM Tema t WHERE t.disciplina.id IN :disciplinaIds")
+    java.util.List<Tema> findByDisciplinaIds(@org.springframework.data.repository.query.Param("disciplinaIds") List<Long> disciplinaIds);
 }
