@@ -67,6 +67,7 @@ public class TemaService {
         List<Long> ids = page.getContent().stream().map(Tema::getId).toList();
         Map<Long, Long> totalEstudosMap = toCountMap(estudoSubtemaRepository.countByTemaIds(ids));
         Map<Long, LocalDateTime> ultimoEstudoMap = toDateMap(estudoSubtemaRepository.findLatestStudyDatesByTemaIds(ids));
+        Map<Long, LocalDateTime> ultimaQuestaoMap = toDateMap(respostaRepository.findLatestResponseDatesByTemaIds(ids));
         Map<Long, Long> totalSubtemasMap = toCountMap(subtemaRepository.countByTemaIds(ids));
         Map<Long, Long> subtemasEstudadosMap = toCountMap(estudoSubtemaRepository.countDistinctStudiedSubtemasByTemaIds(ids));
 
@@ -86,6 +87,7 @@ public class TemaService {
             TemaSummaryDto dto = temaMapper.toSummaryDto(tema);
             dto.setTotalEstudos(totalEstudosMap.getOrDefault(temaId, 0L));
             dto.setUltimoEstudo(ultimoEstudoMap.get(temaId));
+            dto.setUltimaQuestao(ultimaQuestaoMap.get(temaId));
             dto.setTotalSubtemas(totalSubtemasMap.getOrDefault(temaId, 0L));
             dto.setSubtemasEstudados(subtemasEstudadosMap.getOrDefault(temaId, 0L));
             dto.setTotalQuestoes(totalQuestoesMap.getOrDefault(temaId, 0L));
@@ -108,6 +110,7 @@ public class TemaService {
         List<Long> temaIds = List.of(id);
         dto.setTotalEstudos(toCountMap(estudoSubtemaRepository.countByTemaIds(temaIds)).getOrDefault(id, 0L));
         dto.setUltimoEstudo(toDateMap(estudoSubtemaRepository.findLatestStudyDatesByTemaIds(temaIds)).get(id));
+        dto.setUltimaQuestao(toDateMap(respostaRepository.findLatestResponseDatesByTemaIds(temaIds)).get(id));
         dto.setTotalSubtemas(toCountMap(subtemaRepository.countByTemaIds(temaIds)).getOrDefault(id, 0L));
         dto.setSubtemasEstudados(toCountMap(estudoSubtemaRepository.countDistinctStudiedSubtemasByTemaIds(temaIds)).getOrDefault(id, 0L));
 
@@ -126,6 +129,7 @@ public class TemaService {
             List<Long> singleDiscId = List.of(discId);
             dto.getDisciplina().setTotalEstudos(toCountMap(estudoSubtemaRepository.countByDisciplinaIds(singleDiscId)).getOrDefault(discId, 0L));
             dto.getDisciplina().setUltimoEstudo(toDateMap(estudoSubtemaRepository.findLatestStudyDatesByDisciplinaIds(singleDiscId)).get(discId));
+            dto.getDisciplina().setUltimaQuestao(toDateMap(respostaRepository.findLatestResponseDatesByDisciplinaIds(singleDiscId)).get(discId));
             dto.getDisciplina().setTotalTemas(toCountMap(temaRepository.countByDisciplinaIds(singleDiscId)).getOrDefault(discId, 0L));
             dto.getDisciplina().setTotalSubtemas(toCountMap(subtemaRepository.countByDisciplinaIds(singleDiscId)).getOrDefault(discId, 0L));
             dto.getDisciplina().setSubtemasEstudados(toCountMap(estudoSubtemaRepository.countDistinctStudiedSubtemasByDisciplinaIds(singleDiscId)).getOrDefault(discId, 0L));
@@ -203,6 +207,7 @@ public class TemaService {
         List<Long> ids = temas.stream().map(Tema::getId).toList();
         Map<Long, Long> totalEstudosMap = toCountMap(estudoSubtemaRepository.countByTemaIds(ids));
         Map<Long, LocalDateTime> ultimoEstudoMap = toDateMap(estudoSubtemaRepository.findLatestStudyDatesByTemaIds(ids));
+        Map<Long, LocalDateTime> ultimaQuestaoMap = toDateMap(respostaRepository.findLatestResponseDatesByTemaIds(ids));
         Map<Long, Long> totalSubtemasMap = toCountMap(subtemaRepository.countByTemaIds(ids));
         Map<Long, Long> subtemasEstudadosMap = toCountMap(estudoSubtemaRepository.countDistinctStudiedSubtemasByTemaIds(ids));
 
@@ -222,6 +227,7 @@ public class TemaService {
             TemaSummaryDto dto = temaMapper.toSummaryDto(tema);
             dto.setTotalEstudos(totalEstudosMap.getOrDefault(temaId, 0L));
             dto.setUltimoEstudo(ultimoEstudoMap.get(temaId));
+            dto.setUltimaQuestao(ultimaQuestaoMap.get(temaId));
             dto.setTotalSubtemas(totalSubtemasMap.getOrDefault(temaId, 0L));
             dto.setSubtemasEstudados(subtemasEstudadosMap.getOrDefault(temaId, 0L));
             dto.setTotalQuestoes(totalQuestoesMap.getOrDefault(temaId, 0L));

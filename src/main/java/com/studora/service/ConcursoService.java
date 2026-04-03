@@ -360,12 +360,12 @@ public class ConcursoService {
         Map<Long, LocalDateTime> dates = estudoSubtemaRepository.findLatestStudyDatesBySubtemaIds(subtemaIds).stream()
                 .collect(Collectors.toMap(
                         row -> ((Number) row[0]).longValue(),
-                        row -> {
-                            Object val = row[1];
-                            if (val instanceof LocalDateTime) return (LocalDateTime) val;
-                            if (val instanceof String) return LocalDateTime.parse((String) val, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-                            return null;
-                        }));
+                        row -> parseDate(row[1])));
+
+        Map<Long, LocalDateTime> ultimaQuestaoDates = respostaRepository.findLatestResponseDatesBySubtemaIds(subtemaIds).stream()
+                .collect(Collectors.toMap(
+                        row -> ((Number) row[0]).longValue(),
+                        row -> parseDate(row[1])));
 
         // Questao stats
         Map<Long, Long> totalQuestoesMap = questaoRepository.countQuestoesBySubtemaIds(subtemaIds).stream()
@@ -388,6 +388,7 @@ public class ConcursoService {
                 Long topId = topico.getId();
                 topico.setTotalEstudos(counts.getOrDefault(topId, 0L));
                 topico.setUltimoEstudo(dates.get(topId));
+                topico.setUltimaQuestao(ultimaQuestaoDates.get(topId));
                 topico.setTotalQuestoes(totalQuestoesMap.getOrDefault(topId, 0L));
                 topico.setQuestoesRespondidas(respondidasMap.getOrDefault(topId, 0L));
                 topico.setQuestoesAcertadas(acertadasMap.getOrDefault(topId, 0L));
@@ -438,5 +439,11 @@ public class ConcursoService {
     private boolean isCorrect(Resposta r) {
         if (r.getAlternativaEscolhida() == null) return false;
         return Boolean.TRUE.equals(r.getAlternativaEscolhida().getCorreta());
+    }
+
+    private LocalDateTime parseDate(Object val) {
+        if (val instanceof LocalDateTime) return (LocalDateTime) val;
+        if (val instanceof String) return LocalDateTime.parse((String) val, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        return null;
     }
 }

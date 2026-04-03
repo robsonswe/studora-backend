@@ -33,6 +33,9 @@ public class SubtemaSummaryDto {
     @Schema(description = "Data e hora do último estudo realizado")
     private java.time.LocalDateTime ultimoEstudo;
 
+    @Schema(description = "Data e hora da última questão respondida")
+    private java.time.LocalDateTime ultimaQuestao;
+
     @Schema(description = "Total de questões associadas a este subtema", example = "15")
     private long totalQuestoes;
 

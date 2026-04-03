@@ -101,6 +101,17 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     @Query("SELECT s.tema.disciplina.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao.subtemas s WHERE s.tema.disciplina.id IN :ids AND r.tempoRespostaSegundos IS NOT NULL GROUP BY s.tema.disciplina.id")
     List<Object[]> avgTempoByDisciplinaIds(@Param("ids") List<Long> ids);
 
+    // --- Batch: ultimaQuestao (max createdAt of Resposta) ---
+
+    @Query("SELECT s.id, MAX(r.createdAt) FROM Resposta r JOIN r.questao.subtemas s WHERE s.id IN :ids GROUP BY s.id")
+    List<Object[]> findLatestResponseDatesBySubtemaIds(@Param("ids") List<Long> ids);
+
+    @Query("SELECT s.tema.id, MAX(r.createdAt) FROM Resposta r JOIN r.questao.subtemas s WHERE s.tema.id IN :ids GROUP BY s.tema.id")
+    List<Object[]> findLatestResponseDatesByTemaIds(@Param("ids") List<Long> ids);
+
+    @Query("SELECT s.tema.disciplina.id, MAX(r.createdAt) FROM Resposta r JOIN r.questao.subtemas s WHERE s.tema.disciplina.id IN :ids GROUP BY s.tema.disciplina.id")
+    List<Object[]> findLatestResponseDatesByDisciplinaIds(@Param("ids") List<Long> ids);
+
     // --- Batch: all respostas for difficulty stats (fetch once, process in Java) ---
 
     @Query("SELECT DISTINCT r FROM Resposta r " +

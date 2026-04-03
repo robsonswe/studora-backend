@@ -64,6 +64,7 @@ public class SubtemaService {
         
         // Fetch latest dates
         Map<Long, java.time.LocalDateTime> dates = toDateMap(estudoSubtemaRepository.findLatestStudyDatesBySubtemaIds(ids));
+        Map<Long, java.time.LocalDateTime> ultimaQuestaoDates = toDateMap(respostaRepository.findLatestResponseDatesBySubtemaIds(ids));
 
         // Fetch questao stats
         Map<Long, Long> totalQuestoesMap = toCountMap(questaoRepository.countQuestoesBySubtemaIds(ids));
@@ -81,6 +82,7 @@ public class SubtemaService {
             SubtemaSummaryDto dto = subtemaMapper.toSummaryDto(subtema);
             dto.setTotalEstudos(counts.getOrDefault(subId, 0L));
             dto.setUltimoEstudo(dates.get(subId));
+            dto.setUltimaQuestao(ultimaQuestaoDates.get(subId));
             dto.setTotalQuestoes(totalQuestoesMap.getOrDefault(subId, 0L));
             dto.setQuestoesRespondidas(respondidasMap.getOrDefault(subId, 0L));
             dto.setQuestoesAcertadas(acertadasMap.getOrDefault(subId, 0L));
@@ -99,6 +101,7 @@ public class SubtemaService {
         dto.setTotalEstudos(estudoSubtemaRepository.countBySubtemaId(id));
         dto.setUltimoEstudo(estudoSubtemaRepository.findFirstBySubtemaIdOrderByCreatedAtDesc(id)
                 .map(com.studora.entity.EstudoSubtema::getCreatedAt).orElse(null));
+        dto.setUltimaQuestao(toDateMap(respostaRepository.findLatestResponseDatesBySubtemaIds(List.of(id))).get(id));
 
         // Enrich questao stats for this subtema
         List<Long> singleId = List.of(id);
@@ -116,6 +119,7 @@ public class SubtemaService {
             List<Long> singleTemaId = List.of(temaId);
             dto.getTema().setTotalEstudos(toCountMap(estudoSubtemaRepository.countByTemaIds(singleTemaId)).getOrDefault(temaId, 0L));
             dto.getTema().setUltimoEstudo(toDateMap(estudoSubtemaRepository.findLatestStudyDatesByTemaIds(singleTemaId)).get(temaId));
+            dto.getTema().setUltimaQuestao(toDateMap(respostaRepository.findLatestResponseDatesByTemaIds(singleTemaId)).get(temaId));
             dto.getTema().setTotalSubtemas(toCountMap(subtemaRepository.countByTemaIds(singleTemaId)).getOrDefault(temaId, 0L));
             dto.getTema().setSubtemasEstudados(toCountMap(estudoSubtemaRepository.countDistinctStudiedSubtemasByTemaIds(singleTemaId)).getOrDefault(temaId, 0L));
         }
@@ -180,6 +184,7 @@ public class SubtemaService {
         
         Map<Long, Long> counts = toCountMap(estudoSubtemaRepository.countBySubtemaIds(ids));
         Map<Long, java.time.LocalDateTime> dates = toDateMap(estudoSubtemaRepository.findLatestStudyDatesBySubtemaIds(ids));
+        Map<Long, java.time.LocalDateTime> ultimaQuestaoDates = toDateMap(respostaRepository.findLatestResponseDatesBySubtemaIds(ids));
 
         // Fetch questao stats
         Map<Long, Long> totalQuestoesMap = toCountMap(questaoRepository.countQuestoesBySubtemaIds(ids));
@@ -198,6 +203,7 @@ public class SubtemaService {
                     SubtemaSummaryDto dto = subtemaMapper.toSummaryDto(subtema);
                     dto.setTotalEstudos(counts.getOrDefault(subId, 0L));
                     dto.setUltimoEstudo(dates.get(subId));
+                    dto.setUltimaQuestao(ultimaQuestaoDates.get(subId));
                     dto.setTotalQuestoes(totalQuestoesMap.getOrDefault(subId, 0L));
                     dto.setQuestoesRespondidas(respondidasMap.getOrDefault(subId, 0L));
                     dto.setQuestoesAcertadas(acertadasMap.getOrDefault(subId, 0L));

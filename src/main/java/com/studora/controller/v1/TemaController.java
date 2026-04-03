@@ -47,7 +47,7 @@ public class TemaController {
                 content = @Content(
                     mediaType = "application/json",
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\", \"totalEstudos\": 5, \"ultimoEstudo\": \"2026-01-15T10:30:00\", \"totalSubtemas\": 3, \"subtemasEstudados\": 2, \"totalQuestoes\": 30, \"questoesRespondidas\": 20, \"questoesAcertadas\": 15, \"mediaTempoResposta\": 45, \"dificuldadeRespostas\": {\"FACIL\": {\"total\": 10, \"corretas\": 8}, \"MEDIA\": {\"total\": 10, \"corretas\": 7}, \"DIFICIL\": {\"total\": 0, \"corretas\": 0}, \"CHUTE\": {\"total\": 0, \"corretas\": 0}}}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\", \"totalEstudos\": 5, \"ultimoEstudo\": \"2026-01-15T10:30:00\", \"ultimaQuestao\": \"2026-01-16T14:20:00\", \"totalSubtemas\": 3, \"subtemasEstudados\": 2, \"totalQuestoes\": 30, \"questoesRespondidas\": 20, \"questoesAcertadas\": 15, \"mediaTempoResposta\": 45, \"dificuldadeRespostas\": {\"FACIL\": {\"total\": 10, \"corretas\": 8}, \"MEDIA\": {\"total\": 10, \"corretas\": 7}, \"DIFICIL\": {\"total\": 0, \"corretas\": 0}, \"CHUTE\": {\"total\": 0, \"corretas\": 0}}}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 ))
         }
@@ -74,7 +74,7 @@ public class TemaController {
             @ApiResponse(responseCode = "200", description = "Tema encontrado", 
                 content = @Content(
                     schema = @Schema(implementation = TemaDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplina\": {\"id\": 1, \"nome\": \"Direito Constitucional\", \"totalEstudos\": 10, \"ultimoEstudo\": \"2026-01-15T10:30:00\", \"totalTemas\": 5, \"totalSubtemas\": 12, \"temasEstudados\": 2, \"subtemasEstudados\": 8, \"totalQuestoes\": 100, \"questoesRespondidas\": 50, \"questoesAcertadas\": 40, \"mediaTempoResposta\": 45, \"dificuldadeRespostas\": {\"FACIL\": {\"total\": 20, \"corretas\": 18}, \"MEDIA\": {\"total\": 30, \"corretas\": 22}, \"DIFICIL\": {\"total\": 0, \"corretas\": 0}, \"CHUTE\": {\"total\": 0, \"corretas\": 0}}}, \"totalEstudos\": 5, \"ultimoEstudo\": \"2026-02-20T14:00:00\", \"totalSubtemas\": 3, \"subtemasEstudados\": 2, \"totalQuestoes\": 30, \"questoesRespondidas\": 20, \"questoesAcertadas\": 15, \"mediaTempoResposta\": 45, \"dificuldadeRespostas\": {\"FACIL\": {\"total\": 10, \"corretas\": 8}, \"MEDIA\": {\"total\": 10, \"corretas\": 7}, \"DIFICIL\": {\"total\": 0, \"corretas\": 0}, \"CHUTE\": {\"total\": 0, \"corretas\": 0}}, \"subtemas\": []}")
+                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplina\": {\"id\": 1, \"nome\": \"Direito Constitucional\", \"totalEstudos\": 10, \"ultimoEstudo\": \"2026-01-15T10:30:00\", \"ultimaQuestao\": \"2026-01-16T14:20:00\", \"totalTemas\": 5, \"totalSubtemas\": 12, \"temasEstudados\": 2, \"subtemasEstudados\": 8, \"totalQuestoes\": 100, \"questoesRespondidas\": 50, \"questoesAcertadas\": 40, \"mediaTempoResposta\": 45, \"dificuldadeRespostas\": {\"FACIL\": {\"total\": 20, \"corretas\": 18}, \"MEDIA\": {\"total\": 30, \"corretas\": 22}, \"DIFICIL\": {\"total\": 0, \"corretas\": 0}, \"CHUTE\": {\"total\": 0, \"corretas\": 0}}}, \"totalEstudos\": 5, \"ultimoEstudo\": \"2026-02-20T14:00:00\", \"ultimaQuestao\": \"2026-02-21T10:00:00\", \"totalSubtemas\": 3, \"subtemasEstudados\": 2, \"totalQuestoes\": 30, \"questoesRespondidas\": 20, \"questoesAcertadas\": 15, \"mediaTempoResposta\": 45, \"dificuldadeRespostas\": {\"FACIL\": {\"total\": 10, \"corretas\": 8}, \"MEDIA\": {\"total\": 10, \"corretas\": 7}, \"DIFICIL\": {\"total\": 0, \"corretas\": 0}, \"CHUTE\": {\"total\": 0, \"corretas\": 0}}, \"subtemas\": []}")
                 )),
             @ApiResponse(responseCode = "404", description = "Tema não encontrado")
         }
@@ -91,7 +91,7 @@ public class TemaController {
                 content = @Content(
                     mediaType = "application/json",
                     examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\", \"totalEstudos\": 5, \"ultimoEstudo\": \"2026-01-15T10:30:00\", \"totalSubtemas\": 3, \"subtemasEstudados\": 2, \"totalQuestoes\": 30, \"questoesRespondidas\": 20, \"questoesAcertadas\": 15, \"mediaTempoResposta\": 45, \"dificuldadeRespostas\": {\"FACIL\": {\"total\": 10, \"corretas\": 8}, \"MEDIA\": {\"total\": 10, \"corretas\": 7}, \"DIFICIL\": {\"total\": 0, \"corretas\": 0}, \"CHUTE\": {\"total\": 0, \"corretas\": 0}}}]"
+                        value = "[{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\", \"totalEstudos\": 5, \"ultimoEstudo\": \"2026-01-15T10:30:00\", \"ultimaQuestao\": \"2026-01-16T14:20:00\", \"totalSubtemas\": 3, \"subtemasEstudados\": 2, \"totalQuestoes\": 30, \"questoesRespondidas\": 20, \"questoesAcertadas\": 15, \"mediaTempoResposta\": 45, \"dificuldadeRespostas\": {\"FACIL\": {\"total\": 10, \"corretas\": 8}, \"MEDIA\": {\"total\": 10, \"corretas\": 7}, \"DIFICIL\": {\"total\": 0, \"corretas\": 0}, \"CHUTE\": {\"total\": 0, \"corretas\": 0}}}]"
                     )
                 ))
         }
@@ -107,7 +107,7 @@ public class TemaController {
             @ApiResponse(responseCode = "201", description = "Tema criado com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = TemaDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 2, \"nome\": \"Organização do Estado\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\", \"totalEstudos\": 0, \"ultimoEstudo\": null, \"totalSubtemas\": 0, \"subtemasEstudados\": 0, \"totalQuestoes\": 0, \"questoesRespondidas\": 0, \"questoesAcertadas\": 0, \"mediaTempoResposta\": null, \"dificuldadeRespostas\": {}}")
+                    examples = @ExampleObject(value = "{\"id\": 2, \"nome\": \"Organização do Estado\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\", \"totalEstudos\": 0, \"ultimoEstudo\": null, \"ultimaQuestao\": null, \"totalSubtemas\": 0, \"subtemasEstudados\": 0, \"totalQuestoes\": 0, \"questoesRespondidas\": 0, \"questoesAcertadas\": 0, \"mediaTempoResposta\": null, \"dificuldadeRespostas\": {}}")
                 )),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",
@@ -129,7 +129,7 @@ public class TemaController {
             @ApiResponse(responseCode = "200", description = "Tema atualizado com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = TemaDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Direitos Fundamentais Atualizado\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\", \"totalEstudos\": 0, \"ultimoEstudo\": null, \"totalSubtemas\": 0, \"subtemasEstudados\": 0, \"totalQuestoes\": 0, \"questoesRespondidas\": 0, \"questoesAcertadas\": 0, \"mediaTempoResposta\": null, \"dificuldadeRespostas\": {}}")
+                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Direitos Fundamentais Atualizado\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\", \"totalEstudos\": 0, \"ultimoEstudo\": null, \"ultimaQuestao\": null, \"totalSubtemas\": 0, \"subtemasEstudados\": 0, \"totalQuestoes\": 0, \"questoesRespondidas\": 0, \"questoesAcertadas\": 0, \"mediaTempoResposta\": null, \"dificuldadeRespostas\": {}}")
                 )),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",

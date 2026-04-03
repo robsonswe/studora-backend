@@ -47,7 +47,7 @@ public class DisciplinaController {
                 content = @Content(
                     mediaType = "application/json",
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Direito Constitucional\", \"totalEstudos\": 10, \"ultimoEstudo\": \"2026-01-15T10:30:00\", \"totalTemas\": 5, \"totalSubtemas\": 12, \"temasEstudados\": 2, \"subtemasEstudados\": 8, \"totalQuestoes\": 100, \"questoesRespondidas\": 50, \"questoesAcertadas\": 40, \"mediaTempoResposta\": 45, \"dificuldadeRespostas\": {\"FACIL\": {\"total\": 20, \"corretas\": 18}, \"MEDIA\": {\"total\": 30, \"corretas\": 22}, \"DIFICIL\": {\"total\": 0, \"corretas\": 0}, \"CHUTE\": {\"total\": 0, \"corretas\": 0}}}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Direito Constitucional\", \"totalEstudos\": 10, \"ultimoEstudo\": \"2026-01-15T10:30:00\", \"ultimaQuestao\": \"2026-01-16T14:20:00\", \"totalTemas\": 5, \"totalSubtemas\": 12, \"temasEstudados\": 2, \"subtemasEstudados\": 8, \"totalQuestoes\": 100, \"questoesRespondidas\": 50, \"questoesAcertadas\": 40, \"mediaTempoResposta\": 45, \"dificuldadeRespostas\": {\"FACIL\": {\"total\": 20, \"corretas\": 18}, \"MEDIA\": {\"total\": 30, \"corretas\": 22}, \"DIFICIL\": {\"total\": 0, \"corretas\": 0}, \"CHUTE\": {\"total\": 0, \"corretas\": 0}}}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -79,7 +79,7 @@ public class DisciplinaController {
             @ApiResponse(responseCode = "200", description = "Disciplina encontrada", 
                 content = @Content(
                     schema = @Schema(implementation = DisciplinaDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Direito Constitucional\", \"totalEstudos\": 10, \"ultimoEstudo\": \"2026-02-20T14:00:00\", \"totalTemas\": 5, \"totalSubtemas\": 12, \"temasEstudados\": 2, \"subtemasEstudados\": 8, \"totalQuestoes\": 100, \"questoesRespondidas\": 50, \"questoesAcertadas\": 40, \"mediaTempoResposta\": 45, \"dificuldadeRespostas\": {\"FACIL\": {\"total\": 20, \"corretas\": 18}, \"MEDIA\": {\"total\": 30, \"corretas\": 22}, \"DIFICIL\": {\"total\": 0, \"corretas\": 0}, \"CHUTE\": {\"total\": 0, \"corretas\": 0}}, \"temas\": []}")
+                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Direito Constitucional\", \"totalEstudos\": 10, \"ultimoEstudo\": \"2026-02-20T14:00:00\", \"ultimaQuestao\": \"2026-02-21T10:00:00\", \"totalTemas\": 5, \"totalSubtemas\": 12, \"temasEstudados\": 2, \"subtemasEstudados\": 8, \"totalQuestoes\": 100, \"questoesRespondidas\": 50, \"questoesAcertadas\": 40, \"mediaTempoResposta\": 45, \"dificuldadeRespostas\": {\"FACIL\": {\"total\": 20, \"corretas\": 18}, \"MEDIA\": {\"total\": 30, \"corretas\": 22}, \"DIFICIL\": {\"total\": 0, \"corretas\": 0}, \"CHUTE\": {\"total\": 0, \"corretas\": 0}}, \"temas\": []}")
                 )),
             @ApiResponse(responseCode = "404", description = "Disciplina não encontrada",
                 content = @Content(mediaType = "application/problem+json",
@@ -100,7 +100,7 @@ public class DisciplinaController {
             @ApiResponse(responseCode = "201", description = "Disciplina criada com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = DisciplinaDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 3, \"nome\": \"Direito Administrativo\", \"totalEstudos\": 0, \"totalTemas\": 0, \"totalSubtemas\": 0, \"temasEstudados\": 0, \"subtemasEstudados\": 0, \"totalQuestoes\": 0, \"questoesRespondidas\": 0, \"questoesAcertadas\": 0, \"mediaTempoResposta\": null, \"dificuldadeRespostas\": {}}")
+                    examples = @ExampleObject(value = "{\"id\": 3, \"nome\": \"Direito Administrativo\", \"totalEstudos\": 0, \"ultimoEstudo\": null, \"ultimaQuestao\": null, \"totalTemas\": 0, \"totalSubtemas\": 0, \"temasEstudados\": 0, \"subtemasEstudados\": 0, \"totalQuestoes\": 0, \"questoesRespondidas\": 0, \"questoesAcertadas\": 0, \"mediaTempoResposta\": null, \"dificuldadeRespostas\": {}}")
                 )),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",
@@ -127,7 +127,7 @@ public class DisciplinaController {
             @ApiResponse(responseCode = "200", description = "Disciplina atualizada com sucesso",
                 content = @Content(
                     schema = @Schema(implementation = DisciplinaDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Direito Constitucional Aplicado\", \"totalEstudos\": 0, \"ultimoEstudo\": null, \"totalTemas\": 0, \"totalSubtemas\": 0, \"temasEstudados\": 0, \"subtemasEstudados\": 0, \"totalQuestoes\": 0, \"questoesRespondidas\": 0, \"questoesAcertadas\": 0, \"mediaTempoResposta\": null, \"dificuldadeRespostas\": {}}")
+                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Direito Constitucional Aplicado\", \"totalEstudos\": 0, \"ultimoEstudo\": null, \"ultimaQuestao\": null, \"totalTemas\": 0, \"totalSubtemas\": 0, \"temasEstudados\": 0, \"subtemasEstudados\": 0, \"totalQuestoes\": 0, \"questoesRespondidas\": 0, \"questoesAcertadas\": 0, \"mediaTempoResposta\": null, \"dificuldadeRespostas\": {}}")
                 )),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",

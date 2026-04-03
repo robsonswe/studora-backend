@@ -65,6 +65,7 @@ public class DisciplinaService {
         List<Long> ids = page.getContent().stream().map(Disciplina::getId).toList();
         Map<Long, Long> totalEstudosMap = toCountMap(estudoSubtemaRepository.countByDisciplinaIds(ids));
         Map<Long, LocalDateTime> ultimoEstudoMap = toDateMap(estudoSubtemaRepository.findLatestStudyDatesByDisciplinaIds(ids));
+        Map<Long, LocalDateTime> ultimaQuestaoMap = toDateMap(respostaRepository.findLatestResponseDatesByDisciplinaIds(ids));
         Map<Long, Long> totalTemasMap = toCountMap(temaRepository.countByDisciplinaIds(ids));
         Map<Long, Long> totalSubtemasMap = toCountMap(subtemaRepository.countByDisciplinaIds(ids));
         Map<Long, Long> subtemasEstudadosMap = toCountMap(estudoSubtemaRepository.countDistinctStudiedSubtemasByDisciplinaIds(ids));
@@ -88,6 +89,7 @@ public class DisciplinaService {
             DisciplinaSummaryDto dto = disciplinaMapper.toSummaryDto(disciplina);
             dto.setTotalEstudos(totalEstudosMap.getOrDefault(discId, 0L));
             dto.setUltimoEstudo(ultimoEstudoMap.get(discId));
+            dto.setUltimaQuestao(ultimaQuestaoMap.get(discId));
             dto.setTotalTemas(totalTemasMap.getOrDefault(discId, 0L));
             dto.setTotalSubtemas(totalSubtemasMap.getOrDefault(discId, 0L));
             dto.setSubtemasEstudados(subtemasEstudadosMap.getOrDefault(discId, 0L));
@@ -112,6 +114,7 @@ public class DisciplinaService {
         List<Long> discIds = List.of(id);
         dto.setTotalEstudos(toCountMap(estudoSubtemaRepository.countByDisciplinaIds(discIds)).getOrDefault(id, 0L));
         dto.setUltimoEstudo(toDateMap(estudoSubtemaRepository.findLatestStudyDatesByDisciplinaIds(discIds)).get(id));
+        dto.setUltimaQuestao(toDateMap(respostaRepository.findLatestResponseDatesByDisciplinaIds(discIds)).get(id));
         dto.setTotalTemas(toCountMap(temaRepository.countByDisciplinaIds(discIds)).getOrDefault(id, 0L));
         dto.setTotalSubtemas(toCountMap(subtemaRepository.countByDisciplinaIds(discIds)).getOrDefault(id, 0L));
         dto.setSubtemasEstudados(toCountMap(estudoSubtemaRepository.countDistinctStudiedSubtemasByDisciplinaIds(discIds)).getOrDefault(id, 0L));
