@@ -137,6 +137,7 @@ public class ConcursoService {
         Concurso concurso = concursoMapper.toEntity(request);
         concurso.setInstituicao(instituicao);
         concurso.setBanca(banca);
+        concurso.setDataProva(request.getDataProva());
 
         // Process Cargos
         List<Long> cargoIds = request.getCargos().stream().distinct().collect(Collectors.toList());
@@ -230,6 +231,11 @@ public class ConcursoService {
         }
 
         concursoMapper.updateEntityFromDto(request, concurso);
+
+        if (request.getDataProva() != null) {
+            concurso.setDataProva(request.getDataProva());
+        }
+
         return concursoMapper.toDetailDto(concursoRepository.save(concurso));
     }
 

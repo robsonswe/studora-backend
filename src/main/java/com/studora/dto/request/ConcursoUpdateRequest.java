@@ -34,6 +34,9 @@ public class ConcursoUpdateRequest {
     @Schema(description = "Identificação do edital do concurso", example = "Edital 01/2023")
     private String edital;
 
+    @Schema(description = "Data e hora da prova do concurso", example = "2024-06-15T08:00:00")
+    private java.time.LocalDateTime dataProva;
+
     @NotNull(message = "A lista de cargos é obrigatória")
     @jakarta.validation.constraints.NotEmpty(message = "O concurso deve ter pelo menos um cargo")
     @Schema(description = "Lista de IDs dos cargos associados ao concurso", example = "[1, 2]", required = true)

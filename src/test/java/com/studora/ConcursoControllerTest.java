@@ -297,6 +297,35 @@ class ConcursoControllerTest {
     }
 
     @Test
+    void testCreateConcurso_WithDataProva() throws Exception {
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Instituição DataProva Test");
+        instituicao.setArea("Educação");
+        instituicao = instituicaoRepository.save(instituicao);
+
+        Banca banca = new Banca();
+        banca.setNome("Banca DataProva Test");
+        banca = bancaRepository.save(banca);
+
+        ConcursoCreateRequest request = new ConcursoCreateRequest();
+        request.setInstituicaoId(instituicao.getId());
+        request.setBancaId(banca.getId());
+        request.setAno(2024);
+        request.setMes(6);
+        request.setDataProva(java.time.LocalDateTime.of(2024, 9, 15, 8, 0));
+        request.setCargos(List.of(cargo1.getId()));
+
+        mockMvc
+            .perform(
+                post("/api/v1/concursos")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(request))
+            )
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.dataProva").value("2024-09-15T08:00:00"));
+    }
+
+    @Test
     void testGetAllConcursos_WithFilters() throws Exception {
         Instituicao instituicao1 = new Instituicao();
         instituicao1.setNome("Instituição Filter 1");

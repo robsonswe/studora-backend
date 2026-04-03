@@ -271,4 +271,67 @@ class ConcursoServiceTest {
         when(concursoRepository.existsById(1L)).thenReturn(false);
         assertThrows(ResourceNotFoundException.class, () -> concursoService.delete(1L));
     }
+
+    @Test
+    void testCreate_WithDataProva() {
+        Instituicao inst = new Instituicao(); inst.setId(1L);
+        Banca banca = new Banca(); banca.setId(1L);
+        Cargo cargo = new Cargo(); cargo.setId(10L);
+
+        java.time.LocalDateTime dataProva = java.time.LocalDateTime.of(2024, 6, 15, 8, 0);
+
+        ConcursoCreateRequest request = new ConcursoCreateRequest();
+        request.setInstituicaoId(1L);
+        request.setBancaId(1L);
+        request.setAno(2024);
+        request.setMes(6);
+        request.setDataProva(dataProva);
+        request.setCargos(List.of(10L));
+
+        when(instituicaoRepository.findById(1L)).thenReturn(Optional.of(inst));
+        when(bancaRepository.findById(1L)).thenReturn(Optional.of(banca));
+        when(cargoRepository.findById(10L)).thenReturn(Optional.of(cargo));
+        when(concursoRepository.existsByInstituicaoIdAndBancaIdAndAnoAndMes(1L, 1L, 2024, 6)).thenReturn(false);
+
+        when(concursoRepository.save(any(Concurso.class))).thenAnswer(i -> {
+            Concurso c = i.getArgument(0);
+            c.setId(1L);
+            return c;
+        });
+
+        ConcursoDetailDto result = concursoService.create(request);
+        assertEquals(1L, result.getId());
+        assertEquals(dataProva, result.getDataProva());
+    }
+
+    @Test
+    void testUpdate_WithDataProva() {
+        Long id = 1L;
+        Instituicao inst = new Instituicao(); inst.setId(1L);
+        Banca banca = new Banca(); banca.setId(1L);
+        Cargo cargo = new Cargo(); cargo.setId(10L);
+
+        Concurso existing = new Concurso(inst, banca, 2023, 1);
+        existing.setId(id);
+
+        ConcursoCargo cc = new ConcursoCargo();
+        cc.setConcurso(existing);
+        cc.setCargo(cargo);
+        cc.setId(100L);
+        existing.addConcursoCargo(cc);
+
+        java.time.LocalDateTime newDataProva = java.time.LocalDateTime.of(2024, 9, 10, 14, 0);
+
+        ConcursoUpdateRequest req = new ConcursoUpdateRequest();
+        req.setAno(2023);
+        req.setMes(1);
+        req.setDataProva(newDataProva);
+        req.setCargos(List.of(10L));
+
+        when(concursoRepository.findByIdWithDetails(id)).thenReturn(Optional.of(existing));
+        when(concursoRepository.save(any(Concurso.class))).thenAnswer(i -> i.getArgument(0));
+
+        ConcursoDetailDto result = concursoService.update(id, req);
+        assertEquals(newDataProva, result.getDataProva());
+    }
 }

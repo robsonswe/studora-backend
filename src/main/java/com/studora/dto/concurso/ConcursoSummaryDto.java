@@ -24,6 +24,9 @@ public class ConcursoSummaryDto {
     @Schema(description = "Identificação do edital do concurso", example = "https://exemplo.com/edital.pdf")
     private String edital;
 
+    @Schema(description = "Data e hora da prova do concurso", example = "2024-06-15T08:00:00")
+    private java.time.LocalDateTime dataProva;
+
     @Schema(description = "Lista de cargos associados ao concurso")
     private java.util.List<ConcursoCargoSummaryDto> cargos;
 }

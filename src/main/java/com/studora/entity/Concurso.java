@@ -60,6 +60,10 @@ public class Concurso extends BaseEntity {
     @Schema(description = "Identificação do edital do concurso", example = "Edital 01/2023")
     private String edital;
 
+    @Column(name = "data_prova")
+    @Schema(description = "Data e hora da prova do concurso", example = "2024-06-15T08:00:00")
+    private java.time.LocalDateTime dataProva;
+
     @OneToMany(
         mappedBy = "concurso",
         cascade = CascadeType.ALL,
@@ -134,6 +138,14 @@ public class Concurso extends BaseEntity {
 
     public void setEdital(String edital) {
         this.edital = edital;
+    }
+
+    public java.time.LocalDateTime getDataProva() {
+        return dataProva;
+    }
+
+    public void setDataProva(java.time.LocalDateTime dataProva) {
+        this.dataProva = dataProva;
     }
 
     public Set<Questao> getQuestoes() {
