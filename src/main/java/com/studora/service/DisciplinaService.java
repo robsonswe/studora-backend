@@ -24,6 +24,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -32,11 +35,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 @Transactional
 public class DisciplinaService {
 
@@ -48,7 +52,25 @@ public class DisciplinaService {
     private final RespostaRepository respostaRepository;
     private final DisciplinaMapper disciplinaMapper;
     private final TemaService temaService;
+    private final Executor dbStatsExecutor;
 
+    public DisciplinaService(DisciplinaRepository disciplinaRepository, TemaRepository temaRepository,
+                             SubtemaRepository subtemaRepository, EstudoSubtemaRepository estudoSubtemaRepository,
+                             QuestaoRepository questaoRepository, RespostaRepository respostaRepository,
+                             DisciplinaMapper disciplinaMapper, TemaService temaService,
+                             @Qualifier("dbStatsExecutor") Executor dbStatsExecutor) {
+        this.disciplinaRepository = disciplinaRepository;
+        this.temaRepository = temaRepository;
+        this.subtemaRepository = subtemaRepository;
+        this.estudoSubtemaRepository = estudoSubtemaRepository;
+        this.questaoRepository = questaoRepository;
+        this.respostaRepository = respostaRepository;
+        this.disciplinaMapper = disciplinaMapper;
+        this.temaService = temaService;
+        this.dbStatsExecutor = dbStatsExecutor;
+    }
+
+    @Cacheable(value = "disciplina-stats", key = "T(java.util.Objects).hash(#nome, #pageable.pageNumber, #pageable.pageSize, #pageable.sort.toString())")
     @Transactional(readOnly = true)
     public Page<DisciplinaSummaryDto> findAll(String nome, Pageable pageable) {
         Page<Disciplina> page;
@@ -63,26 +85,36 @@ public class DisciplinaService {
         }
 
         List<Long> ids = page.getContent().stream().map(Disciplina::getId).toList();
-        Map<Long, Long> totalEstudosMap = toCountMap(estudoSubtemaRepository.countByDisciplinaIds(ids));
-        Map<Long, LocalDateTime> ultimoEstudoMap = toDateMap(estudoSubtemaRepository.findLatestStudyDatesByDisciplinaIds(ids));
-        Map<Long, LocalDateTime> ultimaQuestaoMap = toDateMap(respostaRepository.findLatestResponseDatesByDisciplinaIds(ids));
-        Map<Long, Long> totalTemasMap = toCountMap(temaRepository.countByDisciplinaIds(ids));
-        Map<Long, Long> totalSubtemasMap = toCountMap(subtemaRepository.countByDisciplinaIds(ids));
-        Map<Long, Long> subtemasEstudadosMap = toCountMap(estudoSubtemaRepository.countDistinctStudiedSubtemasByDisciplinaIds(ids));
 
-        // temasEstudados: count of temas where ALL subtemas have been studied at least once
-        Map<Long, Long> temasEstudadosMap = computeTemasEstudadosByDisciplina(ids);
+        var totalEstudosFut    = CompletableFuture.supplyAsync(() -> toCountMap(estudoSubtemaRepository.countByDisciplinaIds(ids)), dbStatsExecutor);
+        var ultimoEstudoFut    = CompletableFuture.supplyAsync(() -> toDateMap(estudoSubtemaRepository.findLatestStudyDatesByDisciplinaIds(ids)), dbStatsExecutor);
+        var ultimaQuestaoFut   = CompletableFuture.supplyAsync(() -> toDateMap(respostaRepository.findLatestResponseDatesByDisciplinaIds(ids)), dbStatsExecutor);
+        var totalTemasFut      = CompletableFuture.supplyAsync(() -> toCountMap(temaRepository.countByDisciplinaIds(ids)), dbStatsExecutor);
+        var totalSubtemasFut   = CompletableFuture.supplyAsync(() -> toCountMap(subtemaRepository.countByDisciplinaIds(ids)), dbStatsExecutor);
+        var subtemasEstudadosFut = CompletableFuture.supplyAsync(() -> toCountMap(estudoSubtemaRepository.countDistinctStudiedSubtemasByDisciplinaIds(ids)), dbStatsExecutor);
+        var temasEstudadosFut  = CompletableFuture.supplyAsync(() -> toCountMap(temaRepository.countTemasEstudadosByDisciplinaIds(ids)), dbStatsExecutor);
+        
+        var totalQuestoesFut   = CompletableFuture.supplyAsync(() -> toCountMap(questaoRepository.countQuestoesByDisciplinaIds(ids)), dbStatsExecutor);
+        var respondidasFut     = CompletableFuture.supplyAsync(() -> toCountMap(respostaRepository.countRespondidasByDisciplinaIds(ids)), dbStatsExecutor);
+        var acertadasFut       = CompletableFuture.supplyAsync(() -> toCountMap(respostaRepository.countAcertadasByDisciplinaIds(ids)), dbStatsExecutor);
+        var avgTempoFut        = CompletableFuture.supplyAsync(() -> toDoubleMap(respostaRepository.avgTempoByDisciplinaIds(ids)), dbStatsExecutor);
+        
+        var dificuldadeFut     = CompletableFuture.supplyAsync(() -> parseDificuldadeStats(respostaRepository.getDificuldadeStatsByDisciplinaIds(ids)), dbStatsExecutor);
 
-        // Fetch questao stats
-        Map<Long, Long> totalQuestoesMap = toCountMap(questaoRepository.countQuestoesByDisciplinaIds(ids));
-        Map<Long, Long> respondidasMap = toCountMap(respostaRepository.countRespondidasByDisciplinaIds(ids));
-        Map<Long, Long> acertadasMap = toCountMap(respostaRepository.countAcertadasByDisciplinaIds(ids));
-        Map<Long, Double> avgTempoMap = toDoubleMap(respostaRepository.avgTempoByDisciplinaIds(ids));
+        CompletableFuture.allOf(totalEstudosFut, ultimoEstudoFut, ultimaQuestaoFut, totalTemasFut, totalSubtemasFut, subtemasEstudadosFut, temasEstudadosFut, totalQuestoesFut, respondidasFut, acertadasFut, avgTempoFut, dificuldadeFut).join();
 
-        // Fetch difficulty stats
-        List<Resposta> allRespostas = respostaRepository.findAllByDisciplinaIdsWithDetails(ids);
-        Map<Long, Map<String, DificuldadeStatDto>> dificuldadeMap = computeDificuldadeStatsBatch(allRespostas,
-                r -> r.getQuestao().getSubtemas().stream().map(s -> s.getTema().getDisciplina().getId()).distinct().toList());
+        Map<Long, Long> totalEstudosMap = totalEstudosFut.join();
+        Map<Long, LocalDateTime> ultimoEstudoMap = ultimoEstudoFut.join();
+        Map<Long, LocalDateTime> ultimaQuestaoMap = ultimaQuestaoFut.join();
+        Map<Long, Long> totalTemasMap = totalTemasFut.join();
+        Map<Long, Long> totalSubtemasMap = totalSubtemasFut.join();
+        Map<Long, Long> subtemasEstudadosMap = subtemasEstudadosFut.join();
+        Map<Long, Long> temasEstudadosMap = temasEstudadosFut.join();
+        Map<Long, Long> totalQuestoesMap = totalQuestoesFut.join();
+        Map<Long, Long> respondidasMap = respondidasFut.join();
+        Map<Long, Long> acertadasMap = acertadasFut.join();
+        Map<Long, Double> avgTempoMap = avgTempoFut.join();
+        Map<Long, Map<String, DificuldadeStatDto>> dificuldadeMap = dificuldadeFut.join();
 
         return page.map(disciplina -> {
             Long discId = disciplina.getId();
@@ -118,7 +150,7 @@ public class DisciplinaService {
         dto.setTotalTemas(toCountMap(temaRepository.countByDisciplinaIds(discIds)).getOrDefault(id, 0L));
         dto.setTotalSubtemas(toCountMap(subtemaRepository.countByDisciplinaIds(discIds)).getOrDefault(id, 0L));
         dto.setSubtemasEstudados(toCountMap(estudoSubtemaRepository.countDistinctStudiedSubtemasByDisciplinaIds(discIds)).getOrDefault(id, 0L));
-        dto.setTemasEstudados(computeTemasEstudadosByDisciplina(discIds).getOrDefault(id, 0L));
+        dto.setTemasEstudados(toCountMap(temaRepository.countTemasEstudadosByDisciplinaIds(discIds)).getOrDefault(id, 0L));
 
         // Enrich questao stats for disciplina
         dto.setTotalQuestoes(toCountMap(questaoRepository.countQuestoesByDisciplinaIds(discIds)).getOrDefault(id, 0L));
@@ -126,8 +158,8 @@ public class DisciplinaService {
         dto.setQuestoesAcertadas(toCountMap(respostaRepository.countAcertadasByDisciplinaIds(discIds)).getOrDefault(id, 0L));
         Map<Long, Double> avgTempoMap = toDoubleMap(respostaRepository.avgTempoByDisciplinaIds(discIds));
         dto.setMediaTempoResposta(avgTempoMap.containsKey(id) ? avgTempoMap.get(id).intValue() : null);
-        List<Resposta> discRespostas = respostaRepository.findAllByDisciplinaIdsWithDetails(discIds);
-        dto.setDificuldadeRespostas(computeDificuldadeStatsFromResponses(discRespostas));
+        
+        dto.setDificuldadeRespostas(parseDificuldadeStats(respostaRepository.getDificuldadeStatsByDisciplinaIds(discIds)).getOrDefault(id, initEmptyDificuldadeMap()));
 
         // Enrich nested temas
         dto.setTemas(temaService.findByDisciplinaId(id));
@@ -135,6 +167,7 @@ public class DisciplinaService {
         return dto;
     }
 
+    @CacheEvict(value = "disciplina-stats", allEntries = true)
     public DisciplinaDetailDto create(DisciplinaCreateRequest request) {
         log.info("Criando nova disciplina: {}", request.getNome());
 
@@ -147,6 +180,7 @@ public class DisciplinaService {
         return disciplinaMapper.toDetailDto(disciplinaRepository.save(disciplina));
     }
 
+    @CacheEvict(value = "disciplina-stats", allEntries = true)
     public DisciplinaDetailDto update(Long id, DisciplinaUpdateRequest request) {
         log.info("Atualizando disciplina ID: {}", id);
 
@@ -164,6 +198,7 @@ public class DisciplinaService {
         return disciplinaMapper.toDetailDto(disciplinaRepository.save(disciplina));
     }
 
+    @CacheEvict(value = "disciplina-stats", allEntries = true)
     public void delete(Long id) {
         log.info("Excluindo disciplina ID: {}", id);
         if (!disciplinaRepository.existsById(id)) {
@@ -177,35 +212,12 @@ public class DisciplinaService {
         disciplinaRepository.deleteById(id);
     }
 
-    /**
-     * For each disciplina, counts how many of its temas have ALL their subtemas studied at least once.
-     * A tema without subtemas is NOT counted as "estudado".
-     */
-    private Map<Long, Long> computeTemasEstudadosByDisciplina(List<Long> disciplinaIds) {
-        // 1. Get all temas for these disciplinas
-        List<com.studora.entity.Tema> temas = temaRepository.findByDisciplinaIds(disciplinaIds);
-        if (temas.isEmpty()) {
-            return Collections.emptyMap();
+    private Map<String, DificuldadeStatDto> initEmptyDificuldadeMap() {
+        Map<String, DificuldadeStatDto> map = new HashMap<>();
+        for (Dificuldade d : Dificuldade.values()) {
+            map.put(d.name(), new DificuldadeStatDto(0, 0));
         }
-
-        List<Long> temaIds = temas.stream().map(com.studora.entity.Tema::getId).toList();
-
-        // 2. Count total subtemas per tema
-        Map<Long, Long> totalSubtemasByTema = toCountMap(subtemaRepository.countByTemaIds(temaIds));
-
-        // 3. Count studied subtemas per tema
-        Map<Long, Long> studiedSubtemasByTema = toCountMap(estudoSubtemaRepository.countDistinctStudiedSubtemasByTemaIds(temaIds));
-
-        // 4. For each disciplina, count temas where all subtemas are studied
-        return temas.stream()
-                .filter(t -> {
-                    Long total = totalSubtemasByTema.get(t.getId());
-                    Long studied = studiedSubtemasByTema.get(t.getId());
-                    return total != null && total > 0 && total.equals(studied);
-                })
-                .collect(Collectors.groupingBy(
-                        t -> t.getDisciplina().getId(),
-                        Collectors.counting()));
+        return map;
     }
 
     private Map<Long, Long> toCountMap(List<Object[]> rows) {
@@ -232,46 +244,19 @@ public class DisciplinaService {
         return null;
     }
 
-    private Map<String, DificuldadeStatDto> computeDificuldadeStatsFromResponses(List<Resposta> responses) {
-        Map<String, DificuldadeStatDto> result = new HashMap<>();
-        for (Dificuldade d : Dificuldade.values()) {
-            result.put(d.name(), new DificuldadeStatDto(0, 0));
-        }
-
-        Map<Long, Resposta> latestByQuestao = new HashMap<>();
-        for (Resposta r : responses) {
-            latestByQuestao.merge(r.getQuestao().getId(), r, (existing, candidate) ->
-                    candidate.getCreatedAt().isAfter(existing.getCreatedAt()) ? candidate : existing);
-        }
-
-        for (Resposta r : latestByQuestao.values()) {
-            String diff = r.getDificuldade() != null ? r.getDificuldade().name() : Dificuldade.MEDIA.name();
-            DificuldadeStatDto stat = result.get(diff);
-            stat.setTotal(stat.getTotal() + 1);
-            if (isCorrect(r)) {
-                stat.setCorretas(stat.getCorretas() + 1);
-            }
-        }
-        return result;
-    }
-
-    private Map<Long, Map<String, DificuldadeStatDto>> computeDificuldadeStatsBatch(
-            List<Resposta> responses, java.util.function.Function<Resposta, List<Long>> scopeIdsExtractor) {
-        Map<Long, List<Resposta>> byScope = new HashMap<>();
-        for (Resposta r : responses) {
-            for (Long scopeId : scopeIdsExtractor.apply(r)) {
-                byScope.computeIfAbsent(scopeId, k -> new ArrayList<>()).add(r);
-            }
-        }
+    private Map<Long, Map<String, DificuldadeStatDto>> parseDificuldadeStats(List<Object[]> rows) {
         Map<Long, Map<String, DificuldadeStatDto>> result = new HashMap<>();
-        for (var entry : byScope.entrySet()) {
-            result.put(entry.getKey(), computeDificuldadeStatsFromResponses(entry.getValue()));
+        for (Object[] row : rows) {
+            Long scopeId = ((Number) row[0]).longValue();
+            int diffId = ((Number) row[1]).intValue();
+            int total = ((Number) row[2]).intValue();
+            int corretas = row[3] != null ? ((Number) row[3]).intValue() : 0;
+            
+            String diffName = Dificuldade.fromId(diffId).name();
+            
+            result.computeIfAbsent(scopeId, k -> initEmptyDificuldadeMap())
+                  .put(diffName, new DificuldadeStatDto(total, corretas));
         }
         return result;
-    }
-
-    private boolean isCorrect(Resposta r) {
-        if (r.getAlternativaEscolhida() == null) return false;
-        return Boolean.TRUE.equals(r.getAlternativaEscolhida().getCorreta());
     }
 }

@@ -66,7 +66,7 @@ class TemaServiceTest {
         ReflectionTestUtils.setField(realMapper, "disciplinaMapper", discMapper);
         
         temaService = new TemaService(temaRepository, disciplinaRepository, subtemaRepository,
-                estudoSubtemaRepository, questaoRepository, respostaRepository, realMapper, subtemaService);
+                estudoSubtemaRepository, questaoRepository, respostaRepository, realMapper, subtemaService, Runnable::run);
     }
 
     @Test

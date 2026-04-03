@@ -23,17 +23,20 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 @Transactional
 public class SubtemaService {
 
@@ -43,7 +46,23 @@ public class SubtemaService {
     private final RespostaRepository respostaRepository;
     private final com.studora.repository.EstudoSubtemaRepository estudoSubtemaRepository;
     private final SubtemaMapper subtemaMapper;
+    private final Executor dbStatsExecutor;
 
+    public SubtemaService(SubtemaRepository subtemaRepository, TemaRepository temaRepository,
+                          QuestaoRepository questaoRepository, RespostaRepository respostaRepository,
+                          com.studora.repository.EstudoSubtemaRepository estudoSubtemaRepository,
+                          SubtemaMapper subtemaMapper,
+                          @Qualifier("dbStatsExecutor") Executor dbStatsExecutor) {
+        this.subtemaRepository = subtemaRepository;
+        this.temaRepository = temaRepository;
+        this.questaoRepository = questaoRepository;
+        this.respostaRepository = respostaRepository;
+        this.estudoSubtemaRepository = estudoSubtemaRepository;
+        this.subtemaMapper = subtemaMapper;
+        this.dbStatsExecutor = dbStatsExecutor;
+    }
+
+    @Cacheable(value = "subtema-stats", key = "T(java.util.Objects).hash('all', #nome, #pageable.pageNumber, #pageable.pageSize, #pageable.sort)")
     @Transactional(readOnly = true)
     public Page<SubtemaSummaryDto> findAll(String nome, Pageable pageable) {
         Page<Subtema> page;
@@ -59,23 +78,25 @@ public class SubtemaService {
 
         List<Long> ids = page.getContent().stream().map(Subtema::getId).collect(Collectors.toList());
         
-        // Fetch study counts
-        Map<Long, Long> counts = toCountMap(estudoSubtemaRepository.countBySubtemaIds(ids));
-        
-        // Fetch latest dates
-        Map<Long, java.time.LocalDateTime> dates = toDateMap(estudoSubtemaRepository.findLatestStudyDatesBySubtemaIds(ids));
-        Map<Long, java.time.LocalDateTime> ultimaQuestaoDates = toDateMap(respostaRepository.findLatestResponseDatesBySubtemaIds(ids));
+        var countsFut           = CompletableFuture.supplyAsync(() -> toCountMap(estudoSubtemaRepository.countBySubtemaIds(ids)), dbStatsExecutor);
+        var datesFut            = CompletableFuture.supplyAsync(() -> toDateMap(estudoSubtemaRepository.findLatestStudyDatesBySubtemaIds(ids)), dbStatsExecutor);
+        var ultimaQuestaoDatesFut = CompletableFuture.supplyAsync(() -> toDateMap(respostaRepository.findLatestResponseDatesBySubtemaIds(ids)), dbStatsExecutor);
+        var totalQuestoesFut    = CompletableFuture.supplyAsync(() -> toCountMap(questaoRepository.countQuestoesBySubtemaIds(ids)), dbStatsExecutor);
+        var respondidasFut      = CompletableFuture.supplyAsync(() -> toCountMap(respostaRepository.countRespondidasBySubtemaIds(ids)), dbStatsExecutor);
+        var acertadasFut        = CompletableFuture.supplyAsync(() -> toCountMap(respostaRepository.countAcertadasBySubtemaIds(ids)), dbStatsExecutor);
+        var avgTempoFut         = CompletableFuture.supplyAsync(() -> toDoubleMap(respostaRepository.avgTempoBySubtemaIds(ids)), dbStatsExecutor);
+        var dificuldadeFut      = CompletableFuture.supplyAsync(() -> parseDificuldadeStats(respostaRepository.getDificuldadeStatsBySubtemaIds(ids)), dbStatsExecutor);
 
-        // Fetch questao stats
-        Map<Long, Long> totalQuestoesMap = toCountMap(questaoRepository.countQuestoesBySubtemaIds(ids));
-        Map<Long, Long> respondidasMap = toCountMap(respostaRepository.countRespondidasBySubtemaIds(ids));
-        Map<Long, Long> acertadasMap = toCountMap(respostaRepository.countAcertadasBySubtemaIds(ids));
-        Map<Long, Double> avgTempoMap = toDoubleMap(respostaRepository.avgTempoBySubtemaIds(ids));
+        CompletableFuture.allOf(countsFut, datesFut, ultimaQuestaoDatesFut, totalQuestoesFut, respondidasFut, acertadasFut, avgTempoFut, dificuldadeFut).join();
 
-        // Fetch difficulty stats
-        List<Resposta> allRespostas = respostaRepository.findAllBySubtemaIdsWithDetails(ids);
-        Map<Long, Map<String, DificuldadeStatDto>> dificuldadeMap = computeDificuldadeStatsBatch(allRespostas,
-                r -> r.getQuestao().getSubtemas().stream().map(Subtema::getId).toList());
+        Map<Long, Long> counts = countsFut.join();
+        Map<Long, java.time.LocalDateTime> dates = datesFut.join();
+        Map<Long, java.time.LocalDateTime> ultimaQuestaoDates = ultimaQuestaoDatesFut.join();
+        Map<Long, Long> totalQuestoesMap = totalQuestoesFut.join();
+        Map<Long, Long> respondidasMap = respondidasFut.join();
+        Map<Long, Long> acertadasMap = acertadasFut.join();
+        Map<Long, Double> avgTempoMap = avgTempoFut.join();
+        Map<Long, Map<String, DificuldadeStatDto>> dificuldadeMap = dificuldadeFut.join();
 
         return page.map(subtema -> {
             Long subId = subtema.getId();
@@ -110,8 +131,7 @@ public class SubtemaService {
         dto.setQuestoesAcertadas(toCountMap(respostaRepository.countAcertadasBySubtemaIds(singleId)).getOrDefault(id, 0L));
         Map<Long, Double> avgTempoMap = toDoubleMap(respostaRepository.avgTempoBySubtemaIds(singleId));
         dto.setMediaTempoResposta(avgTempoMap.containsKey(id) ? avgTempoMap.get(id).intValue() : null);
-        List<Resposta> respostas = respostaRepository.findAllBySubtemaIdsWithDetails(singleId);
-        dto.setDificuldadeRespostas(computeDificuldadeStatsFromResponses(respostas));
+        dto.setDificuldadeRespostas(parseDificuldadeStats(respostaRepository.getDificuldadeStatsBySubtemaIds(singleId)).getOrDefault(id, initEmptyDificuldadeMap()));
 
         // Enrich nested tema
         if (dto.getTema() != null) {
@@ -170,6 +190,7 @@ public class SubtemaService {
         return subtemaMapper.toDetailDto(subtemaRepository.save(subtema));
     }
 
+    @Cacheable(value = "subtema-stats", key = "T(java.lang.String).format('tema-%d', #temaId)")
     @Transactional(readOnly = true)
     public List<SubtemaSummaryDto> findByTemaId(Long temaId) {
         if (!temaRepository.existsById(temaId)) {
@@ -182,20 +203,25 @@ public class SubtemaService {
 
         List<Long> ids = subtemas.stream().map(Subtema::getId).collect(Collectors.toList());
         
-        Map<Long, Long> counts = toCountMap(estudoSubtemaRepository.countBySubtemaIds(ids));
-        Map<Long, java.time.LocalDateTime> dates = toDateMap(estudoSubtemaRepository.findLatestStudyDatesBySubtemaIds(ids));
-        Map<Long, java.time.LocalDateTime> ultimaQuestaoDates = toDateMap(respostaRepository.findLatestResponseDatesBySubtemaIds(ids));
+        var countsFut           = CompletableFuture.supplyAsync(() -> toCountMap(estudoSubtemaRepository.countBySubtemaIds(ids)), dbStatsExecutor);
+        var datesFut            = CompletableFuture.supplyAsync(() -> toDateMap(estudoSubtemaRepository.findLatestStudyDatesBySubtemaIds(ids)), dbStatsExecutor);
+        var ultimaQuestaoDatesFut = CompletableFuture.supplyAsync(() -> toDateMap(respostaRepository.findLatestResponseDatesBySubtemaIds(ids)), dbStatsExecutor);
+        var totalQuestoesFut    = CompletableFuture.supplyAsync(() -> toCountMap(questaoRepository.countQuestoesBySubtemaIds(ids)), dbStatsExecutor);
+        var respondidasFut      = CompletableFuture.supplyAsync(() -> toCountMap(respostaRepository.countRespondidasBySubtemaIds(ids)), dbStatsExecutor);
+        var acertadasFut        = CompletableFuture.supplyAsync(() -> toCountMap(respostaRepository.countAcertadasBySubtemaIds(ids)), dbStatsExecutor);
+        var avgTempoFut         = CompletableFuture.supplyAsync(() -> toDoubleMap(respostaRepository.avgTempoBySubtemaIds(ids)), dbStatsExecutor);
+        var dificuldadeFut      = CompletableFuture.supplyAsync(() -> parseDificuldadeStats(respostaRepository.getDificuldadeStatsBySubtemaIds(ids)), dbStatsExecutor);
 
-        // Fetch questao stats
-        Map<Long, Long> totalQuestoesMap = toCountMap(questaoRepository.countQuestoesBySubtemaIds(ids));
-        Map<Long, Long> respondidasMap = toCountMap(respostaRepository.countRespondidasBySubtemaIds(ids));
-        Map<Long, Long> acertadasMap = toCountMap(respostaRepository.countAcertadasBySubtemaIds(ids));
-        Map<Long, Double> avgTempoMap = toDoubleMap(respostaRepository.avgTempoBySubtemaIds(ids));
+        CompletableFuture.allOf(countsFut, datesFut, ultimaQuestaoDatesFut, totalQuestoesFut, respondidasFut, acertadasFut, avgTempoFut, dificuldadeFut).join();
 
-        // Fetch difficulty stats
-        List<Resposta> allRespostas = respostaRepository.findAllBySubtemaIdsWithDetails(ids);
-        Map<Long, Map<String, DificuldadeStatDto>> dificuldadeMap = computeDificuldadeStatsBatch(allRespostas,
-                r -> r.getQuestao().getSubtemas().stream().map(Subtema::getId).toList());
+        Map<Long, Long> counts = countsFut.join();
+        Map<Long, java.time.LocalDateTime> dates = datesFut.join();
+        Map<Long, java.time.LocalDateTime> ultimaQuestaoDates = ultimaQuestaoDatesFut.join();
+        Map<Long, Long> totalQuestoesMap = totalQuestoesFut.join();
+        Map<Long, Long> respondidasMap = respondidasFut.join();
+        Map<Long, Long> acertadasMap = acertadasFut.join();
+        Map<Long, Double> avgTempoMap = avgTempoFut.join();
+        Map<Long, Map<String, DificuldadeStatDto>> dificuldadeMap = dificuldadeFut.join();
 
         return subtemas.stream()
                 .map(subtema -> {
@@ -251,51 +277,27 @@ public class SubtemaService {
         return null;
     }
 
-    private Map<String, DificuldadeStatDto> computeDificuldadeStatsFromResponses(List<Resposta> responses) {
-        Map<String, DificuldadeStatDto> result = new HashMap<>();
+    private Map<String, DificuldadeStatDto> initEmptyDificuldadeMap() {
+        Map<String, DificuldadeStatDto> map = new HashMap<>();
         for (Dificuldade d : Dificuldade.values()) {
-            result.put(d.name(), new DificuldadeStatDto(0, 0));
+            map.put(d.name(), new DificuldadeStatDto(0, 0));
         }
-
-        // Group by questao, take most recent per question
-        Map<Long, Resposta> latestByQuestao = new HashMap<>();
-        for (Resposta r : responses) {
-            latestByQuestao.merge(r.getQuestao().getId(), r, (existing, candidate) ->
-                    candidate.getCreatedAt().isAfter(existing.getCreatedAt()) ? candidate : existing);
-        }
-
-        // Group by dificuldade
-        for (Resposta r : latestByQuestao.values()) {
-            String diff = r.getDificuldade() != null ? r.getDificuldade().name() : Dificuldade.MEDIA.name();
-            DificuldadeStatDto stat = result.get(diff);
-            stat.setTotal(stat.getTotal() + 1);
-            if (isCorrect(r)) {
-                stat.setCorretas(stat.getCorretas() + 1);
-            }
-        }
-        return result;
+        return map;
     }
 
-    private Map<Long, Map<String, DificuldadeStatDto>> computeDificuldadeStatsBatch(
-            List<Resposta> responses, java.util.function.Function<Resposta, List<Long>> scopeIdsExtractor) {
-
-        // Group responses by scope entity ID
-        Map<Long, List<Resposta>> byScope = new HashMap<>();
-        for (Resposta r : responses) {
-            for (Long scopeId : scopeIdsExtractor.apply(r)) {
-                byScope.computeIfAbsent(scopeId, k -> new java.util.ArrayList<>()).add(r);
-            }
-        }
-
+    private Map<Long, Map<String, DificuldadeStatDto>> parseDificuldadeStats(List<Object[]> rows) {
         Map<Long, Map<String, DificuldadeStatDto>> result = new HashMap<>();
-        for (var entry : byScope.entrySet()) {
-            result.put(entry.getKey(), computeDificuldadeStatsFromResponses(entry.getValue()));
+        for (Object[] row : rows) {
+            Long scopeId = ((Number) row[0]).longValue();
+            int diffId = ((Number) row[1]).intValue();
+            int total = ((Number) row[2]).intValue();
+            int corretas = row[3] != null ? ((Number) row[3]).intValue() : 0;
+            
+            String diffName = Dificuldade.fromId(diffId).name();
+            
+            result.computeIfAbsent(scopeId, k -> initEmptyDificuldadeMap())
+                  .put(diffName, new DificuldadeStatDto(total, corretas));
         }
         return result;
-    }
-
-    private boolean isCorrect(Resposta r) {
-        if (r.getAlternativaEscolhida() == null) return false;
-        return Boolean.TRUE.equals(r.getAlternativaEscolhida().getCorreta());
     }
 }

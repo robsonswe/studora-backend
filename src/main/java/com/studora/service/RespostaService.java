@@ -20,6 +20,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.cache.annotation.CacheEvict;
 
 import java.util.Collection;
 import java.util.List;
@@ -67,6 +68,7 @@ public class RespostaService {
                 .collect(Collectors.toList());
     }
 
+    @CacheEvict(value = {"disciplina-stats", "tema-stats", "subtema-stats"}, allEntries = true)
     public RespostaDetailDto createResposta(RespostaCreateRequest request) {
         log.info("Criando nova tentativa para a questão ID: {}", request.getQuestaoId());
         
@@ -97,6 +99,7 @@ public class RespostaService {
         return respostaMapper.toDetailDto(respostaRepository.save(resposta));
     }
 
+    @CacheEvict(value = {"disciplina-stats", "tema-stats", "subtema-stats"}, allEntries = true)
     public void delete(Long id) {
         log.info("Excluindo resposta ID: {}", id);
         if (!respostaRepository.existsById(id)) {

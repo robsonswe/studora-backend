@@ -59,7 +59,7 @@ class DisciplinaServiceTest {
         MockitoAnnotations.openMocks(this);
         DisciplinaMapper realMapper = org.mapstruct.factory.Mappers.getMapper(DisciplinaMapper.class);
         disciplinaService = new DisciplinaService(disciplinaRepository, temaRepository, subtemaRepository,
-                estudoSubtemaRepository, questaoRepository, respostaRepository, realMapper, temaService);
+                estudoSubtemaRepository, questaoRepository, respostaRepository, realMapper, temaService, Runnable::run);
     }
 
     @Test
@@ -74,7 +74,7 @@ class DisciplinaServiceTest {
         when(temaRepository.countByDisciplinaIds(any())).thenReturn(emptyObjectList());
         when(subtemaRepository.countByDisciplinaIds(any())).thenReturn(emptyObjectList());
         when(estudoSubtemaRepository.countDistinctStudiedSubtemasByDisciplinaIds(any())).thenReturn(emptyObjectList());
-        when(temaRepository.findByDisciplinaIds(any())).thenReturn(Collections.emptyList());
+        when(temaRepository.countTemasEstudadosByDisciplinaIds(any())).thenReturn(emptyObjectList());
         when(temaService.findByDisciplinaId(1L)).thenReturn(Collections.emptyList());
         // Questao stats mocks
         when(questaoRepository.countQuestoesByDisciplinaIds(any())).thenReturn(emptyObjectList());
@@ -105,14 +105,8 @@ class DisciplinaServiceTest {
         when(temaRepository.countByDisciplinaIds(List.of(1L))).thenReturn(listOf(new Object[]{1L, 2L}));
         when(subtemaRepository.countByDisciplinaIds(List.of(1L))).thenReturn(listOf(new Object[]{1L, 4L}));
         when(estudoSubtemaRepository.countDistinctStudiedSubtemasByDisciplinaIds(List.of(1L))).thenReturn(listOf(new Object[]{1L, 3L}));
-        // For temasEstudados computation
-        com.studora.entity.Tema t1 = new com.studora.entity.Tema(); t1.setId(10L); t1.setDisciplina(d);
-        com.studora.entity.Tema t2 = new com.studora.entity.Tema(); t2.setId(20L); t2.setDisciplina(d);
-        when(temaRepository.findByDisciplinaIds(List.of(1L))).thenReturn(List.of(t1, t2));
-        when(subtemaRepository.countByTemaIds(List.of(10L, 20L))).thenReturn(
-                listOf(new Object[]{10L, 3L}, new Object[]{20L, 1L}));
-        when(estudoSubtemaRepository.countDistinctStudiedSubtemasByTemaIds(List.of(10L, 20L))).thenReturn(
-                listOf(new Object[]{10L, 3L})); // tema 10 fully studied, tema 20 not at all
+        // temasEstudados is now computed via native query countTemasEstudadosByDisciplinaIds
+        when(temaRepository.countTemasEstudadosByDisciplinaIds(List.of(1L))).thenReturn(listOf(new Object[]{1L, 1L}));
         when(temaService.findByDisciplinaId(1L)).thenReturn(Collections.emptyList());
         // Questao stats mocks
         when(questaoRepository.countQuestoesByDisciplinaIds(List.of(1L))).thenReturn(emptyObjectList());

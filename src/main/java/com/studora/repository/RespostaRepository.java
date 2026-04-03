@@ -140,4 +140,65 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
            "WHERE s.tema.disciplina.id IN :disciplinaIds " +
            "ORDER BY r.createdAt ASC")
     List<Resposta> findAllByDisciplinaIdsWithDetails(@Param("disciplinaIds") List<Long> disciplinaIds);
+
+    // --- Batch: new optimized difficulty queries ---
+
+    @Query(value = """
+        SELECT s.id AS object_id,
+               COALESCE(r.dificuldade_id, 2) AS diff_val,
+               COUNT(r.id) AS total_ans,
+               SUM(CASE WHEN a.correta = 1 THEN 1 ELSE 0 END) AS total_corr
+        FROM (
+            SELECT id, questao_id, alternativa_id, dificuldade_id,
+                   ROW_NUMBER() OVER(PARTITION BY questao_id ORDER BY created_at DESC) as rn
+            FROM resposta
+        ) r
+        JOIN questao q ON r.questao_id = q.id
+        JOIN questao_subtema qs ON q.id = qs.questao_id
+        JOIN subtema s ON qs.subtema_id = s.id
+        JOIN alternativa a ON r.alternativa_id = a.id
+        WHERE s.id IN (:ids) AND r.rn = 1
+        GROUP BY s.id, COALESCE(r.dificuldade_id, 2)
+    """, nativeQuery = true)
+    List<Object[]> getDificuldadeStatsBySubtemaIds(@Param("ids") List<Long> ids);
+
+    @Query(value = """
+        SELECT t.id AS object_id,
+               COALESCE(r.dificuldade_id, 2) AS diff_val,
+               COUNT(r.id) AS total_ans,
+               SUM(CASE WHEN a.correta = 1 THEN 1 ELSE 0 END) AS total_corr
+        FROM (
+            SELECT id, questao_id, alternativa_id, dificuldade_id,
+                   ROW_NUMBER() OVER(PARTITION BY questao_id ORDER BY created_at DESC) as rn
+            FROM resposta
+        ) r
+        JOIN questao q ON r.questao_id = q.id
+        JOIN questao_subtema qs ON q.id = qs.questao_id
+        JOIN subtema s ON qs.subtema_id = s.id
+        JOIN tema t ON s.tema_id = t.id
+        JOIN alternativa a ON r.alternativa_id = a.id
+        WHERE t.id IN (:ids) AND r.rn = 1
+        GROUP BY t.id, COALESCE(r.dificuldade_id, 2)
+    """, nativeQuery = true)
+    List<Object[]> getDificuldadeStatsByTemaIds(@Param("ids") List<Long> ids);
+
+    @Query(value = """
+        SELECT t.disciplina_id AS object_id,
+               COALESCE(r.dificuldade_id, 2) AS diff_val,
+               COUNT(r.id) AS total_ans,
+               SUM(CASE WHEN a.correta = 1 THEN 1 ELSE 0 END) AS total_corr
+        FROM (
+            SELECT id, questao_id, alternativa_id, dificuldade_id,
+                   ROW_NUMBER() OVER(PARTITION BY questao_id ORDER BY created_at DESC) as rn
+            FROM resposta
+        ) r
+        JOIN questao q ON r.questao_id = q.id
+        JOIN questao_subtema qs ON q.id = qs.questao_id
+        JOIN subtema s ON qs.subtema_id = s.id
+        JOIN tema t ON s.tema_id = t.id
+        JOIN alternativa a ON r.alternativa_id = a.id
+        WHERE t.disciplina_id IN (:ids) AND r.rn = 1
+        GROUP BY t.disciplina_id, COALESCE(r.dificuldade_id, 2)
+    """, nativeQuery = true)
+    List<Object[]> getDificuldadeStatsByDisciplinaIds(@Param("ids") List<Long> ids);
 }

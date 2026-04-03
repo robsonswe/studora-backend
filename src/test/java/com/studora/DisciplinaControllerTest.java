@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -30,9 +31,18 @@ class DisciplinaControllerTest {
     @Autowired
     private DisciplinaRepository disciplinaRepository;
 
+    @Autowired
+    private CacheManager cacheManager;
+
     @BeforeEach
     void setUp() {
-        // No deleteAll needed with @Transactional
+        // Clear the disciplina-stats cache to avoid stale data from previous tests
+        if (cacheManager != null) {
+            var cache = cacheManager.getCache("disciplina-stats");
+            if (cache != null) {
+                cache.clear();
+            }
+        }
     }
 
     @Test

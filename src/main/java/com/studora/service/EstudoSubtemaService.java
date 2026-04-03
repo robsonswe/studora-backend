@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.cache.annotation.CacheEvict;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,6 +24,7 @@ public class EstudoSubtemaService {
     private final EstudoSubtemaRepository estudoSubtemaRepository;
     private final SubtemaRepository subtemaRepository;
 
+    @CacheEvict(value = {"disciplina-stats", "tema-stats", "subtema-stats"}, allEntries = true)
     public EstudoSubtemaDto markAsStudied(Long subtemaId) {
         log.info("Marcando subtema ID: {} como estudado", subtemaId);
         Subtema subtema = subtemaRepository.findById(subtemaId)
@@ -34,6 +36,7 @@ public class EstudoSubtemaService {
         return toDto(estudo);
     }
 
+    @CacheEvict(value = {"disciplina-stats", "tema-stats", "subtema-stats"}, allEntries = true)
     public void deleteEstudo(Long estudoId) {
         log.info("Excluindo sessão de estudo ID: {}", estudoId);
         if (!estudoSubtemaRepository.existsById(estudoId)) {

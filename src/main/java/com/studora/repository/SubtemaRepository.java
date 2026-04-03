@@ -34,7 +34,9 @@ public interface SubtemaRepository extends JpaRepository<Subtema, Long> {
            "WHERE s.id = :id")
     Optional<Subtema> findByIdWithDetails(@Param("id") Long id);
 
-    Page<Subtema> findByNomeContainingIgnoreCase(String nome, Pageable pageable);
+    @Query(value = "SELECT s FROM Subtema s JOIN FETCH s.tema t JOIN FETCH t.disciplina WHERE UPPER(s.nome) LIKE UPPER(CONCAT('%', :nome, '%'))",
+           countQuery = "SELECT count(s) FROM Subtema s WHERE UPPER(s.nome) LIKE UPPER(CONCAT('%', :nome, '%'))")
+    Page<Subtema> findByNomeContainingIgnoreCase(@Param("nome") String nome, Pageable pageable);
 
     // --- Batch queries ---
     @org.springframework.data.jpa.repository.Query("SELECT s.tema.id, COUNT(s) FROM Subtema s WHERE s.tema.id IN :temaIds GROUP BY s.tema.id")
@@ -42,4 +44,8 @@ public interface SubtemaRepository extends JpaRepository<Subtema, Long> {
 
     @org.springframework.data.jpa.repository.Query("SELECT s.tema.disciplina.id, COUNT(s) FROM Subtema s WHERE s.tema.disciplina.id IN :disciplinaIds GROUP BY s.tema.disciplina.id")
     java.util.List<Object[]> countByDisciplinaIds(@org.springframework.data.repository.query.Param("disciplinaIds") List<Long> disciplinaIds);
+
+    @Query(value = "SELECT s FROM Subtema s JOIN FETCH s.tema t JOIN FETCH t.disciplina",
+           countQuery = "SELECT count(s) FROM Subtema s")
+    Page<Subtema> findAll(Pageable pageable);
 }

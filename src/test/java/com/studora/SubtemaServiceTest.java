@@ -47,7 +47,7 @@ class SubtemaServiceTest {
         TemaMapper temaMapper = org.mapstruct.factory.Mappers.getMapper(TemaMapper.class);
         ReflectionTestUtils.setField(realMapper, "temaMapper", temaMapper);
         
-        subtemaService = new SubtemaService(subtemaRepository, temaRepository, questaoRepository, respostaRepository, estudoSubtemaRepository, realMapper);
+        subtemaService = new SubtemaService(subtemaRepository, temaRepository, questaoRepository, respostaRepository, estudoSubtemaRepository, realMapper, Runnable::run);
     }
 
     @Test
