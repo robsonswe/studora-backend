@@ -66,16 +66,16 @@ class ConcursoServiceTest {
         InstituicaoMapper instMapper = org.mapstruct.factory.Mappers.getMapper(InstituicaoMapper.class);
         BancaMapper bancaMapper = org.mapstruct.factory.Mappers.getMapper(BancaMapper.class);
         com.studora.mapper.CargoMapper cargoMapper = org.mapstruct.factory.Mappers.getMapper(com.studora.mapper.CargoMapper.class);
-        
+
         ReflectionTestUtils.setField(realMapper, "instituicaoMapper", instMapper);
         ReflectionTestUtils.setField(realMapper, "bancaMapper", bancaMapper);
-        
+
         concursoService = new ConcursoService(
-            concursoRepository, 
-            instituicaoRepository, 
-            bancaRepository, 
-            cargoRepository, 
-            concursoCargoRepository, 
+            concursoRepository,
+            instituicaoRepository,
+            bancaRepository,
+            cargoRepository,
+            concursoCargoRepository,
             questaoCargoRepository,
             estudoSubtemaRepository,
             subtemaRepository,

@@ -22,8 +22,9 @@ import com.studora.exception.ValidationException;
 import com.studora.mapper.ConcursoMapper;
 import com.studora.repository.*;
 import com.studora.repository.specification.ConcursoSpecification;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -31,18 +32,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 @Transactional
 public class ConcursoService {
 
@@ -59,6 +58,33 @@ public class ConcursoService {
     private final ConcursoCargoSubtemaRepository concursoCargoSubtemaRepository;
     private final ConcursoMapper concursoMapper;
 
+    public ConcursoService(ConcursoRepository concursoRepository,
+                           InstituicaoRepository instituicaoRepository,
+                           BancaRepository bancaRepository,
+                           CargoRepository cargoRepository,
+                           ConcursoCargoRepository concursoCargoRepository,
+                           QuestaoCargoRepository questaoCargoRepository,
+                           EstudoSubtemaRepository estudoSubtemaRepository,
+                           SubtemaRepository subtemaRepository,
+                           QuestaoRepository questaoRepository,
+                           RespostaRepository respostaRepository,
+                           ConcursoCargoSubtemaRepository concursoCargoSubtemaRepository,
+                           ConcursoMapper concursoMapper) {
+        this.concursoRepository = concursoRepository;
+        this.instituicaoRepository = instituicaoRepository;
+        this.bancaRepository = bancaRepository;
+        this.cargoRepository = cargoRepository;
+        this.concursoCargoRepository = concursoCargoRepository;
+        this.questaoCargoRepository = questaoCargoRepository;
+        this.estudoSubtemaRepository = estudoSubtemaRepository;
+        this.subtemaRepository = subtemaRepository;
+        this.questaoRepository = questaoRepository;
+        this.respostaRepository = respostaRepository;
+        this.concursoCargoSubtemaRepository = concursoCargoSubtemaRepository;
+        this.concursoMapper = concursoMapper;
+    }
+
+    @Cacheable(value = "concurso-stats", key = "T(java.util.Objects).hash(#filter, #pageable.pageNumber, #pageable.pageSize, #pageable.sort.toString())")
     @Transactional(readOnly = true)
     public Page<ConcursoSummaryDto> findAll(ConcursoFilter filter, Pageable pageable) {
         Specification<Concurso> spec = ConcursoSpecification.withFilter(filter);
@@ -92,6 +118,7 @@ public class ConcursoService {
         return dto;
     }
 
+    @CacheEvict(value = "concurso-stats", allEntries = true)
     public ConcursoDetailDto create(ConcursoCreateRequest request) {
         log.info("Criando novo concurso: Inst {}, Banca {}, Ano {}", 
                 request.getInstituicaoId(), request.getBancaId(), request.getAno());
@@ -129,6 +156,7 @@ public class ConcursoService {
         return concursoMapper.toDetailDto(concursoRepository.save(concurso));
     }
 
+    @CacheEvict(value = "concurso-stats", allEntries = true)
     public ConcursoDetailDto update(Long id, ConcursoUpdateRequest request) {
         log.info("Atualizando concurso ID: {}", id);
         
@@ -205,6 +233,7 @@ public class ConcursoService {
         return concursoMapper.toDetailDto(concursoRepository.save(concurso));
     }
 
+    @CacheEvict(value = "concurso-stats", allEntries = true)
     public void delete(Long id) {
         log.info("Excluindo concurso ID: {}", id);
         if (!concursoRepository.existsById(id)) {
@@ -213,6 +242,7 @@ public class ConcursoService {
         concursoRepository.deleteById(id);
     }
 
+    @CacheEvict(value = "concurso-stats", allEntries = true)
     public ConcursoCargoSummaryDto toggleInscricao(Long concursoCargoId) {
         log.info("Togglings inscrição para ConcursoCargo ID: {}", concursoCargoId);
         ConcursoCargo cc = concursoCargoRepository.findById(concursoCargoId)
@@ -352,35 +382,19 @@ public class ConcursoService {
             return;
         }
 
-        Map<Long, Long> counts = estudoSubtemaRepository.countBySubtemaIds(subtemaIds).stream()
-                .collect(Collectors.toMap(
-                        row -> ((Number) row[0]).longValue(),
-                        row -> ((Number) row[1]).longValue()));
+        // Sequential execution for subtema enrichment (typically small result sets)
+        // Parallel queries cause SQLITE_LOCKED on SQLite in-memory tests with shared cache
+        Map<Long, Long> counts = toCountMap(estudoSubtemaRepository.countBySubtemaIds(subtemaIds));
+        Map<Long, LocalDateTime> dates = toDateMap(estudoSubtemaRepository.findLatestStudyDatesBySubtemaIds(subtemaIds));
+        Map<Long, LocalDateTime> ultimaQuestaoDates = toDateMap(respostaRepository.findLatestResponseDatesBySubtemaIds(subtemaIds));
+        Map<Long, Long> totalQuestoesMap = toCountMap(questaoRepository.countQuestoesBySubtemaIds(subtemaIds));
+        Map<Long, Long> respondidasMap = toCountMap(respostaRepository.countRespondidasBySubtemaIds(subtemaIds));
+        Map<Long, Long> acertadasMap = toCountMap(respostaRepository.countAcertadasBySubtemaIds(subtemaIds));
+        Map<Long, Double> avgTempoMap = toDoubleMap(respostaRepository.avgTempoBySubtemaIds(subtemaIds));
 
-        Map<Long, LocalDateTime> dates = estudoSubtemaRepository.findLatestStudyDatesBySubtemaIds(subtemaIds).stream()
-                .collect(Collectors.toMap(
-                        row -> ((Number) row[0]).longValue(),
-                        row -> parseDate(row[1])));
-
-        Map<Long, LocalDateTime> ultimaQuestaoDates = respostaRepository.findLatestResponseDatesBySubtemaIds(subtemaIds).stream()
-                .collect(Collectors.toMap(
-                        row -> ((Number) row[0]).longValue(),
-                        row -> parseDate(row[1])));
-
-        // Questao stats
-        Map<Long, Long> totalQuestoesMap = questaoRepository.countQuestoesBySubtemaIds(subtemaIds).stream()
-                .collect(Collectors.toMap(row -> ((Number) row[0]).longValue(), row -> ((Number) row[1]).longValue()));
-        Map<Long, Long> respondidasMap = respostaRepository.countRespondidasBySubtemaIds(subtemaIds).stream()
-                .collect(Collectors.toMap(row -> ((Number) row[0]).longValue(), row -> ((Number) row[1]).longValue()));
-        Map<Long, Long> acertadasMap = respostaRepository.countAcertadasBySubtemaIds(subtemaIds).stream()
-                .collect(Collectors.toMap(row -> ((Number) row[0]).longValue(), row -> ((Number) row[1]).longValue()));
-        Map<Long, Double> avgTempoMap = respostaRepository.avgTempoBySubtemaIds(subtemaIds).stream()
-                .collect(Collectors.toMap(row -> ((Number) row[0]).longValue(), row -> ((Number) row[1]).doubleValue()));
-
-        // Difficulty stats
-        List<Resposta> allRespostas = respostaRepository.findAllBySubtemaIdsWithDetails(subtemaIds);
-        Map<Long, Map<String, DificuldadeStatDto>> dificuldadeMap = computeDificuldadeStatsBatch(allRespostas,
-                r -> r.getQuestao().getSubtemas().stream().map(Subtema::getId).toList());
+        // Optimized: native query with ROW_NUMBER() instead of loading full entity graph
+        Map<Long, Map<String, DificuldadeStatDto>> dificuldadeMap = parseDificuldadeStats(
+                respostaRepository.getDificuldadeStatsBySubtemaIds(subtemaIds));
 
         for (ConcursoCargoSummaryDto cargo : cargos) {
             if (cargo.getTopicos() == null) continue;
@@ -398,47 +412,46 @@ public class ConcursoService {
         }
     }
 
-    private Map<String, DificuldadeStatDto> computeDificuldadeStatsFromResponses(List<Resposta> responses) {
-        Map<String, DificuldadeStatDto> result = new HashMap<>();
+    private Map<String, DificuldadeStatDto> initEmptyDificuldadeMap() {
+        Map<String, DificuldadeStatDto> map = new HashMap<>();
         for (Dificuldade d : Dificuldade.values()) {
-            result.put(d.name(), new DificuldadeStatDto(0, 0));
+            map.put(d.name(), new DificuldadeStatDto(0, 0));
         }
-
-        Map<Long, Resposta> latestByQuestao = new HashMap<>();
-        for (Resposta r : responses) {
-            latestByQuestao.merge(r.getQuestao().getId(), r, (existing, candidate) ->
-                    candidate.getCreatedAt().isAfter(existing.getCreatedAt()) ? candidate : existing);
-        }
-
-        for (Resposta r : latestByQuestao.values()) {
-            String diff = r.getDificuldade() != null ? r.getDificuldade().name() : Dificuldade.MEDIA.name();
-            DificuldadeStatDto stat = result.get(diff);
-            stat.setTotal(stat.getTotal() + 1);
-            if (isCorrect(r)) {
-                stat.setCorretas(stat.getCorretas() + 1);
-            }
-        }
-        return result;
+        return map;
     }
 
-    private Map<Long, Map<String, DificuldadeStatDto>> computeDificuldadeStatsBatch(
-            List<Resposta> responses, java.util.function.Function<Resposta, List<Long>> scopeIdsExtractor) {
-        Map<Long, List<Resposta>> byScope = new HashMap<>();
-        for (Resposta r : responses) {
-            for (Long scopeId : scopeIdsExtractor.apply(r)) {
-                byScope.computeIfAbsent(scopeId, k -> new ArrayList<>()).add(r);
-            }
-        }
+    private Map<Long, Map<String, DificuldadeStatDto>> parseDificuldadeStats(List<Object[]> rows) {
         Map<Long, Map<String, DificuldadeStatDto>> result = new HashMap<>();
-        for (var entry : byScope.entrySet()) {
-            result.put(entry.getKey(), computeDificuldadeStatsFromResponses(entry.getValue()));
+        for (Object[] row : rows) {
+            Long scopeId = ((Number) row[0]).longValue();
+            int diffId = ((Number) row[1]).intValue();
+            int total = ((Number) row[2]).intValue();
+            int corretas = row[3] != null ? ((Number) row[3]).intValue() : 0;
+
+            String diffName = Dificuldade.fromId(diffId).name();
+
+            result.computeIfAbsent(scopeId, k -> initEmptyDificuldadeMap())
+                  .put(diffName, new DificuldadeStatDto(total, corretas));
         }
         return result;
     }
 
-    private boolean isCorrect(Resposta r) {
-        if (r.getAlternativaEscolhida() == null) return false;
-        return Boolean.TRUE.equals(r.getAlternativaEscolhida().getCorreta());
+    private Map<Long, Long> toCountMap(List<Object[]> rows) {
+        return rows.stream().collect(Collectors.toMap(
+                row -> ((Number) row[0]).longValue(),
+                row -> ((Number) row[1]).longValue()));
+    }
+
+    private Map<Long, LocalDateTime> toDateMap(List<Object[]> rows) {
+        return rows.stream().collect(Collectors.toMap(
+                row -> ((Number) row[0]).longValue(),
+                row -> parseDate(row[1])));
+    }
+
+    private Map<Long, Double> toDoubleMap(List<Object[]> rows) {
+        return rows.stream().collect(Collectors.toMap(
+                row -> ((Number) row[0]).longValue(),
+                row -> ((Number) row[1]).doubleValue()));
     }
 
     private LocalDateTime parseDate(Object val) {

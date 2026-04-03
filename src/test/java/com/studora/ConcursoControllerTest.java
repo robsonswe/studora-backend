@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -78,11 +79,22 @@ class ConcursoControllerTest {
     @Autowired
     private ConcursoCargoSubtemaRepository concursoCargoSubtemaRepository;
 
+    @Autowired
+    private CacheManager cacheManager;
+
     private Cargo cargo1;
     private Cargo cargo2;
 
     @BeforeEach
     void setUp() {
+        // Clear caches to avoid stale data from previous tests
+        if (cacheManager != null) {
+            var cache = cacheManager.getCache("concurso-stats");
+            if (cache != null) {
+                cache.clear();
+            }
+        }
+
         cargo1 = new Cargo();
         cargo1.setNome("Cargo 1");
         cargo1.setNivel(com.studora.entity.NivelCargo.SUPERIOR);
