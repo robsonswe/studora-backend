@@ -5,16 +5,19 @@ import com.studora.dto.simulado.SimuladoDetailDto;
 import com.studora.dto.request.SimuladoGenerationRequest;
 import com.studora.dto.simulado.SimuladoSummaryDto;
 import com.studora.entity.Questao;
-import com.studora.entity.Resposta;
 import com.studora.entity.Simulado;
 import com.studora.exception.ResourceNotFoundException;
 import com.studora.exception.ValidationException;
 import com.studora.mapper.SimuladoMapper;
+import com.studora.repository.DisciplinaRepository;
 import com.studora.repository.QuestaoRepository;
 import com.studora.repository.RespostaRepository;
 import com.studora.repository.SimuladoRepository;
+import com.studora.repository.SubtemaRepository;
+import com.studora.repository.TemaRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,12 +29,12 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 @Transactional
 public class SimuladoService {
 
@@ -39,15 +42,39 @@ public class SimuladoService {
     private final QuestaoRepository questaoRepository;
     private final RespostaRepository respostaRepository;
     private final SimuladoMapper simuladoMapper;
-    
+    private final DisciplinaRepository disciplinaRepository;
+    private final TemaRepository temaRepository;
+    private final SubtemaRepository subtemaRepository;
     private final com.studora.repository.BancaRepository bancaRepository;
     private final com.studora.repository.CargoRepository cargoRepository;
-    private final com.studora.repository.DisciplinaRepository disciplinaRepository;
-    private final com.studora.repository.TemaRepository temaRepository;
-    private final com.studora.repository.SubtemaRepository subtemaRepository;
     private final com.studora.mapper.BancaMapper bancaMapper;
     private final com.studora.mapper.CargoMapper cargoMapper;
 
+    public SimuladoService(SimuladoRepository simuladoRepository,
+                           QuestaoRepository questaoRepository,
+                           RespostaRepository respostaRepository,
+                           SimuladoMapper simuladoMapper,
+                           DisciplinaRepository disciplinaRepository,
+                           TemaRepository temaRepository,
+                           SubtemaRepository subtemaRepository,
+                           com.studora.repository.BancaRepository bancaRepository,
+                           com.studora.repository.CargoRepository cargoRepository,
+                           com.studora.mapper.BancaMapper bancaMapper,
+                           com.studora.mapper.CargoMapper cargoMapper) {
+        this.simuladoRepository = simuladoRepository;
+        this.questaoRepository = questaoRepository;
+        this.respostaRepository = respostaRepository;
+        this.simuladoMapper = simuladoMapper;
+        this.disciplinaRepository = disciplinaRepository;
+        this.temaRepository = temaRepository;
+        this.subtemaRepository = subtemaRepository;
+        this.bancaRepository = bancaRepository;
+        this.cargoRepository = cargoRepository;
+        this.bancaMapper = bancaMapper;
+        this.cargoMapper = cargoMapper;
+    }
+
+    @Cacheable(value = "simulado-stats", key = "T(java.util.Objects).hash(#pageable.pageNumber, #pageable.pageSize, #pageable.sort.toString())")
     @Transactional(readOnly = true)
     public Page<SimuladoSummaryDto> findAll(Pageable pageable) {
         return simuladoRepository.findAll(pageable)
@@ -62,10 +89,7 @@ public class SimuladoService {
     public SimuladoDetailDto getSimuladoDetailById(Long id) {
         Simulado simulado = simuladoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Simulado", "ID", id));
-        
-        // Get all responses for this specific simulado
-        List<Resposta> simuladoResponses = respostaRepository.findBySimuladoId(id);
-        
+
         SimuladoDetailDto dto = simuladoMapper.toDetailDto(simulado);
         
         // Process the DTO to filter responses to only include those for this simulado
@@ -97,6 +121,7 @@ public class SimuladoService {
         return dto;
     }
 
+    @CacheEvict(value = "simulado-stats", allEntries = true)
     public SimuladoDetailDto create(SimuladoSummaryDto request) {
         Simulado simulado = simuladoMapper.toEntity(request);
         Simulado saved = simuladoRepository.save(simulado);
@@ -105,6 +130,7 @@ public class SimuladoService {
         return dto;
     }
 
+    @CacheEvict(value = "simulado-stats", allEntries = true)
     public SimuladoDetailDto gerarSimulado(SimuladoGenerationRequest request) {
         log.info("Gerando simulado: {}", request.getNome());
         
@@ -191,6 +217,7 @@ public class SimuladoService {
         return dto;
     }
 
+    @CacheEvict(value = "simulado-stats", allEntries = true)
     public void delete(Long id) {
         log.info("Excluindo simulado ID: {}", id);
         if (!simuladoRepository.existsById(id)) {
@@ -201,6 +228,7 @@ public class SimuladoService {
         simuladoRepository.deleteById(id);
     }
 
+    @CacheEvict(value = "simulado-stats", allEntries = true)
     public SimuladoDetailDto iniciarSimulado(Long id) {
         Simulado simulado = simuladoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Simulado", "ID", id));
@@ -216,6 +244,7 @@ public class SimuladoService {
         return dto;
     }
 
+    @CacheEvict(value = "simulado-stats", allEntries = true)
     public SimuladoDetailDto finalizarSimulado(Long id) {
         Simulado simulado = simuladoRepository.findByIdWithQuestoes(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Simulado", "ID", id));
@@ -280,49 +309,66 @@ public class SimuladoService {
 
     private List<com.studora.dto.simulado.DisciplinaSimuladoDto> mapDisciplinas(List<com.studora.entity.SimuladoItemSelection> selections) {
         if (selections == null) return List.of();
+
+        List<Long> ids = selections.stream().map(com.studora.entity.SimuladoItemSelection::getItemId).toList();
+        Map<Long, String> nomeMap = disciplinaRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(com.studora.entity.Disciplina::getId, com.studora.entity.Disciplina::getNome));
+
         return selections.stream().map(s -> {
             var dto = new com.studora.dto.simulado.DisciplinaSimuladoDto();
             dto.setId(s.getItemId());
             dto.setQuantidade(s.getQuantidade());
-            disciplinaRepository.findById(s.getItemId()).ifPresent(d -> dto.setNome(d.getNome()));
+            dto.setNome(nomeMap.get(s.getItemId()));
             return dto;
         }).collect(Collectors.toList());
     }
 
     private List<com.studora.dto.simulado.TemaSimuladoDto> mapTemas(List<com.studora.entity.SimuladoItemSelection> selections) {
         if (selections == null) return List.of();
+
+        List<Long> ids = selections.stream().map(com.studora.entity.SimuladoItemSelection::getItemId).toList();
+        Map<Long, com.studora.entity.Tema> temaMap = temaRepository.findAllByIdWithDisciplina(ids).stream()
+                .collect(Collectors.toMap(com.studora.entity.Tema::getId, t -> t));
+
         return selections.stream().map(s -> {
             var dto = new com.studora.dto.simulado.TemaSimuladoDto();
             dto.setId(s.getItemId());
             dto.setQuantidade(s.getQuantidade());
-            temaRepository.findById(s.getItemId()).ifPresent(t -> {
-                dto.setNome(t.getNome());
-                if (t.getDisciplina() != null) {
-                    dto.setDisciplinaId(t.getDisciplina().getId());
-                    dto.setDisciplinaNome(t.getDisciplina().getNome());
+            com.studora.entity.Tema tema = temaMap.get(s.getItemId());
+            if (tema != null) {
+                dto.setNome(tema.getNome());
+                if (tema.getDisciplina() != null) {
+                    dto.setDisciplinaId(tema.getDisciplina().getId());
+                    dto.setDisciplinaNome(tema.getDisciplina().getNome());
                 }
-            });
+            }
             return dto;
         }).collect(Collectors.toList());
     }
 
     private List<com.studora.dto.simulado.SubtemaSimuladoDto> mapSubtemas(List<com.studora.entity.SimuladoItemSelection> selections) {
         if (selections == null) return List.of();
+
+        List<Long> ids = selections.stream().map(com.studora.entity.SimuladoItemSelection::getItemId).toList();
+        Map<Long, com.studora.entity.Subtema> subtemaMap = subtemaRepository.findAllByIdWithTemaAndDisciplina(ids).stream()
+                .collect(Collectors.toMap(com.studora.entity.Subtema::getId, s -> s));
+
         return selections.stream().map(s -> {
             var dto = new com.studora.dto.simulado.SubtemaSimuladoDto();
             dto.setId(s.getItemId());
             dto.setQuantidade(s.getQuantidade());
-            subtemaRepository.findById(s.getItemId()).ifPresent(st -> {
-                dto.setNome(st.getNome());
-                if (st.getTema() != null) {
-                    dto.setTemaId(st.getTema().getId());
-                    dto.setTemaNome(st.getTema().getNome());
-                    if (st.getTema().getDisciplina() != null) {
-                        dto.setDisciplinaId(st.getTema().getDisciplina().getId());
-                        dto.setDisciplinaNome(st.getTema().getDisciplina().getNome());
+            com.studora.entity.Subtema subtema = subtemaMap.get(s.getItemId());
+            if (subtema != null) {
+                dto.setNome(subtema.getNome());
+                if (subtema.getTema() != null) {
+                    dto.setTemaId(subtema.getTema().getId());
+                    dto.setTemaNome(subtema.getTema().getNome());
+                    if (subtema.getTema().getDisciplina() != null) {
+                        dto.setDisciplinaId(subtema.getTema().getDisciplina().getId());
+                        dto.setDisciplinaNome(subtema.getTema().getDisciplina().getNome());
                     }
                 }
-            });
+            }
             return dto;
         }).collect(Collectors.toList());
     }

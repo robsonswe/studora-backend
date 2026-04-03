@@ -45,7 +45,8 @@ class SimuladoServiceTest {
         
         simuladoService = new SimuladoService(
             simuladoRepository, questaoRepository, respostaRepository, realMapper,
-            bancaRepository, cargoRepository, disciplinaRepository, temaRepository, subtemaRepository,
+            disciplinaRepository, temaRepository, subtemaRepository,
+            bancaRepository, cargoRepository,
             bancaMapper, cargoMapper
         );
     }

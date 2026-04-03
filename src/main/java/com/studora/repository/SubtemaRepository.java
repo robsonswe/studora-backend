@@ -45,6 +45,9 @@ public interface SubtemaRepository extends JpaRepository<Subtema, Long> {
     @org.springframework.data.jpa.repository.Query("SELECT s.tema.disciplina.id, COUNT(s) FROM Subtema s WHERE s.tema.disciplina.id IN :disciplinaIds GROUP BY s.tema.disciplina.id")
     java.util.List<Object[]> countByDisciplinaIds(@org.springframework.data.repository.query.Param("disciplinaIds") List<Long> disciplinaIds);
 
+    @Query(value = "SELECT s FROM Subtema s JOIN FETCH s.tema t JOIN FETCH t.disciplina WHERE s.id IN (:ids)")
+    java.util.List<Subtema> findAllByIdWithTemaAndDisciplina(@Param("ids") List<Long> ids);
+
     @Query(value = "SELECT s FROM Subtema s JOIN FETCH s.tema t JOIN FETCH t.disciplina",
            countQuery = "SELECT count(s) FROM Subtema s")
     Page<Subtema> findAll(Pageable pageable);

@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -58,8 +59,18 @@ class SimuladoControllerTest {
     @Autowired
     private AlternativaRepository alternativaRepository;
 
+    @Autowired
+    private CacheManager cacheManager;
+
     @BeforeEach
     void setUp() {
+        // Clear simulado-stats cache to avoid stale data from previous tests
+        if (cacheManager != null) {
+            var cache = cacheManager.getCache("simulado-stats");
+            if (cache != null) {
+                cache.clear();
+            }
+        }
         Instituicao inst = new Instituicao(); inst.setNome("Inst 1"); inst.setArea("A"); instituicaoRepository.save(inst);
         Banca banca = new Banca(); banca.setNome("Banca 1"); bancaRepository.save(banca);
         Concurso conc = new Concurso(inst, banca, 2023, 1); concursoRepository.save(conc);

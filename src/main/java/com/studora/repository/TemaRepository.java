@@ -48,6 +48,9 @@ public interface TemaRepository extends JpaRepository<Tema, Long> {
            countQuery = "SELECT count(t) FROM Tema t")
     Page<Tema> findAll(Pageable pageable);
 
+    @Query(value = "SELECT t FROM Tema t JOIN FETCH t.disciplina WHERE t.id IN (:ids)")
+    java.util.List<Tema> findAllByIdWithDisciplina(@Param("ids") List<Long> ids);
+
     @Query(value = """
         SELECT t.disciplina_id, COUNT(t.id)
         FROM tema t
