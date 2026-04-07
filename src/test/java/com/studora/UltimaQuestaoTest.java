@@ -106,15 +106,15 @@ class UltimaQuestaoTest {
     @Test
     void testUltimaQuestaoPopulated() throws Exception {
         // Initially ultimaQuestao should be null
-        mockMvc.perform(get("/api/v1/subtemas/{id}", subtema.getId()))
+        mockMvc.perform(get("/api/v1/subtemas/{id}", subtema.getId()).param("metrics", "full"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ultimaQuestao").isEmpty());
 
-        mockMvc.perform(get("/api/v1/temas/{id}", tema.getId()))
+        mockMvc.perform(get("/api/v1/temas/{id}", tema.getId()).param("metrics", "full"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ultimaQuestao").isEmpty());
 
-        mockMvc.perform(get("/api/v1/disciplinas/{id}", disciplina.getId()))
+        mockMvc.perform(get("/api/v1/disciplinas/{id}", disciplina.getId()).param("metrics", "full"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ultimaQuestao").isEmpty());
 
@@ -131,15 +131,15 @@ class UltimaQuestaoTest {
                 .andExpect(status().isCreated());
 
         // Now ultimaQuestao should be populated
-        mockMvc.perform(get("/api/v1/subtemas/{id}", subtema.getId()))
+        mockMvc.perform(get("/api/v1/subtemas/{id}", subtema.getId()).param("metrics", "full"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ultimaQuestao").isNotEmpty());
 
-        mockMvc.perform(get("/api/v1/temas/{id}", tema.getId()))
+        mockMvc.perform(get("/api/v1/temas/{id}", tema.getId()).param("metrics", "full"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ultimaQuestao").isNotEmpty());
 
-        mockMvc.perform(get("/api/v1/disciplinas/{id}", disciplina.getId()))
+        mockMvc.perform(get("/api/v1/disciplinas/{id}", disciplina.getId()).param("metrics", "full"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.ultimaQuestao").isNotEmpty());
                 

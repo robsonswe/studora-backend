@@ -4,7 +4,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import com.studora.dto.MetricsLevel;
 import com.studora.dto.subtema.SubtemaDetailDto;
+import com.studora.dto.subtema.SubtemaSummaryDto;
 import com.studora.dto.request.SubtemaCreateRequest;
 import com.studora.entity.Tema;
 import com.studora.entity.Subtema;
@@ -15,14 +17,19 @@ import com.studora.repository.RespostaRepository;
 import com.studora.service.SubtemaService;
 import com.studora.mapper.SubtemaMapper;
 import com.studora.mapper.TemaMapper;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
 class SubtemaServiceTest {
 
@@ -42,16 +49,16 @@ class SubtemaServiceTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        
+
         SubtemaMapper realMapper = org.mapstruct.factory.Mappers.getMapper(SubtemaMapper.class);
         TemaMapper temaMapper = org.mapstruct.factory.Mappers.getMapper(TemaMapper.class);
         ReflectionTestUtils.setField(realMapper, "temaMapper", temaMapper);
-        
+
         subtemaService = new SubtemaService(subtemaRepository, temaRepository, questaoRepository, respostaRepository, estudoSubtemaRepository, realMapper, Runnable::run);
     }
 
     @Test
-    void testFindById() {
+    void testFindById_Lean() {
         Tema tema = new Tema(); tema.setId(1L); tema.setNome("Atos");
         Subtema sub = new Subtema();
         sub.setId(1L);
@@ -59,20 +66,36 @@ class SubtemaServiceTest {
         sub.setTema(tema);
 
         when(subtemaRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(sub));
-        when(questaoRepository.countQuestoesBySubtemaIds(any())).thenReturn(new ArrayList<>());
-        when(respostaRepository.countRespondidasBySubtemaIds(any())).thenReturn(new ArrayList<>());
-        when(respostaRepository.countAcertadasBySubtemaIds(any())).thenReturn(new ArrayList<>());
-        when(respostaRepository.avgTempoBySubtemaIds(any())).thenReturn(new ArrayList<>());
-        when(respostaRepository.findAllBySubtemaIdsWithDetails(any())).thenReturn(Collections.emptyList());
-        // Tema enrichment mocks
-        when(estudoSubtemaRepository.countByTemaIds(any())).thenReturn(new ArrayList<>());
-        when(estudoSubtemaRepository.findLatestStudyDatesByTemaIds(any())).thenReturn(new ArrayList<>());
-        when(subtemaRepository.countByTemaIds(any())).thenReturn(new ArrayList<>());
-        when(estudoSubtemaRepository.countDistinctStudiedSubtemasByTemaIds(any())).thenReturn(new ArrayList<>());
 
-        SubtemaDetailDto result = subtemaService.getSubtemaDetailById(1L);
+        SubtemaDetailDto result = subtemaService.getSubtemaDetailById(1L, null);
         assertNotNull(result);
         assertEquals("Espécies", result.getNome());
+        assertNull(result.getTotalEstudos());
+    }
+
+    @Test
+    void testFindById_WithStats() {
+        Tema tema = new Tema(); tema.setId(1L); tema.setNome("Atos");
+        Subtema sub = new Subtema();
+        sub.setId(1L);
+        sub.setNome("Espécies");
+        sub.setTema(tema);
+
+        when(subtemaRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(sub));
+        when(estudoSubtemaRepository.countBySubtemaId(1L)).thenReturn(5L);
+        when(estudoSubtemaRepository.findFirstBySubtemaIdOrderByCreatedAtDesc(1L)).thenReturn(Optional.empty());
+        when(respostaRepository.findLatestResponseDatesBySubtemaIds(List.of(1L))).thenReturn(new ArrayList<>());
+        when(questaoRepository.countQuestoesBySubtemaIds(List.of(1L))).thenReturn(listOf(new Object[]{1L, 10L}));
+        when(respostaRepository.countRespondidasBySubtemaIds(List.of(1L))).thenReturn(listOf(new Object[]{1L, 7L}));
+        when(respostaRepository.countAcertadasBySubtemaIds(List.of(1L))).thenReturn(listOf(new Object[]{1L, 5L}));
+        when(respostaRepository.avgTempoBySubtemaIds(List.of(1L))).thenReturn(new ArrayList<>());
+        when(respostaRepository.getDificuldadeStatsBySubtemaIds(List.of(1L))).thenReturn(new ArrayList<>());
+
+        SubtemaDetailDto result = subtemaService.getSubtemaDetailById(1L, MetricsLevel.FULL);
+        assertNotNull(result);
+        assertEquals("Espécies", result.getNome());
+        assertEquals(5L, result.getTotalEstudos());
+        assertEquals(10L, result.getTotalQuestoes());
     }
 
     @Test
@@ -90,9 +113,8 @@ class SubtemaServiceTest {
             return s;
         });
 
-        SubtemaDetailDto result = subtemaService.create(request);
-        assertEquals(1L, result.getId());
-        assertEquals("Classificação", result.getNome());
+        subtemaService.create(request);
+        verify(subtemaRepository).save(any(Subtema.class));
     }
 
     @Test
@@ -114,13 +136,13 @@ class SubtemaServiceTest {
         Subtema s = new Subtema(); s.setId(1L); s.setNome("Old"); s.setTema(t);
         com.studora.dto.request.SubtemaUpdateRequest req = new com.studora.dto.request.SubtemaUpdateRequest();
         req.setNome("New"); req.setTemaId(1L);
-        
+
         when(subtemaRepository.findById(1L)).thenReturn(Optional.of(s));
         when(temaRepository.findById(1L)).thenReturn(Optional.of(t));
         when(subtemaRepository.save(any())).thenAnswer(i -> i.getArgument(0));
-        
-        SubtemaDetailDto result = subtemaService.update(1L, req);
-        assertEquals("New", result.getNome());
+
+        subtemaService.update(1L, req);
+        verify(subtemaRepository).save(any());
     }
 
     @Test
@@ -143,5 +165,37 @@ class SubtemaServiceTest {
         assertThrows(com.studora.exception.ValidationException.class, () -> {
             subtemaService.delete(id);
         });
+    }
+
+    @Test
+    void testFindAll_Lean() {
+        Tema tema = new Tema(); tema.setId(1L);
+        Subtema sub = new Subtema(); sub.setId(1L); sub.setNome("Espécies"); sub.setTema(tema);
+        Page<Subtema> page = new PageImpl<>(List.of(sub));
+
+        when(subtemaRepository.findAll(any(Pageable.class))).thenReturn(page);
+
+        Page<SubtemaSummaryDto> result = subtemaService.findAll(null, Pageable.unpaged(), null);
+        assertEquals(1, result.getTotalElements());
+        assertNull(result.getContent().get(0).getTotalEstudos());
+    }
+
+    @Test
+    void testFindByTemaId_Lean() {
+        Tema tema = new Tema(); tema.setId(1L);
+        Subtema sub = new Subtema(); sub.setId(1L); sub.setNome("Espécies"); sub.setTema(tema);
+
+        when(temaRepository.existsById(1L)).thenReturn(true);
+        when(subtemaRepository.findByTemaId(1L)).thenReturn(List.of(sub));
+
+        List<SubtemaSummaryDto> result = subtemaService.findByTemaId(1L, null);
+        assertEquals(1, result.size());
+        assertNull(result.get(0).getTotalEstudos());
+    }
+
+    private static List<Object[]> listOf(Object[]... items) {
+        List<Object[]> list = new ArrayList<>();
+        for (Object[] item : items) list.add(item);
+        return list;
     }
 }

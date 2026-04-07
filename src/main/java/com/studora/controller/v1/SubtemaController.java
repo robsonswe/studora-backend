@@ -1,5 +1,6 @@
 package com.studora.controller.v1;
 
+import com.studora.dto.MetricsLevel;
 import com.studora.dto.subtema.SubtemaSummaryDto;
 import com.studora.dto.subtema.SubtemaDetailDto;
 import com.studora.dto.PageResponse;
@@ -7,6 +8,7 @@ import com.studora.dto.request.SubtemaCreateRequest;
 import com.studora.dto.request.SubtemaUpdateRequest;
 import com.studora.common.constants.AppConstants;
 import com.studora.service.SubtemaService;
+import com.studora.service.EstudoSubtemaService;
 import com.studora.util.PaginationUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -34,23 +36,37 @@ import java.util.Map;
 public class SubtemaController {
 
     private final SubtemaService subtemaService;
-    private final com.studora.service.EstudoSubtemaService estudoSubtemaService;
+    private final EstudoSubtemaService estudoSubtemaService;
 
-    public SubtemaController(SubtemaService subtemaService, com.studora.service.EstudoSubtemaService estudoSubtemaService) {
+    public SubtemaController(SubtemaService subtemaService, EstudoSubtemaService estudoSubtemaService) {
         this.subtemaService = subtemaService;
         this.estudoSubtemaService = estudoSubtemaService;
     }
 
     @Operation(
         summary = "Obter todos os subtemas",
-        description = "Retorna uma página com todos os subtemas cadastrados.",
+        description = "Retorna uma página com todos os subtemas cadastrados. Use o parâmetro `metrics` para incluir dados de desempenho.",
         responses = {
             @ApiResponse(responseCode = "200", description = "Página de subtemas retornada com sucesso",
                 content = @Content(
                     mediaType = "application/json",
-                    examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Atos Administrativos\", \"temaId\": 5, \"temaNome\": \"Poderes\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Administrativo\", \"totalEstudos\": 3, \"ultimoEstudo\": \"2026-01-15T10:30:00\", \"ultimaQuestao\": \"2026-01-16T14:20:00\", \"totalQuestoes\": 15, \"questoesRespondidas\": 10, \"questoesAcertadas\": 8, \"mediaTempoResposta\": 45, \"dificuldadeRespostas\": {\"FACIL\": {\"total\": 4, \"corretas\": 4}, \"MEDIA\": {\"total\": 6, \"corretas\": 4}, \"DIFICIL\": {\"total\": 0, \"corretas\": 0}, \"CHUTE\": {\"total\": 0, \"corretas\": 0}}}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
-                    )
+                    examples = {
+                        @ExampleObject(
+                            name = "lean (padrão)",
+                            summary = "Estrutura apenas",
+                            value = "{\"content\": [{\"id\": 1, \"nome\": \"Atos Administrativos\", \"temaId\": 5, \"temaNome\": \"Poderes\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Administrativo\"}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        ),
+                        @ExampleObject(
+                            name = "summary",
+                            summary = "Progresso + acurácia",
+                            value = "{\"content\": [{\"id\": 1, \"nome\": \"Atos Administrativos\", \"temaId\": 5, \"temaNome\": \"Poderes\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Administrativo\", \"totalEstudos\": 3, \"questoesRespondidas\": 10, \"questoesAcertadas\": 8}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        ),
+                        @ExampleObject(
+                            name = "full",
+                            summary = "Todas as métricas",
+                            value = "{\"content\": [{\"id\": 1, \"nome\": \"Atos Administrativos\", \"temaId\": 5, \"temaNome\": \"Poderes\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Administrativo\", \"totalEstudos\": 3, \"ultimoEstudo\": \"2026-01-15T10:30:00\", \"ultimaQuestao\": \"2026-01-16T14:20:00\", \"totalQuestoes\": 15, \"questoesRespondidas\": 10, \"questoesAcertadas\": 8, \"mediaTempoResposta\": 45, \"dificuldadeRespostas\": {\"FACIL\": {\"total\": 4, \"corretas\": 4}, \"MEDIA\": {\"total\": 6, \"corretas\": 4}}}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        )
+                    }
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",
@@ -65,8 +81,12 @@ public class SubtemaController {
             @RequestParam(required = false) String nome,
             @Parameter(hidden = true) @PageableDefault(size = AppConstants.DEFAULT_PAGE_SIZE) Pageable pageable,
             @RequestParam(defaultValue = "nome") String sort,
-            @RequestParam(defaultValue = "ASC") String direction) {
-        
+            @RequestParam(defaultValue = "ASC") String direction,
+            @Parameter(description = "Nível de métricas: summary (progresso+acurácia), full (+tempo+dificuldade). Padrão: lean (estrutura apenas).")
+            @RequestParam(required = false) String metrics) {
+
+        MetricsLevel metricsLevel = parseMetrics(metrics);
+
         Map<String, String> propertyMapping = Map.of(
             "temaId", "tema.id",
             "temaNome", "tema.nome",
@@ -79,18 +99,30 @@ public class SubtemaController {
             Sort.Order.asc("tema.id")
         );
         Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, propertyMapping, tieBreakers);
-        
-        Page<SubtemaSummaryDto> subtemas = subtemaService.findAll(nome, finalPageable);
+
+        Page<SubtemaSummaryDto> subtemas = subtemaService.findAll(nome, finalPageable, metricsLevel);
         return ResponseEntity.ok(new PageResponse<>(subtemas));
     }
 
     @Operation(
         summary = "Obter subtema por ID",
+        description = "Retorna um subtema específico. Use `metrics=full` para incluir dados de desempenho.",
         responses = {
-            @ApiResponse(responseCode = "200", description = "Subtema encontrado", 
+            @ApiResponse(responseCode = "200", description = "Subtema encontrado",
                 content = @Content(
                     schema = @Schema(implementation = SubtemaDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Habeas Corpus\", \"tema\": {\"id\": 1, \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\", \"nome\": \"Remédios Constitucionais\", \"totalEstudos\": 5, \"ultimoEstudo\": \"2026-02-20T14:00:00\", \"ultimaQuestao\": \"2026-02-21T10:00:00\", \"totalSubtemas\": 3, \"subtemasEstudados\": 2, \"totalQuestoes\": 30, \"questoesRespondidas\": 20, \"questoesAcertadas\": 15, \"mediaTempoResposta\": 45, \"dificuldadeRespostas\": {\"FACIL\": {\"total\": 10, \"corretas\": 8}, \"MEDIA\": {\"total\": 10, \"corretas\": 7}, \"DIFICIL\": {\"total\": 0, \"corretas\": 0}, \"CHUTE\": {\"total\": 0, \"corretas\": 0}}}, \"totalEstudos\": 5, \"ultimoEstudo\": \"2026-02-20T14:00:00\", \"ultimaQuestao\": \"2026-02-21T10:00:00\", \"totalQuestoes\": 10, \"questoesRespondidas\": 8, \"questoesAcertadas\": 6, \"mediaTempoResposta\": 38, \"dificuldadeRespostas\": {\"FACIL\": {\"total\": 3, \"corretas\": 3}, \"MEDIA\": {\"total\": 5, \"corretas\": 3}, \"DIFICIL\": {\"total\": 0, \"corretas\": 0}, \"CHUTE\": {\"total\": 0, \"corretas\": 0}}}")
+                    examples = {
+                        @ExampleObject(
+                            name = "lean (padrão)",
+                            summary = "Estrutura apenas",
+                            value = "{\"id\": 1, \"nome\": \"Habeas Corpus\", \"tema\": {\"id\": 1, \"nome\": \"Remédios Constitucionais\", \"disciplinaNome\": \"Direito Constitucional\"}}"
+                        ),
+                        @ExampleObject(
+                            name = "full",
+                            summary = "Todas as métricas",
+                            value = "{\"id\": 1, \"nome\": \"Habeas Corpus\", \"tema\": {\"id\": 1, \"nome\": \"Remédios Constitucionais\"}, \"totalEstudos\": 5, \"ultimoEstudo\": \"2026-02-20T14:00:00\", \"ultimaQuestao\": \"2026-02-21T10:00:00\", \"totalQuestoes\": 10, \"questoesRespondidas\": 8, \"questoesAcertadas\": 6, \"mediaTempoResposta\": 38, \"dificuldadeRespostas\": {\"FACIL\": {\"total\": 3, \"corretas\": 3}, \"MEDIA\": {\"total\": 5, \"corretas\": 3}}}"
+                        )
+                    }
                 )),
             @ApiResponse(responseCode = "404", description = "Subtema não encontrado",
                 content = @Content(mediaType = "application/problem+json",
@@ -101,35 +133,47 @@ public class SubtemaController {
         }
     )
     @GetMapping("/{id}")
-    public ResponseEntity<SubtemaDetailDto> getSubtemaById(@PathVariable Long id) {
-        return ResponseEntity.ok(subtemaService.getSubtemaDetailById(id));
+    public ResponseEntity<SubtemaDetailDto> getSubtemaById(
+            @PathVariable Long id,
+            @Parameter(description = "Nível de métricas: full (todos os dados). Padrão: lean (estrutura apenas).")
+            @RequestParam(required = false) String metrics) {
+        return ResponseEntity.ok(subtemaService.getSubtemaDetailById(id, parseMetrics(metrics)));
     }
 
     @Operation(
         summary = "Obter subtemas por tema",
+        description = "Retorna todos os subtemas de um tema. Use o parâmetro `metrics` para incluir dados de desempenho.",
         responses = {
             @ApiResponse(responseCode = "200", description = "Lista de subtemas retornada com sucesso",
                 content = @Content(
                     mediaType = "application/json",
-                    examples = @ExampleObject(
-                        value = "[{\"id\": 1, \"nome\": \"Atos Administrativos\", \"temaId\": 5, \"temaNome\": \"Poderes\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Administrativo\", \"totalEstudos\": 2, \"ultimoEstudo\": \"2026-03-01T09:15:00\", \"ultimaQuestao\": \"2026-03-02T11:00:00\", \"totalQuestoes\": 15, \"questoesRespondidas\": 10, \"questoesAcertadas\": 8, \"mediaTempoResposta\": 45, \"dificuldadeRespostas\": {\"FACIL\": {\"total\": 4, \"corretas\": 4}, \"MEDIA\": {\"total\": 6, \"corretas\": 4}, \"DIFICIL\": {\"total\": 0, \"corretas\": 0}, \"CHUTE\": {\"total\": 0, \"corretas\": 0}}}]"
-                    )
+                    examples = {
+                        @ExampleObject(
+                            name = "lean (padrão)",
+                            summary = "Estrutura apenas",
+                            value = "[{\"id\": 1, \"nome\": \"Atos Administrativos\", \"temaId\": 5, \"temaNome\": \"Poderes\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Administrativo\"}]"
+                        ),
+                        @ExampleObject(
+                            name = "full",
+                            summary = "Todas as métricas",
+                            value = "[{\"id\": 1, \"nome\": \"Atos Administrativos\", \"temaId\": 5, \"temaNome\": \"Poderes\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Administrativo\", \"totalEstudos\": 2, \"ultimoEstudo\": \"2026-03-01T09:15:00\", \"ultimaQuestao\": \"2026-03-02T11:00:00\", \"totalQuestoes\": 15, \"questoesRespondidas\": 10, \"questoesAcertadas\": 8, \"mediaTempoResposta\": 45, \"dificuldadeRespostas\": {\"FACIL\": {\"total\": 4, \"corretas\": 4}, \"MEDIA\": {\"total\": 6, \"corretas\": 4}}}]"
+                        )
+                    }
                 ))
         }
     )
     @GetMapping("/tema/{temaId}")
-    public ResponseEntity<List<SubtemaSummaryDto>> getSubtemasByTema(@PathVariable Long temaId) {
-        return ResponseEntity.ok(subtemaService.findByTemaId(temaId));
+    public ResponseEntity<List<SubtemaSummaryDto>> getSubtemasByTema(
+            @PathVariable Long temaId,
+            @Parameter(description = "Nível de métricas: summary, full. Padrão: lean.")
+            @RequestParam(required = false) String metrics) {
+        return ResponseEntity.ok(subtemaService.findByTemaId(temaId, parseMetrics(metrics)));
     }
 
     @Operation(
         summary = "Criar novo subtema",
         responses = {
-            @ApiResponse(responseCode = "201", description = "Subtema criado com sucesso",
-                content = @Content(
-                    schema = @Schema(implementation = SubtemaDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 3, \"nome\": \"Direito à Vida\", \"tema\": {\"id\": 1, \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\", \"nome\": \"Direitos Fundamentais\", \"totalEstudos\": 0, \"ultimoEstudo\": null, \"ultimaQuestao\": null, \"totalSubtemas\": 0, \"subtemasEstudados\": 0, \"totalQuestoes\": 0, \"questoesRespondidas\": 0, \"questoesAcertadas\": 0, \"mediaTempoResposta\": null, \"dificuldadeRespostas\": {}}, \"totalEstudos\": 0, \"ultimoEstudo\": null, \"ultimaQuestao\": null, \"totalQuestoes\": 0, \"questoesRespondidas\": 0, \"questoesAcertadas\": 0, \"mediaTempoResposta\": null, \"dificuldadeRespostas\": {}}")
-                )),
+            @ApiResponse(responseCode = "201", description = "Subtema criado com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
@@ -145,38 +189,51 @@ public class SubtemaController {
         }
     )
     @PostMapping
-    public ResponseEntity<SubtemaDetailDto> createSubtema(@Valid @RequestBody SubtemaCreateRequest request) {
-        return new ResponseEntity<>(subtemaService.create(request), HttpStatus.CREATED);
+    public ResponseEntity<Void> createSubtema(@Valid @RequestBody SubtemaCreateRequest request) {
+        subtemaService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @Operation(
         summary = "Atualizar subtema",
         responses = {
-            @ApiResponse(responseCode = "200", description = "Subtema atualizado com sucesso",
-                content = @Content(
-                    schema = @Schema(implementation = SubtemaDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Habeas Corpus e Habeas Data\", \"tema\": {\"id\": 1, \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\", \"nome\": \"Remédios Constitucionais\", \"totalEstudos\": 0, \"ultimoEstudo\": null, \"ultimaQuestao\": null, \"totalSubtemas\": 0, \"subtemasEstudados\": 0, \"totalQuestoes\": 0, \"questoesRespondidas\": 0, \"questoesAcertadas\": 0, \"mediaTempoResposta\": null, \"dificuldadeRespostas\": {}}, \"totalEstudos\": 0, \"ultimoEstudo\": null, \"ultimaQuestao\": null, \"totalQuestoes\": 0, \"questoesRespondidas\": 0, \"questoesAcertadas\": 0, \"mediaTempoResposta\": null, \"dificuldadeRespostas\": {}}")
-                )),
+            @ApiResponse(responseCode = "200", description = "Subtema atualizado com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
                     examples = @ExampleObject(
                         value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/v1/subtemas/1\",\"errors\":{\"nome\":\"não deve estar em branco\"}}"
                     ))),
-            @ApiResponse(responseCode = "404", description = "Subtema não encontrado"),
-            @ApiResponse(responseCode = "409", description = "Conflito - Já existe um subtema com este nome no mesmo tema")
+            @ApiResponse(responseCode = "404", description = "Subtema não encontrado",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Subtema com ID: '1'\",\"instance\":\"/api/v1/subtemas/1\"}"
+                    ))),
+            @ApiResponse(responseCode = "409", description = "Conflito - Já existe um subtema com este nome no mesmo tema",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Já existe um subtema com o nome 'Direito à Vida' no tema com ID: 1\",\"instance\":\"/api/v1/subtemas/1\"}"
+                    )))
         }
     )
     @PutMapping("/{id}")
-    public ResponseEntity<SubtemaDetailDto> updateSubtema(@PathVariable Long id, @Valid @RequestBody SubtemaUpdateRequest request) {
-        return ResponseEntity.ok(subtemaService.update(id, request));
+    public ResponseEntity<Void> updateSubtema(@PathVariable Long id, @Valid @RequestBody SubtemaUpdateRequest request) {
+        subtemaService.update(id, request);
+        return ResponseEntity.ok().build();
     }
 
     @Operation(
         summary = "Excluir subtema",
         responses = {
             @ApiResponse(responseCode = "204", description = "Subtema excluído com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Subtema não encontrado"),
+            @ApiResponse(responseCode = "404", description = "Subtema não encontrado",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Subtema com ID: '1'\",\"instance\":\"/api/v1/subtemas/1\"}"
+                    ))),
             @ApiResponse(responseCode = "422", description = "Entidade não processável - Existem questões vinculadas a este subtema",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
@@ -195,7 +252,12 @@ public class SubtemaController {
         summary = "Adicionar uma sessão de estudo para o subtema",
         responses = {
             @ApiResponse(responseCode = "201", description = "Sessão de estudo registrada com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Subtema não encontrado")
+            @ApiResponse(responseCode = "404", description = "Subtema não encontrado",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Subtema com ID: '1'\",\"instance\":\"/api/v1/subtemas/1/estudos\"}"
+                    )))
         }
     )
     @PostMapping("/{id}/estudos")
@@ -218,12 +280,27 @@ public class SubtemaController {
         summary = "Excluir uma sessão de estudo específica",
         responses = {
             @ApiResponse(responseCode = "204", description = "Sessão de estudo excluída com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Sessão de estudo não encontrada")
+            @ApiResponse(responseCode = "404", description = "Sessão de estudo não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Estudo com ID: '1'\",\"instance\":\"/api/v1/subtemas/1/estudos/1\"}"
+                    )))
         }
     )
     @DeleteMapping("/{subtemaId}/estudos/{estudoId}")
     public ResponseEntity<Void> deleteEstudo(@PathVariable Long subtemaId, @PathVariable Long estudoId) {
         estudoSubtemaService.deleteEstudo(estudoId);
         return ResponseEntity.noContent().build();
+    }
+
+    private MetricsLevel parseMetrics(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        return switch (raw.toLowerCase()) {
+            case "lean" -> null;
+            case "summary" -> MetricsLevel.SUMMARY;
+            case "full" -> MetricsLevel.FULL;
+            default -> throw new IllegalArgumentException("Invalid metrics level: '" + raw + "'. Valid values: lean, summary, full");
+        };
     }
 }

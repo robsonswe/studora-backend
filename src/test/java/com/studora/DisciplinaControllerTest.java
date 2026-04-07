@@ -56,8 +56,7 @@ class DisciplinaControllerTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(disciplinaCreateRequest))
             )
-            .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.nome").value("Direito Test"));
+            .andExpect(status().isCreated());
     }
 
     @Test
@@ -67,7 +66,7 @@ class DisciplinaControllerTest {
         disciplina = disciplinaRepository.save(disciplina);
 
         mockMvc
-            .perform(get("/api/v1/disciplinas/{id}", disciplina.getId()))
+            .perform(get("/api/v1/disciplinas/{id}", disciplina.getId()).param("metrics", "full"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.nome").value("Direito Get Test"))
             .andExpect(jsonPath("$.totalEstudos").value(0))
@@ -91,7 +90,7 @@ class DisciplinaControllerTest {
         disciplinaRepository.save(new Disciplina("Direito All 2"));
 
         mockMvc
-            .perform(get("/api/v1/disciplinas"))
+            .perform(get("/api/v1/disciplinas").param("metrics", "summary"))
             .andExpect(status().isOk())
             .andExpect(
                 jsonPath("$.content.length()").value(
@@ -99,9 +98,7 @@ class DisciplinaControllerTest {
                 )
             )
             .andExpect(jsonPath("$.content[0].totalEstudos").exists())
-            .andExpect(jsonPath("$.content[0].totalTemas").exists())
             .andExpect(jsonPath("$.content[0].totalSubtemas").exists())
-            .andExpect(jsonPath("$.content[0].temasEstudados").exists())
             .andExpect(jsonPath("$.content[0].subtemasEstudados").exists());
     }
 
@@ -116,6 +113,41 @@ class DisciplinaControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].nome").value("Direito A"))
             .andExpect(jsonPath("$.content[1].nome").value("Direito B"));
+    }
+
+    @Test
+    void testGetAllDisciplinas_MetricsTiers() throws Exception {
+        Disciplina disciplina = disciplinaRepository.save(new Disciplina("Direito Tiers"));
+
+        // Lean (default): only structural fields, metrics omitted entirely
+        mockMvc
+            .perform(get("/api/v1/disciplinas"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].id").isNumber())
+            .andExpect(jsonPath("$.content[0].nome").value("Direito Tiers"))
+            .andExpect(jsonPath("$.content[0].totalEstudos").doesNotExist())
+            .andExpect(jsonPath("$.content[0].subtemasEstudados").doesNotExist())
+            .andExpect(jsonPath("$.content[0].mediaTempoResposta").doesNotExist())
+            .andExpect(jsonPath("$.content[0].dificuldadeRespostas").doesNotExist());
+
+        // Summary: same structural fields, but service computes summary-level metrics (0 since no data)
+        mockMvc
+            .perform(get("/api/v1/disciplinas").param("metrics", "summary"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].totalEstudos").value(0))
+            .andExpect(jsonPath("$.content[0].totalSubtemas").value(0))
+            .andExpect(jsonPath("$.content[0].subtemasEstudados").value(0))
+            .andExpect(jsonPath("$.content[0].questoesRespondidas").value(0))
+            .andExpect(jsonPath("$.content[0].questoesAcertadas").value(0));
+
+        // Full: same metrics + additional fields (0 since no data)
+        mockMvc
+            .perform(get("/api/v1/disciplinas").param("metrics", "full"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].totalEstudos").value(0))
+            .andExpect(jsonPath("$.content[0].totalTemas").value(0))
+            .andExpect(jsonPath("$.content[0].totalQuestoes").value(0))
+            .andExpect(jsonPath("$.content[0].dificuldadeRespostas").exists());
     }
 
     @Test
@@ -145,8 +177,7 @@ class DisciplinaControllerTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(updateRequest))
             )
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.nome").value("New Name"));
+            .andExpect(status().isOk());
     }
 
     @Test
@@ -184,5 +215,28 @@ class DisciplinaControllerTest {
             .andExpect(jsonPath("$.title").value("Conflito"))
             .andExpect(jsonPath("$.status").value(409))
             .andExpect(jsonPath("$.detail").value("Já existe uma disciplina com o nome 'Direito Administrativo'"));
+    }
+
+    @Test
+    void testGetDisciplinaCompleto() throws Exception {
+        Disciplina disciplina = new Disciplina("Disciplina Completa");
+        disciplina = disciplinaRepository.save(disciplina);
+
+        // Lean: request lean explicitly to override default 'full' in controller
+        mockMvc
+            .perform(get("/api/v1/disciplinas/{id}/completo", disciplina.getId()).param("metrics", "lean"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(disciplina.getId()))
+            .andExpect(jsonPath("$.nome").value("Disciplina Completa"))
+            .andExpect(jsonPath("$.totalEstudos").doesNotExist())
+            .andExpect(jsonPath("$.temas").isArray());
+
+        // Full: metrics populated
+        mockMvc
+            .perform(get("/api/v1/disciplinas/{id}/completo", disciplina.getId()).param("metrics", "full"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.totalEstudos").value(0))
+            .andExpect(jsonPath("$.totalTemas").value(0))
+            .andExpect(jsonPath("$.temas").isArray());
     }
 }

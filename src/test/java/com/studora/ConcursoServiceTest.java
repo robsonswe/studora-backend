@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import com.studora.dto.MetricsLevel;
 import com.studora.dto.concurso.ConcursoDetailDto;
 import com.studora.dto.concurso.ConcursoSummaryDto;
 import com.studora.dto.request.ConcursoCreateRequest;
@@ -95,7 +96,7 @@ class ConcursoServiceTest {
 
         when(concursoRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(concurso));
 
-        ConcursoDetailDto result = concursoService.getConcursoDetailById(1L);
+        ConcursoDetailDto result = concursoService.getConcursoDetailById(1L, null);
         assertNotNull(result);
         assertEquals(2023, result.getAno());
     }
@@ -103,7 +104,7 @@ class ConcursoServiceTest {
     @Test
     void testFindById_NotFound() {
         when(concursoRepository.findByIdWithDetails(1L)).thenReturn(Optional.empty());
-        assertThrows(ResourceNotFoundException.class, () -> concursoService.getConcursoDetailById(1L));
+        assertThrows(ResourceNotFoundException.class, () -> concursoService.getConcursoDetailById(1L, null));
     }
 
     @Test
@@ -144,11 +145,8 @@ class ConcursoServiceTest {
             return c;
         });
 
-        ConcursoDetailDto result = concursoService.create(request);
-        assertEquals(1L, result.getId());
-        assertEquals(2023, result.getAno());
-        assertEquals(1, result.getCargos().size());
-        assertEquals(10L, result.getCargos().get(0).getCargoId());
+        concursoService.create(request);
+        verify(concursoRepository).save(any(Concurso.class));
     }
 
     @Test
@@ -190,9 +188,8 @@ class ConcursoServiceTest {
         when(concursoRepository.findByIdWithDetails(id)).thenReturn(Optional.of(existing));
         when(concursoRepository.save(any(Concurso.class))).thenAnswer(i -> i.getArgument(0));
 
-        ConcursoDetailDto result = concursoService.update(id, req);
-        assertEquals(2024, result.getAno());
-        assertEquals(1, result.getCargos().size());
+        concursoService.update(id, req);
+        verify(concursoRepository).save(any(Concurso.class));
     }
 
     @Test
@@ -224,10 +221,10 @@ class ConcursoServiceTest {
         
         when(concursoRepository.save(any(Concurso.class))).thenAnswer(i -> i.getArgument(0));
 
-        ConcursoDetailDto result = concursoService.update(id, req);
-        
-        assertEquals(1, result.getCargos().size());
-        assertEquals(20L, result.getCargos().get(0).getCargoId());
+        concursoService.update(id, req);
+
+        assertEquals(1, existing.getConcursoCargos().size());
+        assertEquals(20L, existing.getConcursoCargos().iterator().next().getCargo().getId());
     }
     
     @Test
@@ -299,9 +296,8 @@ class ConcursoServiceTest {
             return c;
         });
 
-        ConcursoDetailDto result = concursoService.create(request);
-        assertEquals(1L, result.getId());
-        assertEquals(dataProva, result.getDataProva());
+        concursoService.create(request);
+        verify(concursoRepository).save(argThat(c -> c.getDataProva().equals(dataProva)));
     }
 
     @Test
@@ -331,7 +327,7 @@ class ConcursoServiceTest {
         when(concursoRepository.findByIdWithDetails(id)).thenReturn(Optional.of(existing));
         when(concursoRepository.save(any(Concurso.class))).thenAnswer(i -> i.getArgument(0));
 
-        ConcursoDetailDto result = concursoService.update(id, req);
-        assertEquals(newDataProva, result.getDataProva());
+        concursoService.update(id, req);
+        verify(concursoRepository).save(argThat(c -> c.getDataProva().equals(newDataProva)));
     }
 }

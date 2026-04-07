@@ -1,5 +1,6 @@
 package com.studora.controller.v1;
 
+import com.studora.dto.MetricsLevel;
 import com.studora.dto.concurso.ConcursoSummaryDto;
 import com.studora.dto.concurso.ConcursoDetailDto;
 import com.studora.dto.concurso.ConcursoFilter;
@@ -49,7 +50,7 @@ public class ConcursoController {
                 content = @Content(
                     mediaType = "application/json",
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"instituicao\": {\"id\": 1, \"nome\": \"PF\", \"area\": \"Policial\"}, \"banca\": {\"id\": 1, \"nome\": \"Cebraspe\"}, \"ano\": 2024, \"mes\": 5, \"edital\": \"https://exemplo.com/edital.pdf\", \"dataProva\": \"2024-06-15T08:00:00\", \"cargos\": [{\"id\": 1, \"cargoId\": 1, \"cargoNome\": \"Agente\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\", \"inscrito\": true, \"topicos\": [{\"id\": 1, \"temaId\": 1, \"temaNome\": \"Poderes\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Administrativo\", \"nome\": \"Atos Administrativos\", \"totalEstudos\": 2, \"ultimoEstudo\": \"2026-01-15T10:30:00\", \"ultimaQuestao\": \"2026-01-16T14:20:00\", \"totalQuestoes\": 15, \"questoesRespondidas\": 10, \"questoesAcertadas\": 8, \"mediaTempoResposta\": 45, \"dificuldadeRespostas\": {\"FACIL\": {\"total\": 5, \"corretas\": 5}, \"MEDIA\": {\"total\": 5, \"corretas\": 3}, \"DIFICIL\": {\"total\": 0, \"corretas\": 0}, \"CHUTE\": {\"total\": 0, \"corretas\": 0}}}]}]}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"instituicao\": {\"id\": 1, \"nome\": \"PF\", \"area\": \"Policial\"}, \"banca\": {\"id\": 1, \"nome\": \"Cebraspe\"}, \"ano\": 2024, \"mes\": 5, \"edital\": \"https://exemplo.com/edital.pdf\", \"dataProva\": \"2024-06-15T08:00:00\", \"cargos\": []}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -66,7 +67,7 @@ public class ConcursoController {
             @Parameter(hidden = true) @PageableDefault(size = AppConstants.DEFAULT_PAGE_SIZE) Pageable pageable,
             @RequestParam(defaultValue = "ano") String sort,
             @RequestParam(defaultValue = "DESC") String direction) {
-        
+
         Map<String, String> mapping = Map.of(
             "instituicao", "instituicao.nome",
             "banca", "banca.nome"
@@ -86,12 +87,23 @@ public class ConcursoController {
 
     @Operation(
         summary = "Obter concurso por ID",
-        description = "Retorna um concurso específico com base no ID fornecido",
+        description = "Retorna um concurso específico com base no ID fornecido. Use `metrics=full` para incluir dados de desempenho nos topicos de cada cargo.",
         responses = {
-            @ApiResponse(responseCode = "200", description = "Concurso encontrado", 
+            @ApiResponse(responseCode = "200", description = "Concurso encontrado",
                 content = @Content(
                     schema = @Schema(implementation = ConcursoDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"instituicao\": {\"id\": 1, \"nome\": \"Polícia Federal\", \"area\": \"Policial\"}, \"banca\": {\"id\": 1, \"nome\": \"Cebraspe\"}, \"ano\": 2023, \"mes\": 6, \"edital\": \"Edital 01/2023\", \"dataProva\": \"2023-09-10T08:00:00\", \"cargos\": [{\"id\": 1, \"cargoId\": 1, \"cargoNome\": \"Agente\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\", \"inscrito\": false, \"topicos\": [{\"id\": 1, \"temaId\": 5, \"temaNome\": \"Poderes\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Administrativo\", \"nome\": \"Atos Administrativos\", \"totalEstudos\": 3, \"ultimoEstudo\": \"2026-02-20T14:00:00\", \"ultimaQuestao\": \"2026-02-21T10:00:00\", \"totalQuestoes\": 15, \"questoesRespondidas\": 10, \"questoesAcertadas\": 8, \"mediaTempoResposta\": 45, \"dificuldadeRespostas\": {\"FACIL\": {\"total\": 5, \"corretas\": 5}, \"MEDIA\": {\"total\": 5, \"corretas\": 3}, \"DIFICIL\": {\"total\": 0, \"corretas\": 0}, \"CHUTE\": {\"total\": 0, \"corretas\": 0}}}, {\"id\": 2, \"temaId\": 5, \"temaNome\": \"Poderes\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Administrativo\", \"nome\": \"Atos Vinculados\", \"totalEstudos\": 0, \"ultimoEstudo\": null, \"ultimaQuestao\": null, \"totalQuestoes\": 0, \"questoesRespondidas\": 0, \"questoesAcertadas\": 0, \"mediaTempoResposta\": null, \"dificuldadeRespostas\": {}}]}]}")
+                    examples = {
+                        @ExampleObject(
+                            name = "lean (padrão)",
+                            summary = "Estrutura apenas, topicos sem métricas",
+                            value = "{\"id\": 1, \"instituicao\": {\"id\": 1, \"nome\": \"Polícia Federal\", \"area\": \"Policial\"}, \"banca\": {\"id\": 1, \"nome\": \"Cebraspe\"}, \"ano\": 2023, \"mes\": 6, \"edital\": \"Edital 01/2023\", \"dataProva\": \"2023-09-10T08:00:00\", \"cargos\": [{\"id\": 1, \"cargoId\": 1, \"cargoNome\": \"Agente\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\", \"inscrito\": false, \"topicos\": [{\"id\": 1, \"nome\": \"Atos Administrativos\", \"temaId\": 5, \"temaNome\": \"Poderes\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Administrativo\"}]}]}"
+                        ),
+                        @ExampleObject(
+                            name = "full",
+                            summary = "Topicos com todas as métricas",
+                            value = "{\"id\": 1, \"instituicao\": {\"id\": 1, \"nome\": \"Polícia Federal\", \"area\": \"Policial\"}, \"banca\": {\"id\": 1, \"nome\": \"Cebraspe\"}, \"ano\": 2023, \"mes\": 6, \"edital\": \"Edital 01/2023\", \"dataProva\": \"2023-09-10T08:00:00\", \"cargos\": [{\"id\": 1, \"cargoId\": 1, \"cargoNome\": \"Agente\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\", \"inscrito\": false, \"topicos\": [{\"id\": 1, \"nome\": \"Atos Administrativos\", \"temaId\": 5, \"temaNome\": \"Poderes\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Administrativo\", \"totalEstudos\": 3, \"ultimoEstudo\": \"2026-02-20T14:00:00\", \"ultimaQuestao\": \"2026-02-21T10:00:00\", \"totalQuestoes\": 15, \"questoesRespondidas\": 10, \"questoesAcertadas\": 8}]}]}"
+                        )
+                    }
                 )),
             @ApiResponse(responseCode = "404", description = "Concurso não encontrado",
                 content = @Content(mediaType = "application/problem+json",
@@ -102,18 +114,17 @@ public class ConcursoController {
         }
     )
     @GetMapping("/{id}")
-    public ResponseEntity<ConcursoDetailDto> getConcursoById(@PathVariable Long id) {
-        return ResponseEntity.ok(concursoService.getConcursoDetailById(id));
+    public ResponseEntity<ConcursoDetailDto> getConcursoById(
+            @PathVariable Long id,
+            @Parameter(description = "Nível de métricas nos topicos: full (dados de desempenho). Padrão: lean (estrutura apenas).")
+            @RequestParam(required = false) String metrics) {
+        return ResponseEntity.ok(concursoService.getConcursoDetailById(id, parseMetrics(metrics)));
     }
 
     @Operation(
         summary = "Criar novo concurso",
         responses = {
-            @ApiResponse(responseCode = "201", description = "Concurso criado com sucesso",
-                content = @Content(
-                    schema = @Schema(implementation = ConcursoDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 2, \"instituicao\": {\"id\": 2, \"nome\": \"Tribunal de Justiça\", \"area\": \"Judiciária\"}, \"banca\": {\"id\": 2, \"nome\": \"FGV\"}, \"ano\": 2024, \"mes\": 1, \"edital\": \"Edital 01/2024\", \"dataProva\": \"2024-03-20T08:00:00\", \"cargos\": [{\"id\": 10, \"cargoId\": 10, \"cargoNome\": \"Analista\", \"nivel\": \"SUPERIOR\", \"area\": \"Judiciária\", \"inscrito\": false, \"topicos\": [{\"id\": 5, \"temaId\": 3, \"temaNome\": \"Poderes\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Administrativo\", \"nome\": \"Atos Administrativos\", \"totalEstudos\": 0, \"ultimoEstudo\": null, \"ultimaQuestao\": null, \"totalQuestoes\": 0, \"questoesRespondidas\": 0, \"questoesAcertadas\": 0, \"mediaTempoResposta\": null, \"dificuldadeRespostas\": {}}]}]}")
-                )),
+            @ApiResponse(responseCode = "201", description = "Concurso criado com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
@@ -129,18 +140,15 @@ public class ConcursoController {
         }
     )
     @PostMapping
-    public ResponseEntity<ConcursoDetailDto> createConcurso(@Valid @RequestBody ConcursoCreateRequest request) {
-        return new ResponseEntity<>(concursoService.create(request), HttpStatus.CREATED);
+    public ResponseEntity<Void> createConcurso(@Valid @RequestBody ConcursoCreateRequest request) {
+        concursoService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @Operation(
         summary = "Atualizar concurso",
         responses = {
-            @ApiResponse(responseCode = "200", description = "Concurso atualizado com sucesso",
-                content = @Content(
-                    schema = @Schema(implementation = ConcursoDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"instituicao\": {\"id\": 1, \"nome\": \"Polícia Federal\", \"area\": \"Policial\"}, \"banca\": {\"id\": 1, \"nome\": \"Cebraspe\"}, \"ano\": 2023, \"mes\": 5, \"edital\": \"https://exemplo.com/edital.pdf\", \"dataProva\": \"2023-09-10T08:00:00\", \"cargos\": [{\"id\": 1, \"cargoId\": 1, \"cargoNome\": \"Agente\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\", \"inscrito\": false, \"topicos\": [{\"id\": 5, \"temaId\": 3, \"temaNome\": \"Poderes\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Administrativo\", \"nome\": \"Atos Administrativos\", \"totalEstudos\": 0, \"ultimoEstudo\": null, \"ultimaQuestao\": null, \"totalQuestoes\": 0, \"questoesRespondidas\": 0, \"questoesAcertadas\": 0, \"mediaTempoResposta\": null, \"dificuldadeRespostas\": {}}]}]}")
-                )),
+            @ApiResponse(responseCode = "200", description = "Concurso atualizado com sucesso"),
 
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",
@@ -163,8 +171,9 @@ public class ConcursoController {
         }
     )
     @PutMapping("/{id}")
-    public ResponseEntity<ConcursoDetailDto> updateConcurso(@PathVariable Long id, @Valid @RequestBody ConcursoUpdateRequest request) {
-        return ResponseEntity.ok(concursoService.update(id, request));
+    public ResponseEntity<Void> updateConcurso(@PathVariable Long id, @Valid @RequestBody ConcursoUpdateRequest request) {
+        concursoService.update(id, request);
+        return ResponseEntity.ok().build();
     }
 
     @Operation(
@@ -188,9 +197,7 @@ public class ConcursoController {
     @Operation(
         summary = "Alternar status de inscrição em um cargo de um concurso",
         responses = {
-            @ApiResponse(responseCode = "200", description = "Status de inscrição alterado com sucesso",
-                content = @Content(
-                    examples = @ExampleObject(value = "{\"id\": 1, \"cargoId\": 1, \"cargoNome\": \"Agente\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\", \"inscrito\": true}"))),
+            @ApiResponse(responseCode = "200", description = "Status de inscrição alterado com sucesso"),
             @ApiResponse(responseCode = "422", description = "Já inscrito em outro cargo",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
@@ -206,7 +213,18 @@ public class ConcursoController {
         }
     )
     @PatchMapping("/cargos/{concursoCargoId}/inscricao")
-    public ResponseEntity<com.studora.dto.concurso.ConcursoCargoSummaryDto> toggleInscricao(@PathVariable Long concursoCargoId) {
-        return ResponseEntity.ok(concursoService.toggleInscricao(concursoCargoId));
+    public ResponseEntity<Void> toggleInscricao(@PathVariable Long concursoCargoId) {
+        concursoService.toggleInscricao(concursoCargoId);
+        return ResponseEntity.ok().build();
+    }
+
+    private MetricsLevel parseMetrics(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        return switch (raw.toLowerCase()) {
+            case "lean" -> null;
+            case "summary" -> MetricsLevel.SUMMARY;
+            case "full" -> MetricsLevel.FULL;
+            default -> throw new IllegalArgumentException("Invalid metrics level: '" + raw + "'. Valid values: lean, summary, full");
+        };
     }
 }

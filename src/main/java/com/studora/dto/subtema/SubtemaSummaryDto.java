@@ -1,10 +1,13 @@
 package com.studora.dto.subtema;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.studora.dto.DificuldadeStatDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.util.Map;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
 
 @Schema(description = "DTO simplificado para listagem de subtemas")
 @Data
@@ -28,7 +31,7 @@ public class SubtemaSummaryDto {
     private String nome;
 
     @Schema(description = "Total de sessões de estudo realizadas para este subtema", example = "2")
-    private long totalEstudos;
+    private Long totalEstudos;
 
     @Schema(description = "Data e hora do último estudo realizado")
     private java.time.LocalDateTime ultimoEstudo;
@@ -37,13 +40,13 @@ public class SubtemaSummaryDto {
     private java.time.LocalDateTime ultimaQuestao;
 
     @Schema(description = "Total de questões associadas a este subtema", example = "15")
-    private long totalQuestoes;
+    private Long totalQuestoes;
 
     @Schema(description = "Total de questões que possuem pelo menos uma resposta", example = "10")
-    private long questoesRespondidas;
+    private Long questoesRespondidas;
 
     @Schema(description = "Total de questões que possuem pelo menos uma resposta correta", example = "8")
-    private long questoesAcertadas;
+    private Long questoesAcertadas;
 
     @Schema(description = "Tempo médio de resposta em segundos", example = "45")
     private Integer mediaTempoResposta;

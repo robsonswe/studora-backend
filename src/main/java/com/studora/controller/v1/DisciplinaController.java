@@ -1,5 +1,6 @@
 package com.studora.controller.v1;
 
+import com.studora.dto.MetricsLevel;
 import com.studora.dto.disciplina.DisciplinaSummaryDto;
 import com.studora.dto.disciplina.DisciplinaDetailDto;
 import com.studora.dto.PageResponse;
@@ -41,14 +42,31 @@ public class DisciplinaController {
 
     @Operation(
         summary = "Obter todas as disciplinas",
-        description = "Retorna uma página com todas as disciplinas cadastradas.",
+        description = "Retorna uma página com todas as disciplinas cadastradas. Use o parâmetro `metrics` para incluir dados de desempenho.",
+        parameters = {
+            @Parameter(description = "Nível de métricas: summary (progresso+acurácia), full (+tempo+dificuldade). Padrão: lean (estrutura apenas)."),
+        },
         responses = {
             @ApiResponse(responseCode = "200", description = "Página de disciplinas retornada com sucesso",
                 content = @Content(
                     mediaType = "application/json",
-                    examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Direito Constitucional\", \"totalEstudos\": 10, \"ultimoEstudo\": \"2026-01-15T10:30:00\", \"ultimaQuestao\": \"2026-01-16T14:20:00\", \"totalTemas\": 5, \"totalSubtemas\": 12, \"temasEstudados\": 2, \"subtemasEstudados\": 8, \"totalQuestoes\": 100, \"questoesRespondidas\": 50, \"questoesAcertadas\": 40, \"mediaTempoResposta\": 45, \"dificuldadeRespostas\": {\"FACIL\": {\"total\": 20, \"corretas\": 18}, \"MEDIA\": {\"total\": 30, \"corretas\": 22}, \"DIFICIL\": {\"total\": 0, \"corretas\": 0}, \"CHUTE\": {\"total\": 0, \"corretas\": 0}}}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
-                    )
+                    examples = {
+                        @ExampleObject(
+                            name = "lean (padrão)",
+                            summary = "Estrutura apenas",
+                            value = "{\"content\": [{\"id\": 1, \"nome\": \"Direito Constitucional\"}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        ),
+                        @ExampleObject(
+                            name = "summary",
+                            summary = "Progresso + acurácia",
+                            value = "{\"content\": [{\"id\": 1, \"nome\": \"Direito Constitucional\", \"totalEstudos\": 10, \"ultimoEstudo\": \"2026-01-15T10:30:00\", \"totalSubtemas\": 12, \"subtemasEstudados\": 8, \"questoesRespondidas\": 50, \"questoesAcertadas\": 40}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        ),
+                        @ExampleObject(
+                            name = "full",
+                            summary = "Todas as métricas",
+                            value = "{\"content\": [{\"id\": 1, \"nome\": \"Direito Constitucional\", \"totalEstudos\": 10, \"ultimoEstudo\": \"2026-01-15T10:30:00\", \"ultimaQuestao\": \"2026-01-16T14:20:00\", \"totalTemas\": 5, \"totalSubtemas\": 12, \"temasEstudados\": 2, \"subtemasEstudados\": 8, \"totalQuestoes\": 100, \"questoesRespondidas\": 50, \"questoesAcertadas\": 40, \"mediaTempoResposta\": 45, \"dificuldadeRespostas\": {\"FACIL\": {\"total\": 20, \"corretas\": 18}, \"MEDIA\": {\"total\": 30, \"corretas\": 22}, \"DIFICIL\": {\"total\": 0, \"corretas\": 0}, \"CHUTE\": {\"total\": 0, \"corretas\": 0}}}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        )
+                    }
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",
@@ -63,23 +81,62 @@ public class DisciplinaController {
             @RequestParam(required = false) String nome,
             @Parameter(hidden = true) @PageableDefault(size = AppConstants.DEFAULT_PAGE_SIZE) Pageable pageable,
             @RequestParam(defaultValue = "nome") String sort,
-            @RequestParam(defaultValue = "ASC") String direction) {
-        
+            @RequestParam(defaultValue = "ASC") String direction,
+            @Parameter(description = "Nível de métricas: summary (progresso+acurácia), full (+tempo+dificuldade). Padrão: lean (estrutura apenas).")
+            @RequestParam(required = false) String metrics) {
+
+        MetricsLevel metricsLevel = parseMetrics(metrics);
+
         List<Sort.Order> tieBreakers = List.of(Sort.Order.asc("nome"));
         Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, Map.of(), tieBreakers);
-        
-        Page<DisciplinaSummaryDto> disciplinas = disciplinaService.findAll(nome, finalPageable);
+
+        Page<DisciplinaSummaryDto> disciplinas = disciplinaService.findAll(nome, finalPageable, metricsLevel);
         return ResponseEntity.ok(new PageResponse<>(disciplinas));
+    }
+
+    @Operation(
+        summary = "Obter disciplina completa com temas e subtemas",
+        description = "Retorna toda a hierarquia (disciplina → temas → subtemas) em uma única resposta. Padrão: métricas completas (full).",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Hierarquia completa retornada com sucesso",
+                content = @Content(
+                    schema = @Schema(implementation = DisciplinaDetailDto.class)
+                )),
+            @ApiResponse(responseCode = "404", description = "Disciplina não encontrada",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Disciplina com ID: '123'\",\"instance\":\"/api/v1/disciplinas/123/completo\"}"
+                    )))
+        }
+    )
+    @GetMapping("/{id}/completo")
+    public ResponseEntity<DisciplinaDetailDto> getDisciplinaCompleto(
+            @PathVariable Long id,
+            @Parameter(description = "Nível de métricas: full (todos os dados). Padrão: full.")
+            @RequestParam(required = false, defaultValue = "full") String metrics) {
+        return ResponseEntity.ok(disciplinaService.getDisciplinaCompleto(id, parseMetrics(metrics)));
     }
 
     @Operation(
         summary = "Obter disciplina por ID",
         description = "Retorna uma disciplina específica com base no ID fornecido",
         responses = {
-            @ApiResponse(responseCode = "200", description = "Disciplina encontrada", 
+            @ApiResponse(responseCode = "200", description = "Disciplina encontrada",
                 content = @Content(
                     schema = @Schema(implementation = DisciplinaDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Direito Constitucional\", \"totalEstudos\": 10, \"ultimoEstudo\": \"2026-02-20T14:00:00\", \"ultimaQuestao\": \"2026-02-21T10:00:00\", \"totalTemas\": 5, \"totalSubtemas\": 12, \"temasEstudados\": 2, \"subtemasEstudados\": 8, \"totalQuestoes\": 100, \"questoesRespondidas\": 50, \"questoesAcertadas\": 40, \"mediaTempoResposta\": 45, \"dificuldadeRespostas\": {\"FACIL\": {\"total\": 20, \"corretas\": 18}, \"MEDIA\": {\"total\": 30, \"corretas\": 22}, \"DIFICIL\": {\"total\": 0, \"corretas\": 0}, \"CHUTE\": {\"total\": 0, \"corretas\": 0}}, \"temas\": []}")
+                    examples = {
+                        @ExampleObject(
+                            name = "lean (padrão)",
+                            summary = "Estrutura apenas, temas sem métricas",
+                            value = "{\"id\": 1, \"nome\": \"Direito Constitucional\", \"temas\": [{\"id\": 1, \"nome\": \"Remédios Constitucionais\"}]}"
+                        ),
+                        @ExampleObject(
+                            name = "full",
+                            summary = "Todas as métricas, temas completos",
+                            value = "{\"id\": 1, \"nome\": \"Direito Constitucional\", \"totalEstudos\": 10, \"ultimoEstudo\": \"2026-02-20T14:00:00\", \"ultimaQuestao\": \"2026-02-21T10:00:00\", \"totalTemas\": 5, \"totalSubtemas\": 12, \"temasEstudados\": 2, \"subtemasEstudados\": 8, \"totalQuestoes\": 100, \"questoesRespondidas\": 50, \"questoesAcertadas\": 40, \"mediaTempoResposta\": 45, \"dificuldadeRespostas\": {\"FACIL\": {\"total\": 20, \"corretas\": 18}, \"MEDIA\": {\"total\": 30, \"corretas\": 22}}, \"temas\": [{\"id\": 1, \"nome\": \"Remédios Constitucionais\", \"totalSubtemas\": 3, \"subtemasEstudados\": 2, \"questoesRespondidas\": 20, \"questoesAcertadas\": 15, \"mediaTempoResposta\": 38, \"dificuldadeRespostas\": {}}]}"
+                        )
+                    }
                 )),
             @ApiResponse(responseCode = "404", description = "Disciplina não encontrada",
                 content = @Content(mediaType = "application/problem+json",
@@ -90,18 +147,17 @@ public class DisciplinaController {
         }
     )
     @GetMapping("/{id}")
-    public ResponseEntity<DisciplinaDetailDto> getDisciplinaById(@PathVariable Long id) {
-        return ResponseEntity.ok(disciplinaService.getDisciplinaDetailById(id));
+    public ResponseEntity<DisciplinaDetailDto> getDisciplinaById(
+            @PathVariable Long id,
+            @Parameter(description = "Nível de métricas: full (todos os dados). Padrão: lean (estrutura apenas).")
+            @RequestParam(required = false) String metrics) {
+        return ResponseEntity.ok(disciplinaService.getDisciplinaDetailById(id, parseMetrics(metrics)));
     }
 
     @Operation(
         summary = "Criar nova disciplina",
         responses = {
-            @ApiResponse(responseCode = "201", description = "Disciplina criada com sucesso",
-                content = @Content(
-                    schema = @Schema(implementation = DisciplinaDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 3, \"nome\": \"Direito Administrativo\", \"totalEstudos\": 0, \"ultimoEstudo\": null, \"ultimaQuestao\": null, \"totalTemas\": 0, \"totalSubtemas\": 0, \"temasEstudados\": 0, \"subtemasEstudados\": 0, \"totalQuestoes\": 0, \"questoesRespondidas\": 0, \"questoesAcertadas\": 0, \"mediaTempoResposta\": null, \"dificuldadeRespostas\": {}}")
-                )),
+            @ApiResponse(responseCode = "201", description = "Disciplina criada com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
@@ -117,18 +173,15 @@ public class DisciplinaController {
         }
     )
     @PostMapping
-    public ResponseEntity<DisciplinaDetailDto> createDisciplina(@Valid @RequestBody DisciplinaCreateRequest request) {
-        return new ResponseEntity<>(disciplinaService.create(request), HttpStatus.CREATED);
+    public ResponseEntity<Void> createDisciplina(@Valid @RequestBody DisciplinaCreateRequest request) {
+        disciplinaService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @Operation(
         summary = "Atualizar disciplina",
         responses = {
-            @ApiResponse(responseCode = "200", description = "Disciplina atualizada com sucesso",
-                content = @Content(
-                    schema = @Schema(implementation = DisciplinaDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Direito Constitucional Aplicado\", \"totalEstudos\": 0, \"ultimoEstudo\": null, \"ultimaQuestao\": null, \"totalTemas\": 0, \"totalSubtemas\": 0, \"temasEstudados\": 0, \"subtemasEstudados\": 0, \"totalQuestoes\": 0, \"questoesRespondidas\": 0, \"questoesAcertadas\": 0, \"mediaTempoResposta\": null, \"dificuldadeRespostas\": {}}")
-                )),
+            @ApiResponse(responseCode = "200", description = "Disciplina atualizada com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
@@ -150,8 +203,9 @@ public class DisciplinaController {
         }
     )
     @PutMapping("/{id}")
-    public ResponseEntity<DisciplinaDetailDto> updateDisciplina(@PathVariable Long id, @Valid @RequestBody DisciplinaUpdateRequest request) {
-        return ResponseEntity.ok(disciplinaService.update(id, request));
+    public ResponseEntity<Void> updateDisciplina(@PathVariable Long id, @Valid @RequestBody DisciplinaUpdateRequest request) {
+        disciplinaService.update(id, request);
+        return ResponseEntity.ok().build();
     }
 
     @Operation(
@@ -176,5 +230,15 @@ public class DisciplinaController {
     public ResponseEntity<Void> deleteDisciplina(@PathVariable Long id) {
         disciplinaService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private MetricsLevel parseMetrics(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        return switch (raw.toLowerCase()) {
+            case "lean" -> null;
+            case "summary" -> MetricsLevel.SUMMARY;
+            case "full" -> MetricsLevel.FULL;
+            default -> throw new IllegalArgumentException("Invalid metrics level: '" + raw + "'. Valid values: lean, summary, full");
+        };
     }
 }

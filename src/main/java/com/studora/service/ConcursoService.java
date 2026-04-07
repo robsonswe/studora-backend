@@ -1,6 +1,7 @@
 package com.studora.service;
 
 import com.studora.dto.DificuldadeStatDto;
+import com.studora.dto.MetricsLevel;
 import com.studora.dto.concurso.ConcursoFilter;
 import com.studora.dto.concurso.ConcursoDetailDto;
 import com.studora.dto.concurso.ConcursoSummaryDto;
@@ -105,24 +106,24 @@ public class ConcursoService {
         enrichTopicos(result.getContent().stream()
                 .filter(d -> d.getCargos() != null)
                 .flatMap(d -> d.getCargos().stream())
-                .collect(Collectors.toList()));
+                .collect(Collectors.toList()), null); // getAll returns full topicos (backwards compat)
         return result;
     }
 
     @Transactional(readOnly = true)
-    public ConcursoDetailDto getConcursoDetailById(Long id) {
+    public ConcursoDetailDto getConcursoDetailById(Long id, MetricsLevel metrics) {
         Concurso concurso = concursoRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Concurso", "ID", id));
         ConcursoDetailDto dto = concursoMapper.toDetailDto(concurso);
-        enrichTopicos(dto.getCargos() != null ? dto.getCargos() : java.util.List.of());
+        enrichTopicos(dto.getCargos() != null ? dto.getCargos() : java.util.List.of(), metrics);
         return dto;
     }
 
     @CacheEvict(value = "concurso-stats", allEntries = true)
-    public ConcursoDetailDto create(ConcursoCreateRequest request) {
-        log.info("Criando novo concurso: Inst {}, Banca {}, Ano {}", 
+    public void create(ConcursoCreateRequest request) {
+        log.info("Criando novo concurso: Inst {}, Banca {}, Ano {}",
                 request.getInstituicaoId(), request.getBancaId(), request.getAno());
-        
+
         if (concursoRepository.existsByInstituicaoIdAndBancaIdAndAnoAndMes(
                 request.getInstituicaoId(), request.getBancaId(), request.getAno(), request.getMes())) {
             throw new com.studora.exception.ConflictException("Já existe um concurso cadastrado para esta instituição, banca, ano e mês.");
@@ -130,7 +131,7 @@ public class ConcursoService {
 
         Instituicao instituicao = instituicaoRepository.findById(request.getInstituicaoId())
                 .orElseThrow(() -> new ResourceNotFoundException("Instituição", "ID", request.getInstituicaoId()));
-        
+
         Banca banca = bancaRepository.findById(request.getBancaId())
                 .orElseThrow(() -> new ResourceNotFoundException("Banca", "ID", request.getBancaId()));
 
@@ -154,11 +155,11 @@ public class ConcursoService {
             processTopicos(request.getTopicos(), concurso, cargoIds);
         }
 
-        return concursoMapper.toDetailDto(concursoRepository.save(concurso));
+        concursoRepository.save(concurso);
     }
 
     @CacheEvict(value = "concurso-stats", allEntries = true)
-    public ConcursoDetailDto update(Long id, ConcursoUpdateRequest request) {
+    public void update(Long id, ConcursoUpdateRequest request) {
         log.info("Atualizando concurso ID: {}", id);
         
         Concurso concurso = concursoRepository.findByIdWithDetails(id)
@@ -236,7 +237,7 @@ public class ConcursoService {
             concurso.setDataProva(request.getDataProva());
         }
 
-        return concursoMapper.toDetailDto(concursoRepository.save(concurso));
+        concursoRepository.save(concurso);
     }
 
     @CacheEvict(value = "concurso-stats", allEntries = true)
@@ -249,28 +250,19 @@ public class ConcursoService {
     }
 
     @CacheEvict(value = "concurso-stats", allEntries = true)
-    public ConcursoCargoSummaryDto toggleInscricao(Long concursoCargoId) {
+    public void toggleInscricao(Long concursoCargoId) {
         log.info("Togglings inscrição para ConcursoCargo ID: {}", concursoCargoId);
         ConcursoCargo cc = concursoCargoRepository.findById(concursoCargoId)
                 .orElseThrow(() -> new ResourceNotFoundException("ConcursoCargo", "ID", concursoCargoId));
-        
+
         boolean newStatus = !cc.isInscrito();
-        
+
         if (newStatus && concursoCargoRepository.existsByConcursoIdAndInscritoTrue(cc.getConcurso().getId())) {
             throw new ValidationException("Você já está inscrito em outro cargo para este concurso. Desinscreva-se primeiro.");
         }
 
         cc.setInscrito(newStatus);
-        cc = concursoCargoRepository.save(cc);
-        
-        ConcursoCargoSummaryDto dto = new ConcursoCargoSummaryDto();
-        dto.setId(cc.getId());
-        dto.setCargoId(cc.getCargo().getId());
-        dto.setCargoNome(cc.getCargo().getNome());
-        dto.setNivel(cc.getCargo().getNivel());
-        dto.setArea(cc.getCargo().getArea());
-        dto.setInscrito(cc.isInscrito());
-        return dto;
+        concursoCargoRepository.save(cc);
     }
 
     private void processTopicos(Map<Long, List<Long>> topicosRequest, Concurso concurso, List<Long> validCargoIds) {
@@ -375,7 +367,7 @@ public class ConcursoService {
         }
     }
 
-    private void enrichTopicos(java.util.List<ConcursoCargoSummaryDto> cargos) {
+    private void enrichTopicos(java.util.List<ConcursoCargoSummaryDto> cargos, MetricsLevel metrics) {
         List<Long> subtemaIds = cargos.stream()
                 .filter(c -> c.getTopicos() != null)
                 .flatMap(c -> c.getTopicos().stream())
@@ -388,32 +380,33 @@ public class ConcursoService {
             return;
         }
 
+        boolean isFull = metrics != null;
+
         // Sequential execution for subtema enrichment (typically small result sets)
-        // Parallel queries cause SQLITE_LOCKED on SQLite in-memory tests with shared cache
         Map<Long, Long> counts = toCountMap(estudoSubtemaRepository.countBySubtemaIds(subtemaIds));
         Map<Long, LocalDateTime> dates = toDateMap(estudoSubtemaRepository.findLatestStudyDatesBySubtemaIds(subtemaIds));
-        Map<Long, LocalDateTime> ultimaQuestaoDates = toDateMap(respostaRepository.findLatestResponseDatesBySubtemaIds(subtemaIds));
-        Map<Long, Long> totalQuestoesMap = toCountMap(questaoRepository.countQuestoesBySubtemaIds(subtemaIds));
-        Map<Long, Long> respondidasMap = toCountMap(respostaRepository.countRespondidasBySubtemaIds(subtemaIds));
-        Map<Long, Long> acertadasMap = toCountMap(respostaRepository.countAcertadasBySubtemaIds(subtemaIds));
-        Map<Long, Double> avgTempoMap = toDoubleMap(respostaRepository.avgTempoBySubtemaIds(subtemaIds));
-
-        // Optimized: native query with ROW_NUMBER() instead of loading full entity graph
-        Map<Long, Map<String, DificuldadeStatDto>> dificuldadeMap = parseDificuldadeStats(
-                respostaRepository.getDificuldadeStatsBySubtemaIds(subtemaIds));
+        Map<Long, Long> respondidasMap = isFull ? toCountMap(respostaRepository.countRespondidasBySubtemaIds(subtemaIds)) : Collections.emptyMap();
+        Map<Long, Long> acertadasMap = isFull ? toCountMap(respostaRepository.countAcertadasBySubtemaIds(subtemaIds)) : Collections.emptyMap();
+        Map<Long, LocalDateTime> ultimaQuestaoDates = isFull ? toDateMap(respostaRepository.findLatestResponseDatesBySubtemaIds(subtemaIds)) : Collections.emptyMap();
+        Map<Long, Long> totalQuestoesMap = isFull ? toCountMap(questaoRepository.countQuestoesBySubtemaIds(subtemaIds)) : Collections.emptyMap();
+        Map<Long, Double> avgTempoMap = isFull ? toDoubleMap(respostaRepository.avgTempoBySubtemaIds(subtemaIds)) : Collections.emptyMap();
+        Map<Long, Map<String, DificuldadeStatDto>> dificuldadeMap = isFull ? parseDificuldadeStats(respostaRepository.getDificuldadeStatsBySubtemaIds(subtemaIds)) : Collections.emptyMap();
 
         for (ConcursoCargoSummaryDto cargo : cargos) {
             if (cargo.getTopicos() == null) continue;
             for (SubtemaSummaryDto topico : cargo.getTopicos()) {
                 Long topId = topico.getId();
-                topico.setTotalEstudos(counts.getOrDefault(topId, 0L));
-                topico.setUltimoEstudo(dates.get(topId));
-                topico.setUltimaQuestao(ultimaQuestaoDates.get(topId));
-                topico.setTotalQuestoes(totalQuestoesMap.getOrDefault(topId, 0L));
-                topico.setQuestoesRespondidas(respondidasMap.getOrDefault(topId, 0L));
-                topico.setQuestoesAcertadas(acertadasMap.getOrDefault(topId, 0L));
-                topico.setMediaTempoResposta(avgTempoMap.containsKey(topId) ? avgTempoMap.get(topId).intValue() : null);
-                topico.setDificuldadeRespostas(dificuldadeMap.getOrDefault(topId, Collections.emptyMap()));
+                // Lean: structural only (id, nome, parent refs already set by mapper)
+                if (isFull) {
+                    topico.setTotalEstudos(counts.getOrDefault(topId, 0L));
+                    topico.setUltimoEstudo(dates.get(topId));
+                    topico.setUltimaQuestao(ultimaQuestaoDates.get(topId));
+                    topico.setTotalQuestoes(totalQuestoesMap.getOrDefault(topId, 0L));
+                    topico.setQuestoesRespondidas(respondidasMap.getOrDefault(topId, 0L));
+                    topico.setQuestoesAcertadas(acertadasMap.getOrDefault(topId, 0L));
+                    topico.setMediaTempoResposta(avgTempoMap.containsKey(topId) ? avgTempoMap.get(topId).intValue() : null);
+                    topico.setDificuldadeRespostas(dificuldadeMap.get(topId));
+                }
             }
         }
     }

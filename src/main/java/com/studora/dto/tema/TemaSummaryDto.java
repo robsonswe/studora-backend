@@ -1,10 +1,15 @@
 package com.studora.dto.tema;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.studora.dto.DificuldadeStatDto;
+import com.studora.dto.subtema.SubtemaSummaryDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+import java.util.List;
 import java.util.Map;
+
+@JsonInclude(JsonInclude.Include.NON_NULL)
 
 @Schema(description = "DTO simplificado para listagem de temas")
 @Data
@@ -22,7 +27,7 @@ public class TemaSummaryDto {
     private String nome;
 
     @Schema(description = "Total de sessões de estudo realizadas para todos os subtemas deste tema", example = "5")
-    private long totalEstudos;
+    private Long totalEstudos;
 
     @Schema(description = "Data e hora do último estudo realizado entre todos os subtemas deste tema")
     private java.time.LocalDateTime ultimoEstudo;
@@ -31,23 +36,26 @@ public class TemaSummaryDto {
     private java.time.LocalDateTime ultimaQuestao;
 
     @Schema(description = "Total de subtemas neste tema", example = "3")
-    private long totalSubtemas;
+    private Long totalSubtemas;
 
     @Schema(description = "Número de subtemas que possuem pelo menos uma sessão de estudo", example = "2")
-    private long subtemasEstudados;
+    private Long subtemasEstudados;
 
     @Schema(description = "Total de questões associadas a este tema (somando subtemas)", example = "30")
-    private long totalQuestoes;
+    private Long totalQuestoes;
 
     @Schema(description = "Total de questões que possuem pelo menos uma resposta", example = "20")
-    private long questoesRespondidas;
+    private Long questoesRespondidas;
 
     @Schema(description = "Total de questões que possuem pelo menos uma resposta correta", example = "15")
-    private long questoesAcertadas;
+    private Long questoesAcertadas;
 
     @Schema(description = "Tempo médio de resposta em segundos", example = "45")
     private Integer mediaTempoResposta;
 
     @Schema(description = "Estatísticas de respostas por nível de dificuldade (considerando apenas a resposta mais recente por questão)")
     private Map<String, DificuldadeStatDto> dificuldadeRespostas;
+
+    @Schema(description = "Lista de subtemas associados a este tema (populated in completo endpoint)")
+    private List<SubtemaSummaryDto> subtemas;
 }
