@@ -59,11 +59,16 @@ public class TemaController {
             @RequestParam(defaultValue = "nome") String sort,
             @RequestParam(defaultValue = "ASC") String direction) {
         
+        Map<String, String> propertyMapping = Map.of(
+            "disciplinaId", "disciplina.id",
+            "disciplinaNome", "disciplina.nome"
+        );
+
         List<Sort.Order> tieBreakers = List.of(
             Sort.Order.asc("nome"),
-            Sort.Order.asc("disciplina_id")
+            Sort.Order.asc("disciplina.id")
         );
-        Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, Map.of(), tieBreakers);
+        Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, propertyMapping, tieBreakers);
         Page<TemaSummaryDto> temas = temaService.findAll(nome, finalPageable);
         return ResponseEntity.ok(new PageResponse<>(temas));
     }

@@ -27,6 +27,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.time.LocalDateTime;
@@ -178,6 +179,7 @@ public class TemaService {
         return dto;
     }
 
+    @CacheEvict(value = "tema-stats", allEntries = true)
     public TemaDetailDto create(TemaCreateRequest request) {
         log.info("Criando novo tema: {} na disciplina ID: {}", request.getNome(), request.getDisciplinaId());
 
@@ -195,6 +197,7 @@ public class TemaService {
         return temaMapper.toDetailDto(temaRepository.save(tema));
     }
 
+    @CacheEvict(value = "tema-stats", allEntries = true)
     public TemaDetailDto update(Long id, TemaUpdateRequest request) {
         log.info("Atualizando tema ID: {}", id);
 
@@ -275,6 +278,7 @@ public class TemaService {
         }).collect(Collectors.toList());
     }
 
+    @CacheEvict(value = "tema-stats", allEntries = true)
     public void delete(Long id) {
         log.info("Excluindo tema ID: {}", id);
         if (!temaRepository.existsById(id)) {

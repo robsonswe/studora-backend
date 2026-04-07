@@ -67,11 +67,18 @@ public class SubtemaController {
             @RequestParam(defaultValue = "nome") String sort,
             @RequestParam(defaultValue = "ASC") String direction) {
         
+        Map<String, String> propertyMapping = Map.of(
+            "temaId", "tema.id",
+            "temaNome", "tema.nome",
+            "disciplinaId", "tema.disciplina.id",
+            "disciplinaNome", "tema.disciplina.nome"
+        );
+
         List<Sort.Order> tieBreakers = List.of(
             Sort.Order.asc("nome"),
-            Sort.Order.asc("tema_id")
+            Sort.Order.asc("tema.id")
         );
-        Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, Map.of(), tieBreakers);
+        Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, propertyMapping, tieBreakers);
         
         Page<SubtemaSummaryDto> subtemas = subtemaService.findAll(nome, finalPageable);
         return ResponseEntity.ok(new PageResponse<>(subtemas));

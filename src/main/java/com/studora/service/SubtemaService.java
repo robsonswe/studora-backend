@@ -24,6 +24,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.util.Collections;
@@ -147,6 +148,7 @@ public class SubtemaService {
         return dto;
     }
 
+    @CacheEvict(value = "subtema-stats", allEntries = true)
     public SubtemaDetailDto create(SubtemaCreateRequest request) {
         log.info("Criando novo subtema: {} no tema ID: {}", request.getNome(), request.getTemaId());
         
@@ -164,6 +166,7 @@ public class SubtemaService {
         return subtemaMapper.toDetailDto(subtemaRepository.save(subtema));
     }
 
+    @CacheEvict(value = "subtema-stats", allEntries = true)
     public SubtemaDetailDto update(Long id, SubtemaUpdateRequest request) {
         log.info("Atualizando subtema ID: {}", id);
         
@@ -240,6 +243,7 @@ public class SubtemaService {
                 .collect(Collectors.toList());
     }
 
+    @CacheEvict(value = "subtema-stats", allEntries = true)
     public void delete(Long id) {
         log.info("Excluindo subtema ID: {}", id);
         if (!subtemaRepository.existsById(id)) {
