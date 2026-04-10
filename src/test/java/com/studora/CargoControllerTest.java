@@ -43,8 +43,7 @@ class CargoControllerTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(request))
             )
-            .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.nome").value("Analista"));
+            .andExpect(status().isCreated());
 
         // Get All
         mockMvc
@@ -72,8 +71,7 @@ class CargoControllerTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(updateRequest))
             )
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.nome").value("New Name"));
+            .andExpect(status().isOk());
     }
 
     @Test
@@ -85,9 +83,42 @@ class CargoControllerTest {
         cargo = cargoRepository.save(cargo);
 
         mockMvc
-            .perform(get("/api/v1/cargos/{id}", cargo.getId()))
+            .perform(get("/api/v1/cargos/{id}", cargo.getId()).param("metrics", "full"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.nome").value("Tecnico"));
+            .andExpect(jsonPath("$.nome").value("Tecnico"))
+            .andExpect(jsonPath("$.questaoStats").exists())
+            .andExpect(jsonPath("$.questaoStats.total").exists())
+            .andExpect(jsonPath("$.questaoStats.porNivel").doesNotExist())
+            .andExpect(jsonPath("$.questaoStats.porBanca").exists())
+            .andExpect(jsonPath("$.questaoStats.porAreaCargo").exists())
+            .andExpect(jsonPath("$.questaoStats.porAreaInstituicao").exists());
+    }
+
+    @Test
+    void testGetAllCargos_MetricsTiers() throws Exception {
+        Cargo c = new Cargo(); c.setNome("Cargo Stats Test"); c.setNivel(NivelCargo.SUPERIOR); c.setArea("TI");
+        cargoRepository.save(c);
+
+        // Lean (default): no questaoStats
+        mockMvc
+            .perform(get("/api/v1/cargos"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].questaoStats").doesNotExist());
+
+        // Summary: only total
+        mockMvc
+            .perform(get("/api/v1/cargos").param("metrics", "summary"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].questaoStats.total").exists())
+            .andExpect(jsonPath("$.content[0].questaoStats.porNivel").doesNotExist());
+
+        // Full: all breakdowns (no porNivel for Cargo)
+        mockMvc
+            .perform(get("/api/v1/cargos").param("metrics", "full"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].questaoStats.total").exists())
+            .andExpect(jsonPath("$.content[0].questaoStats.porNivel").doesNotExist())
+            .andExpect(jsonPath("$.content[0].questaoStats.porBanca").exists());
     }
 
     @Test

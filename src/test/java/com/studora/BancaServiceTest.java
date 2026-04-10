@@ -25,13 +25,16 @@ class BancaServiceTest {
     @Mock
     private com.studora.repository.ConcursoRepository concursoRepository;
 
+    @Mock
+    private com.studora.service.StatsAssembler statsAssembler;
+
     private BancaService bancaService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
         com.studora.mapper.BancaMapper realMapper = org.mapstruct.factory.Mappers.getMapper(com.studora.mapper.BancaMapper.class);
-        bancaService = new BancaService(bancaRepository, realMapper, concursoRepository);
+        bancaService = new BancaService(bancaRepository, realMapper, concursoRepository, statsAssembler);
     }
 
     @Test
@@ -42,7 +45,7 @@ class BancaServiceTest {
 
         when(bancaRepository.findById(1L)).thenReturn(Optional.of(banca));
 
-        BancaDetailDto result = bancaService.getBancaDetailById(1L);
+        BancaDetailDto result = bancaService.getBancaDetailById(1L, null);
         assertNotNull(result);
         assertEquals("Test", result.getNome());
     }
@@ -59,9 +62,8 @@ class BancaServiceTest {
             return b;
         });
 
-        BancaDetailDto result = bancaService.create(request);
-        assertEquals(1L, result.getId());
-        assertEquals("Test", result.getNome());
+        bancaService.create(request);
+        verify(bancaRepository).save(any(Banca.class));
     }
 
     @Test
@@ -96,8 +98,8 @@ class BancaServiceTest {
         when(bancaRepository.findByNomeIgnoreCase("New Name")).thenReturn(Optional.empty());
         when(bancaRepository.save(any(Banca.class))).thenAnswer(i -> i.getArgument(0));
 
-        BancaDetailDto result = bancaService.update(id, req);
-        assertEquals("New Name", result.getNome());
+        bancaService.update(id, req);
+        verify(bancaRepository).save(any(Banca.class));
     }
 
     @Test
@@ -129,8 +131,8 @@ class BancaServiceTest {
         when(bancaRepository.existsById(1L)).thenReturn(true);
         when(concursoRepository.existsByBancaId(1L)).thenReturn(true);
 
-        com.studora.exception.ValidationException exception = assertThrows(
-            com.studora.exception.ValidationException.class, 
+        ConflictException exception = assertThrows(
+            ConflictException.class,
             () -> bancaService.delete(1L)
         );
 

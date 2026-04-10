@@ -1057,13 +1057,13 @@ class ConcursoControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.cargos[0].topicos[0].nome").value("Subtema Tiers"))
             .andExpect(jsonPath("$.cargos[0].topicos[0].totalEstudos").doesNotExist())
-            .andExpect(jsonPath("$.cargos[0].topicos[0].questoesRespondidas").doesNotExist());
+            .andExpect(jsonPath("$.cargos[0].topicos[0].questaoStats").doesNotExist());
 
-        // Full: topicos should have metrics (0 since no data)
+        // Full: topicos should have metrics (questaoStats populated, totalEstudos for subtema)
         mockMvc
             .perform(get("/api/v1/concursos/{id}", concurso.getId()).param("metrics", "full"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.cargos[0].topicos[0].totalEstudos").value(0))
-            .andExpect(jsonPath("$.cargos[0].topicos[0].questoesRespondidas").value(0));
+            .andExpect(jsonPath("$.cargos[0].topicos[0].questaoStats").isNotEmpty());
     }
 }

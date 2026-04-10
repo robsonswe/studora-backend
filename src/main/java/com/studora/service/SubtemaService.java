@@ -1,13 +1,10 @@
 package com.studora.service;
 
-import com.studora.dto.DificuldadeStatDto;
 import com.studora.dto.MetricsLevel;
 import com.studora.dto.subtema.SubtemaDetailDto;
 import com.studora.dto.subtema.SubtemaSummaryDto;
 import com.studora.dto.request.SubtemaCreateRequest;
 import com.studora.dto.request.SubtemaUpdateRequest;
-import com.studora.entity.Dificuldade;
-import com.studora.entity.Resposta;
 import com.studora.entity.Subtema;
 import com.studora.entity.Tema;
 import com.studora.exception.ConflictException;
@@ -15,21 +12,19 @@ import com.studora.exception.ResourceNotFoundException;
 import com.studora.exception.ValidationException;
 import com.studora.mapper.SubtemaMapper;
 import com.studora.repository.QuestaoRepository;
-import com.studora.repository.RespostaRepository;
 import com.studora.repository.SubtemaRepository;
 import com.studora.repository.TemaRepository;
-import lombok.RequiredArgsConstructor;
+import com.studora.repository.EstudoSubtemaRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.beans.factory.annotation.Qualifier;
 
-import java.util.Collections;
-import java.util.HashMap;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -45,22 +40,23 @@ public class SubtemaService {
     private final SubtemaRepository subtemaRepository;
     private final TemaRepository temaRepository;
     private final QuestaoRepository questaoRepository;
-    private final RespostaRepository respostaRepository;
-    private final com.studora.repository.EstudoSubtemaRepository estudoSubtemaRepository;
+    private final EstudoSubtemaRepository estudoSubtemaRepository;
     private final SubtemaMapper subtemaMapper;
+    private final StatsAssembler statsAssembler;
     private final Executor dbStatsExecutor;
 
     public SubtemaService(SubtemaRepository subtemaRepository, TemaRepository temaRepository,
-                          QuestaoRepository questaoRepository, RespostaRepository respostaRepository,
-                          com.studora.repository.EstudoSubtemaRepository estudoSubtemaRepository,
+                          QuestaoRepository questaoRepository,
+                          EstudoSubtemaRepository estudoSubtemaRepository,
                           SubtemaMapper subtemaMapper,
+                          StatsAssembler statsAssembler,
                           @Qualifier("dbStatsExecutor") Executor dbStatsExecutor) {
         this.subtemaRepository = subtemaRepository;
         this.temaRepository = temaRepository;
         this.questaoRepository = questaoRepository;
-        this.respostaRepository = respostaRepository;
         this.estudoSubtemaRepository = estudoSubtemaRepository;
         this.subtemaMapper = subtemaMapper;
+        this.statsAssembler = statsAssembler;
         this.dbStatsExecutor = dbStatsExecutor;
     }
 
@@ -74,67 +70,25 @@ public class SubtemaService {
             page = subtemaRepository.findAll(pageable);
         }
 
-        if (page.isEmpty()) {
-            return Page.empty(pageable);
+        if (page.isEmpty() || metrics == null) {
+            return page.map(subtemaMapper::toSummaryDto);
         }
 
         List<Long> ids = page.getContent().stream().map(Subtema::getId).collect(Collectors.toList());
+        
+        var countsFut = CompletableFuture.supplyAsync(() -> toCountMap(estudoSubtemaRepository.countBySubtemaIds(ids)), dbStatsExecutor);
+        var datesFut  = CompletableFuture.supplyAsync(() -> toDateMap(estudoSubtemaRepository.findLatestStudyDatesBySubtemaIds(ids)), dbStatsExecutor);
 
-        // Lean tier: skip all metric queries
-        if (metrics == null) {
-            return page.map(subtema -> {
-                SubtemaSummaryDto dto = subtemaMapper.toSummaryDto(subtema);
-                return dto;
-            });
-        }
-
-        boolean isFull = metrics == MetricsLevel.FULL;
-
-        var countsFut           = CompletableFuture.supplyAsync(() -> toCountMap(estudoSubtemaRepository.countBySubtemaIds(ids)), dbStatsExecutor);
-        var datesFut            = CompletableFuture.supplyAsync(() -> toDateMap(estudoSubtemaRepository.findLatestStudyDatesBySubtemaIds(ids)), dbStatsExecutor);
-        var respondidasFut      = CompletableFuture.supplyAsync(() -> toCountMap(respostaRepository.countRespondidasBySubtemaIds(ids)), dbStatsExecutor);
-        var acertadasFut        = CompletableFuture.supplyAsync(() -> toCountMap(respostaRepository.countAcertadasBySubtemaIds(ids)), dbStatsExecutor);
-
-        var ultimaQuestaoDatesFut = isFull ? CompletableFuture.supplyAsync(() -> toDateMap(respostaRepository.findLatestResponseDatesBySubtemaIds(ids)), dbStatsExecutor) : null;
-        var totalQuestoesFut    = isFull ? CompletableFuture.supplyAsync(() -> toCountMap(questaoRepository.countQuestoesBySubtemaIds(ids)), dbStatsExecutor) : null;
-        var avgTempoFut         = isFull ? CompletableFuture.supplyAsync(() -> toDoubleMap(respostaRepository.avgTempoBySubtemaIds(ids)), dbStatsExecutor) : null;
-        var dificuldadeFut      = isFull ? CompletableFuture.supplyAsync(() -> parseDificuldadeStats(respostaRepository.getDificuldadeStatsBySubtemaIds(ids)), dbStatsExecutor) : null;
-
-        CompletableFuture.allOf(
-                countsFut, datesFut, respondidasFut, acertadasFut,
-                isFull ? ultimaQuestaoDatesFut : CompletableFuture.completedFuture(null),
-                isFull ? totalQuestoesFut : CompletableFuture.completedFuture(null),
-                isFull ? avgTempoFut : CompletableFuture.completedFuture(null),
-                isFull ? dificuldadeFut : CompletableFuture.completedFuture(null)
-        ).join();
+        CompletableFuture.allOf(countsFut, datesFut).join();
 
         Map<Long, Long> counts = countsFut.join();
-        Map<Long, java.time.LocalDateTime> dates = datesFut.join();
-        Map<Long, Long> respondidasMap = respondidasFut.join();
-        Map<Long, Long> acertadasMap = acertadasFut.join();
-
-        Map<Long, java.time.LocalDateTime> ultimaQuestaoDates = isFull ? ultimaQuestaoDatesFut.join() : Collections.emptyMap();
-        Map<Long, Long> totalQuestoesMap = isFull ? totalQuestoesFut.join() : Collections.emptyMap();
-        Map<Long, Double> avgTempoMap = isFull ? avgTempoFut.join() : Collections.emptyMap();
-        Map<Long, Map<String, DificuldadeStatDto>> dificuldadeMap = isFull ? dificuldadeFut.join() : Collections.emptyMap();
+        Map<Long, LocalDateTime> dates = datesFut.join();
 
         return page.map(subtema -> {
-            Long subId = subtema.getId();
             SubtemaSummaryDto dto = subtemaMapper.toSummaryDto(subtema);
-
-            // Summary tier
-            dto.setTotalEstudos(counts.getOrDefault(subId, 0L));
-            dto.setUltimoEstudo(dates.get(subId));
-            dto.setQuestoesRespondidas(respondidasMap.getOrDefault(subId, 0L));
-            dto.setQuestoesAcertadas(acertadasMap.getOrDefault(subId, 0L));
-
-            // Full tier
-            if (isFull) {
-                dto.setUltimaQuestao(ultimaQuestaoDates.get(subId));
-                dto.setTotalQuestoes(totalQuestoesMap.getOrDefault(subId, 0L));
-                dto.setMediaTempoResposta(avgTempoMap.containsKey(subId) ? avgTempoMap.get(subId).intValue() : null);
-                dto.setDificuldadeRespostas(dificuldadeMap.getOrDefault(subId, Collections.emptyMap()));
-            }
+            dto.setQuestaoStats(statsAssembler.buildStats(subtema.getId(), "SUBTEMA", metrics));
+            dto.setTotalEstudos(counts.getOrDefault(subtema.getId(), 0L));
+            dto.setUltimoEstudo(dates.get(subtema.getId()));
             return dto;
         });
     }
@@ -145,34 +99,12 @@ public class SubtemaService {
                 .orElseThrow(() -> new ResourceNotFoundException("Subtema", "ID", id));
 
         SubtemaDetailDto dto = subtemaMapper.toDetailDto(subtema);
-        boolean isFull = metrics != null;
 
-        if (isFull) {
+        if (metrics != null) {
+            dto.setQuestaoStats(statsAssembler.buildStats(id, "SUBTEMA", metrics));
             dto.setTotalEstudos(estudoSubtemaRepository.countBySubtemaId(id));
             dto.setUltimoEstudo(estudoSubtemaRepository.findFirstBySubtemaIdOrderByCreatedAtDesc(id)
                     .map(com.studora.entity.EstudoSubtema::getCreatedAt).orElse(null));
-            dto.setUltimaQuestao(toDateMap(respostaRepository.findLatestResponseDatesBySubtemaIds(List.of(id))).get(id));
-
-            List<Long> singleId = List.of(id);
-            dto.setTotalQuestoes(toCountMap(questaoRepository.countQuestoesBySubtemaIds(singleId)).getOrDefault(id, 0L));
-            dto.setQuestoesRespondidas(toCountMap(respostaRepository.countRespondidasBySubtemaIds(singleId)).getOrDefault(id, 0L));
-            dto.setQuestoesAcertadas(toCountMap(respostaRepository.countAcertadasBySubtemaIds(singleId)).getOrDefault(id, 0L));
-            Map<Long, Double> avgTempoMap = toDoubleMap(respostaRepository.avgTempoBySubtemaIds(singleId));
-            dto.setMediaTempoResposta(avgTempoMap.containsKey(id) ? avgTempoMap.get(id).intValue() : null);
-            dto.setDificuldadeRespostas(parseDificuldadeStats(respostaRepository.getDificuldadeStatsBySubtemaIds(singleId)).get(id));
-        }
-
-        // Enrich nested tema with tier-aware population
-        if (dto.getTema() != null) {
-            Long temaId = dto.getTema().getId();
-            if (isFull) {
-                List<Long> singleTemaId = List.of(temaId);
-                dto.getTema().setTotalEstudos(toCountMap(estudoSubtemaRepository.countByTemaIds(singleTemaId)).getOrDefault(temaId, 0L));
-                dto.getTema().setUltimoEstudo(toDateMap(estudoSubtemaRepository.findLatestStudyDatesByTemaIds(singleTemaId)).get(temaId));
-                dto.getTema().setUltimaQuestao(toDateMap(respostaRepository.findLatestResponseDatesByTemaIds(singleTemaId)).get(temaId));
-                dto.getTema().setTotalSubtemas(toCountMap(subtemaRepository.countByTemaIds(singleTemaId)).getOrDefault(temaId, 0L));
-                dto.getTema().setSubtemasEstudados(toCountMap(estudoSubtemaRepository.countDistinctStudiedSubtemasByTemaIds(singleTemaId)).getOrDefault(temaId, 0L));
-            }
         }
 
         return dto;
@@ -230,68 +162,27 @@ public class SubtemaService {
             throw new ResourceNotFoundException("Tema", "ID", temaId);
         }
         List<Subtema> subtemas = subtemaRepository.findByTemaId(temaId);
-        if (subtemas.isEmpty()) {
-            return java.util.Collections.emptyList();
+        
+        if (subtemas.isEmpty() || metrics == null) {
+            return subtemas.stream().map(subtemaMapper::toSummaryDto).collect(Collectors.toList());
         }
 
         List<Long> ids = subtemas.stream().map(Subtema::getId).collect(Collectors.toList());
+        
+        var countsFut = CompletableFuture.supplyAsync(() -> toCountMap(estudoSubtemaRepository.countBySubtemaIds(ids)), dbStatsExecutor);
+        var datesFut  = CompletableFuture.supplyAsync(() -> toDateMap(estudoSubtemaRepository.findLatestStudyDatesBySubtemaIds(ids)), dbStatsExecutor);
 
-        // Lean tier: skip all metric queries
-        if (metrics == null) {
-            return subtemas.stream().map(subtema -> {
-                SubtemaSummaryDto dto = subtemaMapper.toSummaryDto(subtema);
-                return dto;
-            }).collect(Collectors.toList());
-        }
-
-        boolean isFull = metrics == MetricsLevel.FULL;
-
-        var countsFut           = CompletableFuture.supplyAsync(() -> toCountMap(estudoSubtemaRepository.countBySubtemaIds(ids)), dbStatsExecutor);
-        var datesFut            = CompletableFuture.supplyAsync(() -> toDateMap(estudoSubtemaRepository.findLatestStudyDatesBySubtemaIds(ids)), dbStatsExecutor);
-        var respondidasFut      = CompletableFuture.supplyAsync(() -> toCountMap(respostaRepository.countRespondidasBySubtemaIds(ids)), dbStatsExecutor);
-        var acertadasFut        = CompletableFuture.supplyAsync(() -> toCountMap(respostaRepository.countAcertadasBySubtemaIds(ids)), dbStatsExecutor);
-
-        var ultimaQuestaoDatesFut = isFull ? CompletableFuture.supplyAsync(() -> toDateMap(respostaRepository.findLatestResponseDatesBySubtemaIds(ids)), dbStatsExecutor) : null;
-        var totalQuestoesFut    = isFull ? CompletableFuture.supplyAsync(() -> toCountMap(questaoRepository.countQuestoesBySubtemaIds(ids)), dbStatsExecutor) : null;
-        var avgTempoFut         = isFull ? CompletableFuture.supplyAsync(() -> toDoubleMap(respostaRepository.avgTempoBySubtemaIds(ids)), dbStatsExecutor) : null;
-        var dificuldadeFut      = isFull ? CompletableFuture.supplyAsync(() -> parseDificuldadeStats(respostaRepository.getDificuldadeStatsBySubtemaIds(ids)), dbStatsExecutor) : null;
-
-        CompletableFuture.allOf(
-                countsFut, datesFut, respondidasFut, acertadasFut,
-                isFull ? ultimaQuestaoDatesFut : CompletableFuture.completedFuture(null),
-                isFull ? totalQuestoesFut : CompletableFuture.completedFuture(null),
-                isFull ? avgTempoFut : CompletableFuture.completedFuture(null),
-                isFull ? dificuldadeFut : CompletableFuture.completedFuture(null)
-        ).join();
+        CompletableFuture.allOf(countsFut, datesFut).join();
 
         Map<Long, Long> counts = countsFut.join();
-        Map<Long, java.time.LocalDateTime> dates = datesFut.join();
-        Map<Long, Long> respondidasMap = respondidasFut.join();
-        Map<Long, Long> acertadasMap = acertadasFut.join();
-
-        Map<Long, java.time.LocalDateTime> ultimaQuestaoDates = isFull ? ultimaQuestaoDatesFut.join() : Collections.emptyMap();
-        Map<Long, Long> totalQuestoesMap = isFull ? totalQuestoesFut.join() : Collections.emptyMap();
-        Map<Long, Double> avgTempoMap = isFull ? avgTempoFut.join() : Collections.emptyMap();
-        Map<Long, Map<String, DificuldadeStatDto>> dificuldadeMap = isFull ? dificuldadeFut.join() : Collections.emptyMap();
+        Map<Long, LocalDateTime> dates = datesFut.join();
 
         return subtemas.stream()
                 .map(subtema -> {
-                    Long subId = subtema.getId();
                     SubtemaSummaryDto dto = subtemaMapper.toSummaryDto(subtema);
-
-                    // Summary tier
-                    dto.setTotalEstudos(counts.getOrDefault(subId, 0L));
-                    dto.setUltimoEstudo(dates.get(subId));
-                    dto.setQuestoesRespondidas(respondidasMap.getOrDefault(subId, 0L));
-                    dto.setQuestoesAcertadas(acertadasMap.getOrDefault(subId, 0L));
-
-                    // Full tier
-                    if (isFull) {
-                        dto.setUltimaQuestao(ultimaQuestaoDates.get(subId));
-                        dto.setTotalQuestoes(totalQuestoesMap.getOrDefault(subId, 0L));
-                        dto.setMediaTempoResposta(avgTempoMap.containsKey(subId) ? avgTempoMap.get(subId).intValue() : null);
-                        dto.setDificuldadeRespostas(dificuldadeMap.getOrDefault(subId, Collections.emptyMap()));
-                    }
+                    dto.setQuestaoStats(statsAssembler.buildStats(subtema.getId(), "SUBTEMA", metrics));
+                    dto.setTotalEstudos(counts.getOrDefault(subtema.getId(), 0L));
+                    dto.setUltimoEstudo(dates.get(subtema.getId()));
                     return dto;
                 })
                 .collect(Collectors.toList());
@@ -317,45 +208,16 @@ public class SubtemaService {
                 row -> ((Number) row[1]).longValue()));
     }
 
-    private Map<Long, java.time.LocalDateTime> toDateMap(List<Object[]> rows) {
+    private Map<Long, LocalDateTime> toDateMap(List<Object[]> rows) {
         return rows.stream().collect(Collectors.toMap(
                 row -> ((Number) row[0]).longValue(),
                 row -> parseDate(row[1])));
     }
 
-    private Map<Long, Double> toDoubleMap(List<Object[]> rows) {
-        return rows.stream().collect(Collectors.toMap(
-                row -> ((Number) row[0]).longValue(),
-                row -> ((Number) row[1]).doubleValue()));
-    }
-
-    private java.time.LocalDateTime parseDate(Object val) {
-        if (val instanceof java.time.LocalDateTime) return (java.time.LocalDateTime) val;
-        if (val instanceof String) return java.time.LocalDateTime.parse((String) val, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+    private LocalDateTime parseDate(Object val) {
+        if (val instanceof LocalDateTime) return (LocalDateTime) val;
+        if (val instanceof String) return LocalDateTime.parse((String) val, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        if (val instanceof java.sql.Timestamp) return ((java.sql.Timestamp) val).toLocalDateTime();
         return null;
-    }
-
-    private Map<String, DificuldadeStatDto> initEmptyDificuldadeMap() {
-        Map<String, DificuldadeStatDto> map = new HashMap<>();
-        for (Dificuldade d : Dificuldade.values()) {
-            map.put(d.name(), new DificuldadeStatDto(0, 0));
-        }
-        return map;
-    }
-
-    private Map<Long, Map<String, DificuldadeStatDto>> parseDificuldadeStats(List<Object[]> rows) {
-        Map<Long, Map<String, DificuldadeStatDto>> result = new HashMap<>();
-        for (Object[] row : rows) {
-            Long scopeId = ((Number) row[0]).longValue();
-            int diffId = ((Number) row[1]).intValue();
-            int total = ((Number) row[2]).intValue();
-            int corretas = row[3] != null ? ((Number) row[3]).intValue() : 0;
-            
-            String diffName = Dificuldade.fromId(diffId).name();
-            
-            result.computeIfAbsent(scopeId, k -> initEmptyDificuldadeMap())
-                  .put(diffName, new DificuldadeStatDto(total, corretas));
-        }
-        return result;
     }
 }

@@ -1,77 +1,48 @@
 package com.studora.service;
 
-import com.studora.dto.DificuldadeStatDto;
 import com.studora.dto.MetricsLevel;
 import com.studora.dto.tema.TemaDetailDto;
 import com.studora.dto.tema.TemaSummaryDto;
 import com.studora.dto.request.TemaCreateRequest;
 import com.studora.dto.request.TemaUpdateRequest;
-import com.studora.entity.Dificuldade;
 import com.studora.entity.Disciplina;
-import com.studora.entity.Resposta;
-import com.studora.entity.Subtema;
 import com.studora.entity.Tema;
 import com.studora.exception.ConflictException;
 import com.studora.exception.ResourceNotFoundException;
 import com.studora.exception.ValidationException;
 import com.studora.mapper.TemaMapper;
 import com.studora.repository.DisciplinaRepository;
-import com.studora.repository.EstudoSubtemaRepository;
-import com.studora.repository.QuestaoRepository;
-import com.studora.repository.RespostaRepository;
 import com.studora.repository.SubtemaRepository;
 import com.studora.repository.TemaRepository;
+import com.studora.repository.EstudoSubtemaRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @Transactional
+@RequiredArgsConstructor
 public class TemaService {
 
     private final TemaRepository temaRepository;
     private final DisciplinaRepository disciplinaRepository;
     private final SubtemaRepository subtemaRepository;
     private final EstudoSubtemaRepository estudoSubtemaRepository;
-    private final QuestaoRepository questaoRepository;
-    private final RespostaRepository respostaRepository;
     private final TemaMapper temaMapper;
     private final SubtemaService subtemaService;
-    private final Executor dbStatsExecutor;
-
-    public TemaService(TemaRepository temaRepository, DisciplinaRepository disciplinaRepository,
-                       SubtemaRepository subtemaRepository, EstudoSubtemaRepository estudoSubtemaRepository,
-                       QuestaoRepository questaoRepository, RespostaRepository respostaRepository,
-                       TemaMapper temaMapper, SubtemaService subtemaService,
-                       @Qualifier("dbStatsExecutor") Executor dbStatsExecutor) {
-        this.temaRepository = temaRepository;
-        this.disciplinaRepository = disciplinaRepository;
-        this.subtemaRepository = subtemaRepository;
-        this.estudoSubtemaRepository = estudoSubtemaRepository;
-        this.questaoRepository = questaoRepository;
-        this.respostaRepository = respostaRepository;
-        this.temaMapper = temaMapper;
-        this.subtemaService = subtemaService;
-        this.dbStatsExecutor = dbStatsExecutor;
-    }
+    private final StatsAssembler statsAssembler;
 
     @Cacheable(value = "tema-stats", key = "T(java.util.Objects).hash('all', #nome, #pageable.pageNumber, #pageable.pageSize, #pageable.sort, #metrics)")
     @Transactional(readOnly = true)
@@ -83,122 +54,38 @@ public class TemaService {
             page = temaRepository.findAll(pageable);
         }
 
-        if (page.isEmpty()) {
-            return Page.empty(pageable);
+        if (page.isEmpty() || metrics == null) {
+            return page.map(temaMapper::toSummaryDto);
         }
 
-        List<Long> ids = page.getContent().stream().map(Tema::getId).toList();
-
-        // Lean tier: skip all metric queries
-        if (metrics == null) {
-            return page.map(tema -> {
-                TemaSummaryDto dto = temaMapper.toSummaryDto(tema);
-                return dto;
-            });
-        }
-
-        boolean isFull = metrics == MetricsLevel.FULL;
-
-        var totalEstudosFut    = CompletableFuture.supplyAsync(() -> toCountMap(estudoSubtemaRepository.countByTemaIds(ids)), dbStatsExecutor);
-        var ultimoEstudoFut    = CompletableFuture.supplyAsync(() -> toDateMap(estudoSubtemaRepository.findLatestStudyDatesByTemaIds(ids)), dbStatsExecutor);
-        var totalSubtemasFut   = CompletableFuture.supplyAsync(() -> toCountMap(subtemaRepository.countByTemaIds(ids)), dbStatsExecutor);
-        var subtemasEstudadosFut = CompletableFuture.supplyAsync(() -> toCountMap(estudoSubtemaRepository.countDistinctStudiedSubtemasByTemaIds(ids)), dbStatsExecutor);
-
-        var ultimaQuestaoFut   = isFull ? CompletableFuture.supplyAsync(() -> toDateMap(respostaRepository.findLatestResponseDatesByTemaIds(ids)), dbStatsExecutor) : null;
-        var totalQuestoesFut   = isFull ? CompletableFuture.supplyAsync(() -> toCountMap(questaoRepository.countQuestoesByTemaIds(ids)), dbStatsExecutor) : null;
-        var respondidasFut     = CompletableFuture.supplyAsync(() -> toCountMap(respostaRepository.countRespondidasByTemaIds(ids)), dbStatsExecutor);
-        var acertadasFut       = CompletableFuture.supplyAsync(() -> toCountMap(respostaRepository.countAcertadasByTemaIds(ids)), dbStatsExecutor);
-        var avgTempoFut        = isFull ? CompletableFuture.supplyAsync(() -> toDoubleMap(respostaRepository.avgTempoByTemaIds(ids)), dbStatsExecutor) : null;
-        var dificuldadeFut     = isFull ? CompletableFuture.supplyAsync(() -> parseDificuldadeStats(respostaRepository.getDificuldadeStatsByTemaIds(ids)), dbStatsExecutor) : null;
-
-        CompletableFuture.allOf(
-                totalEstudosFut, ultimoEstudoFut, totalSubtemasFut, subtemasEstudadosFut, respondidasFut, acertadasFut,
-                isFull ? ultimaQuestaoFut : CompletableFuture.completedFuture(null),
-                isFull ? totalQuestoesFut : CompletableFuture.completedFuture(null),
-                isFull ? avgTempoFut : CompletableFuture.completedFuture(null),
-                isFull ? dificuldadeFut : CompletableFuture.completedFuture(null)
-        ).join();
-
-        Map<Long, Long> totalEstudosMap = totalEstudosFut.join();
-        Map<Long, LocalDateTime> ultimoEstudoMap = ultimoEstudoFut.join();
-        Map<Long, Long> totalSubtemasMap = totalSubtemasFut.join();
-        Map<Long, Long> subtemasEstudadosMap = subtemasEstudadosFut.join();
-        Map<Long, Long> respondidasMap = respondidasFut.join();
-        Map<Long, Long> acertadasMap = acertadasFut.join();
-
-        Map<Long, LocalDateTime> ultimaQuestaoMap = isFull ? ultimaQuestaoFut.join() : Collections.emptyMap();
-        Map<Long, Long> totalQuestoesMap = isFull ? totalQuestoesFut.join() : Collections.emptyMap();
-        Map<Long, Double> avgTempoMap = isFull ? avgTempoFut.join() : Collections.emptyMap();
-        Map<Long, Map<String, DificuldadeStatDto>> dificuldadeMap = isFull ? dificuldadeFut.join() : Collections.emptyMap();
+        List<Long> ids = page.getContent().stream().map(Tema::getId).collect(Collectors.toList());
+        Map<Long, LocalDateTime> dates = toDateMap(estudoSubtemaRepository.findLatestStudyDatesByTemaIds(ids));
+        Map<Long, Long> totalSub = toMap(subtemaRepository.countByTemaIds(ids));
+        Map<Long, Long> studSub = toMap(estudoSubtemaRepository.countDistinctStudiedSubtemasByTemaIds(ids));
 
         return page.map(tema -> {
-            Long temaId = tema.getId();
             TemaSummaryDto dto = temaMapper.toSummaryDto(tema);
-
-            // Summary tier
-            dto.setTotalEstudos(totalEstudosMap.getOrDefault(temaId, 0L));
-            dto.setUltimoEstudo(ultimoEstudoMap.get(temaId));
-            dto.setTotalSubtemas(totalSubtemasMap.getOrDefault(temaId, 0L));
-            dto.setSubtemasEstudados(subtemasEstudadosMap.getOrDefault(temaId, 0L));
-            dto.setQuestoesRespondidas(respondidasMap.getOrDefault(temaId, 0L));
-            dto.setQuestoesAcertadas(acertadasMap.getOrDefault(temaId, 0L));
-
-            // Full tier
-            if (isFull) {
-                dto.setUltimaQuestao(ultimaQuestaoMap.get(temaId));
-                dto.setTotalQuestoes(totalQuestoesMap.getOrDefault(temaId, 0L));
-                dto.setMediaTempoResposta(avgTempoMap.containsKey(temaId) ? avgTempoMap.get(temaId).intValue() : null);
-                dto.setDificuldadeRespostas(dificuldadeMap.getOrDefault(temaId, Collections.emptyMap()));
-            }
+            dto.setQuestaoStats(statsAssembler.buildStats(tema.getId(), "TEMA", metrics));
+            dto.setUltimoEstudo(dates.get(tema.getId()));
+            dto.setTotalSubtemas(totalSub.getOrDefault(tema.getId(), 0L));
+            dto.setSubtemasEstudados(studSub.getOrDefault(tema.getId(), 0L));
             return dto;
         });
     }
 
     @Transactional(readOnly = true)
     public TemaDetailDto getTemaDetailById(Long id, MetricsLevel metrics) {
-        Tema tema = temaRepository.findByIdWithDetails(id)
+        Tema tema = temaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Tema", "ID", id));
 
         TemaDetailDto dto = temaMapper.toDetailDto(tema);
-        boolean isFull = metrics != null;
-
-        if (isFull) {
-            List<Long> temaIds = List.of(id);
-            dto.setTotalEstudos(toCountMap(estudoSubtemaRepository.countByTemaIds(temaIds)).getOrDefault(id, 0L));
-            dto.setUltimoEstudo(toDateMap(estudoSubtemaRepository.findLatestStudyDatesByTemaIds(temaIds)).get(id));
-            dto.setUltimaQuestao(toDateMap(respostaRepository.findLatestResponseDatesByTemaIds(temaIds)).get(id));
-            dto.setTotalSubtemas(toCountMap(subtemaRepository.countByTemaIds(temaIds)).getOrDefault(id, 0L));
-            dto.setSubtemasEstudados(toCountMap(estudoSubtemaRepository.countDistinctStudiedSubtemasByTemaIds(temaIds)).getOrDefault(id, 0L));
-            dto.setTotalQuestoes(toCountMap(questaoRepository.countQuestoesByTemaIds(temaIds)).getOrDefault(id, 0L));
-            dto.setQuestoesRespondidas(toCountMap(respostaRepository.countRespondidasByTemaIds(temaIds)).getOrDefault(id, 0L));
-            dto.setQuestoesAcertadas(toCountMap(respostaRepository.countAcertadasByTemaIds(temaIds)).getOrDefault(id, 0L));
-            Map<Long, Double> avgTempoMap = toDoubleMap(respostaRepository.avgTempoByTemaIds(temaIds));
-            dto.setMediaTempoResposta(avgTempoMap.containsKey(id) ? avgTempoMap.get(id).intValue() : null);
-            dto.setDificuldadeRespostas(parseDificuldadeStats(respostaRepository.getDificuldadeStatsByTemaIds(temaIds)).get(id));
+        if (metrics != null) {
+            dto.setQuestaoStats(statsAssembler.buildStats(id, "TEMA", metrics));
+            dto.setUltimoEstudo(estudoSubtemaRepository.findLatestStudyDateByTemaId(id));
+            dto.setTotalSubtemas((long) subtemaRepository.findByTemaId(id).size());
+            dto.setSubtemasEstudados(estudoSubtemaRepository.countDistinctStudiedSubtemasByTemaId(id));
         }
 
-        // Enrich nested disciplina with tier-aware population
-        if (dto.getDisciplina() != null) {
-            Long discId = dto.getDisciplina().getId();
-            if (isFull) {
-                List<Long> singleDiscId = List.of(discId);
-                dto.getDisciplina().setTotalEstudos(toCountMap(estudoSubtemaRepository.countByDisciplinaIds(singleDiscId)).getOrDefault(discId, 0L));
-                dto.getDisciplina().setUltimoEstudo(toDateMap(estudoSubtemaRepository.findLatestStudyDatesByDisciplinaIds(singleDiscId)).get(discId));
-                dto.getDisciplina().setUltimaQuestao(toDateMap(respostaRepository.findLatestResponseDatesByDisciplinaIds(singleDiscId)).get(discId));
-                dto.getDisciplina().setTotalTemas(toCountMap(temaRepository.countByDisciplinaIds(singleDiscId)).getOrDefault(discId, 0L));
-                dto.getDisciplina().setTotalSubtemas(toCountMap(subtemaRepository.countByDisciplinaIds(singleDiscId)).getOrDefault(discId, 0L));
-                dto.getDisciplina().setSubtemasEstudados(toCountMap(estudoSubtemaRepository.countDistinctStudiedSubtemasByDisciplinaIds(singleDiscId)).getOrDefault(discId, 0L));
-                dto.getDisciplina().setTemasEstudados(toCountMap(temaRepository.countTemasEstudadosByDisciplinaIds(singleDiscId)).getOrDefault(discId, 0L));
-                dto.getDisciplina().setTotalQuestoes(toCountMap(questaoRepository.countQuestoesByDisciplinaIds(singleDiscId)).getOrDefault(discId, 0L));
-                dto.getDisciplina().setQuestoesRespondidas(toCountMap(respostaRepository.countRespondidasByDisciplinaIds(singleDiscId)).getOrDefault(discId, 0L));
-                dto.getDisciplina().setQuestoesAcertadas(toCountMap(respostaRepository.countAcertadasByDisciplinaIds(singleDiscId)).getOrDefault(discId, 0L));
-                Map<Long, Double> discAvgTempo = toDoubleMap(respostaRepository.avgTempoByDisciplinaIds(singleDiscId));
-                dto.getDisciplina().setMediaTempoResposta(discAvgTempo.containsKey(discId) ? discAvgTempo.get(discId).intValue() : null);
-                dto.getDisciplina().setDificuldadeRespostas(parseDificuldadeStats(respostaRepository.getDificuldadeStatsByDisciplinaIds(singleDiscId)).get(discId));
-            }
-        }
-
-        // Enrich nested subtemas with tier-aware call
         dto.setSubtemas(subtemaService.findByTemaId(id, metrics));
 
         return dto;
@@ -256,73 +143,22 @@ public class TemaService {
             throw new ResourceNotFoundException("Disciplina", "ID", disciplinaId);
         }
         List<Tema> temas = temaRepository.findByDisciplinaId(disciplinaId);
-        if (temas.isEmpty()) {
-            return Collections.emptyList();
+        
+        if (temas.isEmpty() || metrics == null) {
+            return temas.stream().map(temaMapper::toSummaryDto).collect(Collectors.toList());
         }
 
-        List<Long> ids = temas.stream().map(Tema::getId).toList();
-
-        // Lean tier: skip all metric queries
-        if (metrics == null) {
-            return temas.stream().map(tema -> {
-                TemaSummaryDto dto = temaMapper.toSummaryDto(tema);
-                return dto;
-            }).collect(Collectors.toList());
-        }
-
-        boolean isFull = metrics == MetricsLevel.FULL;
-
-        var totalEstudosFut    = CompletableFuture.supplyAsync(() -> toCountMap(estudoSubtemaRepository.countByTemaIds(ids)), dbStatsExecutor);
-        var ultimoEstudoFut    = CompletableFuture.supplyAsync(() -> toDateMap(estudoSubtemaRepository.findLatestStudyDatesByTemaIds(ids)), dbStatsExecutor);
-        var totalSubtemasFut   = CompletableFuture.supplyAsync(() -> toCountMap(subtemaRepository.countByTemaIds(ids)), dbStatsExecutor);
-        var subtemasEstudadosFut = CompletableFuture.supplyAsync(() -> toCountMap(estudoSubtemaRepository.countDistinctStudiedSubtemasByTemaIds(ids)), dbStatsExecutor);
-
-        var ultimaQuestaoFut   = isFull ? CompletableFuture.supplyAsync(() -> toDateMap(respostaRepository.findLatestResponseDatesByTemaIds(ids)), dbStatsExecutor) : null;
-        var totalQuestoesFut   = isFull ? CompletableFuture.supplyAsync(() -> toCountMap(questaoRepository.countQuestoesByTemaIds(ids)), dbStatsExecutor) : null;
-        var respondidasFut     = CompletableFuture.supplyAsync(() -> toCountMap(respostaRepository.countRespondidasByTemaIds(ids)), dbStatsExecutor);
-        var acertadasFut       = CompletableFuture.supplyAsync(() -> toCountMap(respostaRepository.countAcertadasByTemaIds(ids)), dbStatsExecutor);
-        var avgTempoFut        = isFull ? CompletableFuture.supplyAsync(() -> toDoubleMap(respostaRepository.avgTempoByTemaIds(ids)), dbStatsExecutor) : null;
-        var dificuldadeFut     = isFull ? CompletableFuture.supplyAsync(() -> parseDificuldadeStats(respostaRepository.getDificuldadeStatsByTemaIds(ids)), dbStatsExecutor) : null;
-
-        CompletableFuture.allOf(
-                totalEstudosFut, ultimoEstudoFut, totalSubtemasFut, subtemasEstudadosFut, respondidasFut, acertadasFut,
-                isFull ? ultimaQuestaoFut : CompletableFuture.completedFuture(null),
-                isFull ? totalQuestoesFut : CompletableFuture.completedFuture(null),
-                isFull ? avgTempoFut : CompletableFuture.completedFuture(null),
-                isFull ? dificuldadeFut : CompletableFuture.completedFuture(null)
-        ).join();
-
-        Map<Long, Long> totalEstudosMap = totalEstudosFut.join();
-        Map<Long, LocalDateTime> ultimoEstudoMap = ultimoEstudoFut.join();
-        Map<Long, Long> totalSubtemasMap = totalSubtemasFut.join();
-        Map<Long, Long> subtemasEstudadosMap = subtemasEstudadosFut.join();
-        Map<Long, Long> respondidasMap = respondidasFut.join();
-        Map<Long, Long> acertadasMap = acertadasFut.join();
-
-        Map<Long, LocalDateTime> ultimaQuestaoMap = isFull ? ultimaQuestaoFut.join() : Collections.emptyMap();
-        Map<Long, Long> totalQuestoesMap = isFull ? totalQuestoesFut.join() : Collections.emptyMap();
-        Map<Long, Double> avgTempoMap = isFull ? avgTempoFut.join() : Collections.emptyMap();
-        Map<Long, Map<String, DificuldadeStatDto>> dificuldadeMap = isFull ? dificuldadeFut.join() : Collections.emptyMap();
+        List<Long> ids = temas.stream().map(Tema::getId).collect(Collectors.toList());
+        Map<Long, LocalDateTime> dates = toDateMap(estudoSubtemaRepository.findLatestStudyDatesByTemaIds(ids));
+        Map<Long, Long> totalSub = toMap(subtemaRepository.countByTemaIds(ids));
+        Map<Long, Long> studSub = toMap(estudoSubtemaRepository.countDistinctStudiedSubtemasByTemaIds(ids));
 
         return temas.stream().map(tema -> {
-            Long temaId = tema.getId();
             TemaSummaryDto dto = temaMapper.toSummaryDto(tema);
-
-            // Summary tier
-            dto.setTotalEstudos(totalEstudosMap.getOrDefault(temaId, 0L));
-            dto.setUltimoEstudo(ultimoEstudoMap.get(temaId));
-            dto.setTotalSubtemas(totalSubtemasMap.getOrDefault(temaId, 0L));
-            dto.setSubtemasEstudados(subtemasEstudadosMap.getOrDefault(temaId, 0L));
-            dto.setQuestoesRespondidas(respondidasMap.getOrDefault(temaId, 0L));
-            dto.setQuestoesAcertadas(acertadasMap.getOrDefault(temaId, 0L));
-
-            // Full tier
-            if (isFull) {
-                dto.setUltimaQuestao(ultimaQuestaoMap.get(temaId));
-                dto.setTotalQuestoes(totalQuestoesMap.getOrDefault(temaId, 0L));
-                dto.setMediaTempoResposta(avgTempoMap.containsKey(temaId) ? avgTempoMap.get(temaId).intValue() : null);
-                dto.setDificuldadeRespostas(dificuldadeMap.getOrDefault(temaId, Collections.emptyMap()));
-            }
+            dto.setQuestaoStats(statsAssembler.buildStats(tema.getId(), "TEMA", metrics));
+            dto.setUltimoEstudo(dates.get(tema.getId()));
+            dto.setTotalSubtemas(totalSub.getOrDefault(tema.getId(), 0L));
+            dto.setSubtemasEstudados(studSub.getOrDefault(tema.getId(), 0L));
             return dto;
         }).collect(Collectors.toList());
     }
@@ -341,7 +177,7 @@ public class TemaService {
         temaRepository.deleteById(id);
     }
 
-    private Map<Long, Long> toCountMap(List<Object[]> rows) {
+    private Map<Long, Long> toMap(List<Object[]> rows) {
         return rows.stream().collect(Collectors.toMap(
                 row -> ((Number) row[0]).longValue(),
                 row -> ((Number) row[1]).longValue()));
@@ -353,39 +189,10 @@ public class TemaService {
                 row -> parseDate(row[1])));
     }
 
-    private Map<Long, Double> toDoubleMap(List<Object[]> rows) {
-        return rows.stream().collect(Collectors.toMap(
-                row -> ((Number) row[0]).longValue(),
-                row -> ((Number) row[1]).doubleValue()));
-    }
-
     private LocalDateTime parseDate(Object val) {
         if (val instanceof LocalDateTime) return (LocalDateTime) val;
         if (val instanceof String) return LocalDateTime.parse((String) val, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        if (val instanceof java.sql.Timestamp) return ((java.sql.Timestamp) val).toLocalDateTime();
         return null;
-    }
-
-    private Map<String, DificuldadeStatDto> initEmptyDificuldadeMap() {
-        Map<String, DificuldadeStatDto> map = new HashMap<>();
-        for (Dificuldade d : Dificuldade.values()) {
-            map.put(d.name(), new DificuldadeStatDto(0, 0));
-        }
-        return map;
-    }
-
-    private Map<Long, Map<String, DificuldadeStatDto>> parseDificuldadeStats(List<Object[]> rows) {
-        Map<Long, Map<String, DificuldadeStatDto>> result = new HashMap<>();
-        for (Object[] row : rows) {
-            Long scopeId = ((Number) row[0]).longValue();
-            int diffId = ((Number) row[1]).intValue();
-            int total = ((Number) row[2]).intValue();
-            int corretas = row[3] != null ? ((Number) row[3]).intValue() : 0;
-            
-            String diffName = Dificuldade.fromId(diffId).name();
-            
-            result.computeIfAbsent(scopeId, k -> initEmptyDificuldadeMap())
-                  .put(diffName, new DificuldadeStatDto(total, corretas));
-        }
-        return result;
     }
 }

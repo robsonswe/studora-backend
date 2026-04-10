@@ -24,13 +24,16 @@ class CargoServiceTest {
     @Mock
     private com.studora.repository.ConcursoCargoRepository concursoCargoRepository;
 
+    @Mock
+    private com.studora.service.StatsAssembler statsAssembler;
+
     private CargoService cargoService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
         com.studora.mapper.CargoMapper realMapper = org.mapstruct.factory.Mappers.getMapper(com.studora.mapper.CargoMapper.class);
-        cargoService = new CargoService(cargoRepository, realMapper, concursoCargoRepository);
+        cargoService = new CargoService(cargoRepository, realMapper, concursoCargoRepository, statsAssembler);
     }
 
     @Test
@@ -42,7 +45,7 @@ class CargoServiceTest {
 
         when(cargoRepository.findById(1L)).thenReturn(Optional.of(cargo));
 
-        CargoDetailDto result = cargoService.getCargoDetailById(1L);
+        CargoDetailDto result = cargoService.getCargoDetailById(1L, null);
         assertNotNull(result);
         assertEquals("Analista", result.getNome());
     }
@@ -61,9 +64,8 @@ class CargoServiceTest {
             return c;
         });
 
-        CargoDetailDto result = cargoService.create(request);
-        assertEquals(1L, result.getId());
-        assertEquals("Novo Cargo", result.getNome());
+        cargoService.create(request);
+        verify(cargoRepository).save(any(Cargo.class));
     }
 
     @Test

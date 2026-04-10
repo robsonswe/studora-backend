@@ -1,18 +1,17 @@
 package com.studora.dto.tema;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.studora.dto.DificuldadeStatDto;
+import com.studora.dto.QuestaoStatsDto;
 import com.studora.dto.subtema.SubtemaSummaryDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-
-@Schema(description = "DTO simplificado para listagem de temas")
 @Data
+@Schema(description = "DTO simplificado para listagem de temas")
 public class TemaSummaryDto {
     @Schema(description = "ID único do tema", example = "1")
     private Long id;
@@ -20,20 +19,14 @@ public class TemaSummaryDto {
     @Schema(description = "ID da disciplina à qual o tema pertence", example = "1")
     private Long disciplinaId;
 
-    @Schema(description = "Nome da disciplina à qual o tema pertence", example = "Direito Constitucional")
-    private String disciplinaNome;
-
     @Schema(description = "Nome do tema", example = "Direitos Fundamentais")
     private String nome;
 
-    @Schema(description = "Total de sessões de estudo realizadas para todos os subtemas deste tema", example = "5")
-    private Long totalEstudos;
+    @Schema(description = "Nome da disciplina (para evitar lookups)")
+    private String disciplinaNome;
 
     @Schema(description = "Data e hora do último estudo realizado entre todos os subtemas deste tema")
-    private java.time.LocalDateTime ultimoEstudo;
-
-    @Schema(description = "Data e hora da última questão respondida entre todos os subtemas deste tema")
-    private java.time.LocalDateTime ultimaQuestao;
+    private LocalDateTime ultimoEstudo;
 
     @Schema(description = "Total de subtemas neste tema", example = "3")
     private Long totalSubtemas;
@@ -41,21 +34,10 @@ public class TemaSummaryDto {
     @Schema(description = "Número de subtemas que possuem pelo menos uma sessão de estudo", example = "2")
     private Long subtemasEstudados;
 
-    @Schema(description = "Total de questões associadas a este tema (somando subtemas)", example = "30")
-    private Long totalQuestoes;
+    @Schema(description = "Estatísticas de questões do tema")
+    private QuestaoStatsDto questaoStats;
 
-    @Schema(description = "Total de questões que possuem pelo menos uma resposta", example = "20")
-    private Long questoesRespondidas;
-
-    @Schema(description = "Total de questões que possuem pelo menos uma resposta correta", example = "15")
-    private Long questoesAcertadas;
-
-    @Schema(description = "Tempo médio de resposta em segundos", example = "45")
-    private Integer mediaTempoResposta;
-
-    @Schema(description = "Estatísticas de respostas por nível de dificuldade (considerando apenas a resposta mais recente por questão)")
-    private Map<String, DificuldadeStatDto> dificuldadeRespostas;
-
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     @Schema(description = "Lista de subtemas associados a este tema (populated in completo endpoint)")
     private List<SubtemaSummaryDto> subtemas;
 }

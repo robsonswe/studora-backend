@@ -1,5 +1,7 @@
 package com.studora.service;
 
+import com.studora.dto.MetricsLevel;
+import com.studora.dto.QuestaoStatsDto;
 import com.studora.dto.instituicao.InstituicaoDetailDto;
 import com.studora.dto.instituicao.InstituicaoSummaryDto;
 import com.studora.dto.request.InstituicaoCreateRequest;
@@ -30,25 +32,40 @@ public class InstituicaoService {
     private final InstituicaoRepository instituicaoRepository;
     private final InstituicaoMapper instituicaoMapper;
     private final ConcursoRepository concursoRepository;
+    private final StatsAssembler statsAssembler;
 
     @Transactional(readOnly = true)
-    public Page<InstituicaoSummaryDto> findAll(String nome, Pageable pageable) {
+    public Page<InstituicaoSummaryDto> findAll(String nome, Pageable pageable, MetricsLevel metrics) {
+        Page<Instituicao> page;
         if (nome != null && !nome.isBlank()) {
-            return instituicaoRepository.findByNomeContainingIgnoreCase(nome, pageable)
-                    .map(instituicaoMapper::toSummaryDto);
+            page = instituicaoRepository.findByNomeContainingIgnoreCase(nome, pageable);
+        } else {
+            page = instituicaoRepository.findAll(pageable);
         }
-        return instituicaoRepository.findAll(pageable)
-                .map(instituicaoMapper::toSummaryDto);
+
+        return page.map(instituicao -> {
+            InstituicaoSummaryDto dto = instituicaoMapper.toSummaryDto(instituicao);
+            if (metrics != null) {
+                dto.setQuestaoStats(statsAssembler.buildStats(instituicao.getId(), "INSTITUICAO", metrics));
+            }
+            return dto;
+        });
     }
 
     @Transactional(readOnly = true)
-    public InstituicaoDetailDto getInstituicaoDetailById(Long id) {
+    public InstituicaoDetailDto getInstituicaoDetailById(Long id, MetricsLevel metrics) {
         Instituicao instituicao = instituicaoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Instituição", "ID", id));
-        return instituicaoMapper.toDetailDto(instituicao);
+
+        InstituicaoDetailDto dto = instituicaoMapper.toDetailDto(instituicao);
+        if (metrics != null) {
+            dto.setQuestaoStats(statsAssembler.buildStats(id, "INSTITUICAO", metrics));
+        }
+        
+        return dto;
     }
 
-    public InstituicaoDetailDto create(InstituicaoCreateRequest request) {
+    public void create(InstituicaoCreateRequest request) {
         log.info("Criando nova instituição: {}", request.getNome());
         
         Optional<Instituicao> existing = instituicaoRepository.findByNomeIgnoreCase(request.getNome());
@@ -57,10 +74,10 @@ public class InstituicaoService {
         }
 
         Instituicao instituicao = instituicaoMapper.toEntity(request);
-        return instituicaoMapper.toDetailDto(instituicaoRepository.save(instituicao));
+        instituicaoRepository.save(instituicao);
     }
 
-    public InstituicaoDetailDto update(Long id, InstituicaoUpdateRequest request) {
+    public void update(Long id, InstituicaoUpdateRequest request) {
         log.info("Atualizando instituição ID: {}", id);
         
         Instituicao instituicao = instituicaoRepository.findById(id)
@@ -74,7 +91,7 @@ public class InstituicaoService {
         }
 
         instituicaoMapper.updateEntityFromDto(request, instituicao);
-        return instituicaoMapper.toDetailDto(instituicaoRepository.save(instituicao));
+        instituicaoRepository.save(instituicao);
     }
 
     public void delete(Long id) {

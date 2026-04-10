@@ -45,23 +45,11 @@ class TemaServiceTest {
     @Mock
     private EstudoSubtemaRepository estudoSubtemaRepository;
     @Mock
-    private QuestaoRepository questaoRepository;
-    @Mock
-    private RespostaRepository respostaRepository;
-    @Mock
     private SubtemaService subtemaService;
+    @Mock
+    private com.studora.service.StatsAssembler statsAssembler;
 
     private TemaService temaService;
-
-    private static List<Object[]> emptyObjectList() {
-        return new ArrayList<>();
-    }
-
-    private static List<Object[]> listOf(Object[]... items) {
-        List<Object[]> list = new ArrayList<>();
-        for (Object[] item : items) list.add(item);
-        return list;
-    }
 
     @BeforeEach
     void setUp() {
@@ -72,7 +60,7 @@ class TemaServiceTest {
         ReflectionTestUtils.setField(realMapper, "disciplinaMapper", discMapper);
 
         temaService = new TemaService(temaRepository, disciplinaRepository, subtemaRepository,
-                estudoSubtemaRepository, questaoRepository, respostaRepository, realMapper, subtemaService, Runnable::run);
+                estudoSubtemaRepository, realMapper, subtemaService, statsAssembler);
     }
 
     @Test
@@ -83,16 +71,15 @@ class TemaServiceTest {
         tema.setNome("Atos");
         tema.setDisciplina(disc);
 
-        when(temaRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(tema));
+        when(temaRepository.findById(1L)).thenReturn(Optional.of(tema));
         when(subtemaService.findByTemaId(1L, null)).thenReturn(Collections.emptyList());
 
         TemaDetailDto result = temaService.getTemaDetailById(1L, null);
         assertNotNull(result);
         assertEquals("Atos", result.getNome());
-        assertNull(result.getTotalEstudos());
+        assertNull(result.getQuestaoStats());
         assertNotNull(result.getDisciplina());
         assertEquals(1L, result.getDisciplina().getId());
-        assertNull(result.getDisciplina().getTotalEstudos());
     }
 
     @Test
@@ -103,37 +90,16 @@ class TemaServiceTest {
         tema.setNome("Atos");
         tema.setDisciplina(disc);
 
-        when(temaRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(tema));
-        when(estudoSubtemaRepository.countByTemaIds(List.of(1L))).thenReturn(listOf(new Object[]{1L, 5L}));
-        when(estudoSubtemaRepository.findLatestStudyDatesByTemaIds(List.of(1L))).thenReturn(emptyObjectList());
-        when(respostaRepository.findLatestResponseDatesByTemaIds(List.of(1L))).thenReturn(emptyObjectList());
-        when(subtemaRepository.countByTemaIds(List.of(1L))).thenReturn(listOf(new Object[]{1L, 3L}));
-        when(estudoSubtemaRepository.countDistinctStudiedSubtemasByTemaIds(List.of(1L))).thenReturn(listOf(new Object[]{1L, 2L}));
-        when(questaoRepository.countQuestoesByTemaIds(List.of(1L))).thenReturn(emptyObjectList());
-        when(respostaRepository.countRespondidasByTemaIds(List.of(1L))).thenReturn(emptyObjectList());
-        when(respostaRepository.countAcertadasByTemaIds(List.of(1L))).thenReturn(emptyObjectList());
-        when(respostaRepository.avgTempoByTemaIds(List.of(1L))).thenReturn(emptyObjectList());
-        when(respostaRepository.getDificuldadeStatsByTemaIds(List.of(1L))).thenReturn(emptyObjectList());
-        // Disciplina enrichment
-        when(estudoSubtemaRepository.countByDisciplinaIds(List.of(1L))).thenReturn(listOf(new Object[]{1L, 10L}));
-        when(estudoSubtemaRepository.findLatestStudyDatesByDisciplinaIds(List.of(1L))).thenReturn(emptyObjectList());
-        when(respostaRepository.findLatestResponseDatesByDisciplinaIds(List.of(1L))).thenReturn(emptyObjectList());
-        when(temaRepository.countByDisciplinaIds(List.of(1L))).thenReturn(listOf(new Object[]{1L, 2L}));
-        when(subtemaRepository.countByDisciplinaIds(List.of(1L))).thenReturn(listOf(new Object[]{1L, 3L}));
-        when(estudoSubtemaRepository.countDistinctStudiedSubtemasByDisciplinaIds(List.of(1L))).thenReturn(listOf(new Object[]{1L, 2L}));
-        when(temaRepository.countTemasEstudadosByDisciplinaIds(List.of(1L))).thenReturn(listOf(new Object[]{1L, 1L}));
-        when(questaoRepository.countQuestoesByDisciplinaIds(List.of(1L))).thenReturn(emptyObjectList());
-        when(respostaRepository.countRespondidasByDisciplinaIds(List.of(1L))).thenReturn(emptyObjectList());
-        when(respostaRepository.countAcertadasByDisciplinaIds(List.of(1L))).thenReturn(emptyObjectList());
-        when(respostaRepository.avgTempoByDisciplinaIds(List.of(1L))).thenReturn(emptyObjectList());
-        when(respostaRepository.getDificuldadeStatsByDisciplinaIds(List.of(1L))).thenReturn(emptyObjectList());
+        when(temaRepository.findById(1L)).thenReturn(Optional.of(tema));
         when(subtemaService.findByTemaId(1L, MetricsLevel.FULL)).thenReturn(Collections.emptyList());
+        
+        com.studora.dto.QuestaoStatsDto mockStats = new com.studora.dto.QuestaoStatsDto();
+        when(statsAssembler.buildStats(1L, "TEMA", MetricsLevel.FULL)).thenReturn(mockStats);
 
         TemaDetailDto result = temaService.getTemaDetailById(1L, MetricsLevel.FULL);
         assertNotNull(result);
-        assertEquals(5L, result.getTotalEstudos());
-        assertEquals(3L, result.getTotalSubtemas());
-        assertEquals(2L, result.getSubtemasEstudados());
+        assertEquals("Atos", result.getNome());
+        assertNotNull(result.getQuestaoStats());
     }
 
     @Test
@@ -215,7 +181,6 @@ class TemaServiceTest {
 
         Page<TemaSummaryDto> result = temaService.findAll(null, Pageable.unpaged(), null);
         assertEquals(1, result.getTotalElements());
-        assertNull(result.getContent().get(0).getTotalEstudos());
     }
 
     @Test
@@ -228,6 +193,5 @@ class TemaServiceTest {
 
         List<TemaSummaryDto> result = temaService.findByDisciplinaId(1L, null);
         assertEquals(1, result.size());
-        assertNull(result.get(0).getTotalEstudos());
     }
 }

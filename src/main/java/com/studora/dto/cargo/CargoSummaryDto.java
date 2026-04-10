@@ -1,11 +1,14 @@
 package com.studora.dto.cargo;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonView;
+import com.studora.dto.QuestaoStatsDto;
 import com.studora.dto.Views;
 import com.studora.entity.NivelCargo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 @Schema(description = "DTO simplificado para listagem de cargos")
 @Data
 public class CargoSummaryDto {
@@ -24,4 +27,7 @@ public class CargoSummaryDto {
     @Schema(description = "Área de atuação do cargo", example = "Judiciária")
     @JsonView(Views.Summary.class)
     private String area;
+
+    @Schema(description = "Estatísticas de questões do cargo")
+    private QuestaoStatsDto questaoStats;
 }

@@ -13,7 +13,6 @@ import com.studora.entity.Subtema;
 import com.studora.repository.TemaRepository;
 import com.studora.repository.SubtemaRepository;
 import com.studora.repository.QuestaoRepository;
-import com.studora.repository.RespostaRepository;
 import com.studora.service.SubtemaService;
 import com.studora.mapper.SubtemaMapper;
 import com.studora.mapper.TemaMapper;
@@ -40,9 +39,9 @@ class SubtemaServiceTest {
     @Mock
     private QuestaoRepository questaoRepository;
     @Mock
-    private RespostaRepository respostaRepository;
-    @Mock
     private com.studora.repository.EstudoSubtemaRepository estudoSubtemaRepository;
+    @Mock
+    private com.studora.service.StatsAssembler statsAssembler;
 
     private SubtemaService subtemaService;
 
@@ -51,10 +50,8 @@ class SubtemaServiceTest {
         MockitoAnnotations.openMocks(this);
 
         SubtemaMapper realMapper = org.mapstruct.factory.Mappers.getMapper(SubtemaMapper.class);
-        TemaMapper temaMapper = org.mapstruct.factory.Mappers.getMapper(TemaMapper.class);
-        ReflectionTestUtils.setField(realMapper, "temaMapper", temaMapper);
 
-        subtemaService = new SubtemaService(subtemaRepository, temaRepository, questaoRepository, respostaRepository, estudoSubtemaRepository, realMapper, Runnable::run);
+        subtemaService = new SubtemaService(subtemaRepository, temaRepository, questaoRepository, estudoSubtemaRepository, realMapper, statsAssembler, Runnable::run);
     }
 
     @Test
@@ -84,18 +81,15 @@ class SubtemaServiceTest {
         when(subtemaRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(sub));
         when(estudoSubtemaRepository.countBySubtemaId(1L)).thenReturn(5L);
         when(estudoSubtemaRepository.findFirstBySubtemaIdOrderByCreatedAtDesc(1L)).thenReturn(Optional.empty());
-        when(respostaRepository.findLatestResponseDatesBySubtemaIds(List.of(1L))).thenReturn(new ArrayList<>());
-        when(questaoRepository.countQuestoesBySubtemaIds(List.of(1L))).thenReturn(listOf(new Object[]{1L, 10L}));
-        when(respostaRepository.countRespondidasBySubtemaIds(List.of(1L))).thenReturn(listOf(new Object[]{1L, 7L}));
-        when(respostaRepository.countAcertadasBySubtemaIds(List.of(1L))).thenReturn(listOf(new Object[]{1L, 5L}));
-        when(respostaRepository.avgTempoBySubtemaIds(List.of(1L))).thenReturn(new ArrayList<>());
-        when(respostaRepository.getDificuldadeStatsBySubtemaIds(List.of(1L))).thenReturn(new ArrayList<>());
+        
+        com.studora.dto.QuestaoStatsDto mockStats = new com.studora.dto.QuestaoStatsDto();
+        when(statsAssembler.buildStats(1L, "SUBTEMA", MetricsLevel.FULL)).thenReturn(mockStats);
 
         SubtemaDetailDto result = subtemaService.getSubtemaDetailById(1L, MetricsLevel.FULL);
         assertNotNull(result);
         assertEquals("Espécies", result.getNome());
         assertEquals(5L, result.getTotalEstudos());
-        assertEquals(10L, result.getTotalQuestoes());
+        assertNotNull(result.getQuestaoStats());
     }
 
     @Test

@@ -1,7 +1,9 @@
 package com.studora.mapper;
 
+import com.studora.dto.subtema.DisciplinaReferenceDto;
 import com.studora.dto.subtema.SubtemaDetailDto;
 import com.studora.dto.subtema.SubtemaSummaryDto;
+import com.studora.dto.subtema.TemaReferenceDto;
 import com.studora.dto.request.SubtemaCreateRequest;
 import com.studora.dto.request.SubtemaUpdateRequest;
 import com.studora.entity.Subtema;
@@ -9,17 +11,30 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
-@Mapper(componentModel = "spring", uses = {TemaMapper.class})
+@Mapper(componentModel = "spring")
 public interface SubtemaMapper {
 
-    @Mapping(target = "temaId", source = "tema.id")
-    @Mapping(target = "temaNome", source = "tema.nome")
-    @Mapping(target = "disciplinaId", source = "tema.disciplina.id")
-    @Mapping(target = "disciplinaNome", source = "tema.disciplina.nome")
     SubtemaSummaryDto toSummaryDto(Subtema subtema);
 
-    @Mapping(target = "tema", source = "tema")
+    @Mapping(target = "questaoStats", ignore = true)
+    @Mapping(target = "disciplina", source = "tema.disciplina")
     SubtemaDetailDto toDetailDto(Subtema subtema);
+
+    default TemaReferenceDto toTemaReference(com.studora.entity.Tema tema) {
+        if (tema == null) return null;
+        TemaReferenceDto ref = new TemaReferenceDto();
+        ref.setId(tema.getId());
+        ref.setNome(tema.getNome());
+        return ref;
+    }
+
+    default DisciplinaReferenceDto toDisciplinaReference(com.studora.entity.Disciplina disciplina) {
+        if (disciplina == null) return null;
+        DisciplinaReferenceDto ref = new DisciplinaReferenceDto();
+        ref.setId(disciplina.getId());
+        ref.setNome(disciplina.getNome());
+        return ref;
+    }
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "tema", ignore = true)

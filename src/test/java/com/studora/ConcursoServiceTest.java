@@ -57,6 +57,8 @@ class ConcursoServiceTest {
     @Mock private com.studora.repository.RespostaRepository respostaRepository;
     @Mock private com.studora.repository.ConcursoCargoSubtemaRepository concursoCargoSubtemaRepository;
 
+    @Mock private com.studora.service.StatsAssembler statsAssembler;
+
     private ConcursoService concursoService;
 
     @BeforeEach
@@ -83,7 +85,8 @@ class ConcursoServiceTest {
             questaoRepository,
             respostaRepository,
             concursoCargoSubtemaRepository,
-            realMapper
+            realMapper,
+            statsAssembler
         );
     }
 

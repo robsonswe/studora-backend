@@ -1,5 +1,6 @@
 package com.studora.controller.v1;
 
+import com.studora.dto.MetricsLevel;
 import com.studora.dto.cargo.CargoSummaryDto;
 import com.studora.dto.cargo.CargoDetailDto;
 import com.studora.dto.PageResponse;
@@ -48,7 +49,7 @@ public class CargoController {
                 content = @Content(
                     mediaType = "application/json",
                     examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Analista Judiciário\", \"nivel\": \"Superior\", \"area\": \"Direito\"}, {\"id\": 2, \"nome\": \"Técnico Judiciário\", \"nivel\": \"Médio\", \"area\": \"Administrativa\"}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 2, \"totalPages\": 1, \"last\": true}"
+                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Agente de Polícia Federal\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\"}, {\"id\": 2, \"nome\": \"Escrivão de Polícia Federal\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\"}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 2, \"totalPages\": 1, \"last\": true}"
                     )
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
@@ -64,8 +65,10 @@ public class CargoController {
             @RequestParam(required = false) String nome,
             @Parameter(hidden = true) @PageableDefault(size = AppConstants.DEFAULT_PAGE_SIZE) Pageable pageable,
             @RequestParam(defaultValue = "nome") String sort,
-            @RequestParam(defaultValue = "ASC") String direction) {
-        
+            @RequestParam(defaultValue = "ASC") String direction,
+            @RequestParam(required = false) String metrics) {
+
+        MetricsLevel metricsLevel = parseMetrics(metrics);
         List<Sort.Order> tieBreakers = List.of(
             Sort.Order.asc("nome"),
             Sort.Order.asc("area"),
@@ -73,7 +76,7 @@ public class CargoController {
         );
 
         Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, Map.of(), tieBreakers);
-        Page<CargoSummaryDto> cargos = cargoService.findAll(nome, finalPageable);
+        Page<CargoSummaryDto> cargos = cargoService.findAll(nome, finalPageable, metricsLevel);
         return ResponseEntity.ok(new PageResponse<>(cargos));
     }
 
@@ -111,8 +114,10 @@ public class CargoController {
         }
     )
     @GetMapping("/{id}")
-    public ResponseEntity<CargoDetailDto> getCargoById(@PathVariable Long id) {
-        return ResponseEntity.ok(cargoService.getCargoDetailById(id));
+    public ResponseEntity<CargoDetailDto> getCargoById(
+            @PathVariable Long id,
+            @RequestParam(required = false) String metrics) {
+        return ResponseEntity.ok(cargoService.getCargoDetailById(id, parseMetrics(metrics)));
     }
 
     @Operation(
@@ -138,8 +143,9 @@ public class CargoController {
         }
     )
     @PostMapping
-    public ResponseEntity<CargoDetailDto> createCargo(@Valid @RequestBody CargoCreateRequest request) {
-        return new ResponseEntity<>(cargoService.create(request), HttpStatus.CREATED);
+    public ResponseEntity<Void> createCargo(@Valid @RequestBody CargoCreateRequest request) {
+        cargoService.create(request);
+        return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
     @Operation(
@@ -171,14 +177,15 @@ public class CargoController {
         }
     )
     @PutMapping("/{id}")
-    public ResponseEntity<CargoDetailDto> updateCargo(@PathVariable Long id, @Valid @RequestBody CargoUpdateRequest request) {
-        return ResponseEntity.ok(cargoService.update(id, request));
+    public ResponseEntity<Void> updateCargo(@PathVariable Long id, @Valid @RequestBody CargoUpdateRequest request) {
+        cargoService.update(id, request);
+        return ResponseEntity.ok().build();
     }
 
     @Operation(
         summary = "Excluir cargo",
         responses = {
-            @ApiResponse(responseCode = "204", description = "Cargo excluído com sucesso"),
+            @ApiResponse(responseCode = "204", description = "Cargo excluída com sucesso"),
             @ApiResponse(responseCode = "404", description = "Cargo não encontrado",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
@@ -197,5 +204,15 @@ public class CargoController {
     public ResponseEntity<Void> deleteCargo(@PathVariable Long id) {
         cargoService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private MetricsLevel parseMetrics(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        return switch (raw.toLowerCase()) {
+            case "lean" -> null;
+            case "summary" -> MetricsLevel.SUMMARY;
+            case "full" -> MetricsLevel.FULL;
+            default -> throw new IllegalArgumentException("Invalid metrics level: '" + raw + "'. Valid values: lean, summary, full");
+        };
     }
 }

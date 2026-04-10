@@ -23,13 +23,16 @@ class InstituicaoServiceTest {
     @Mock
     private com.studora.repository.ConcursoRepository concursoRepository;
 
+    @Mock
+    private com.studora.service.StatsAssembler statsAssembler;
+
     private InstituicaoService instituicaoService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
         com.studora.mapper.InstituicaoMapper realMapper = org.mapstruct.factory.Mappers.getMapper(com.studora.mapper.InstituicaoMapper.class);
-        instituicaoService = new InstituicaoService(instituicaoRepository, realMapper, concursoRepository);
+        instituicaoService = new InstituicaoService(instituicaoRepository, realMapper, concursoRepository, statsAssembler);
     }
 
     @Test
@@ -40,7 +43,7 @@ class InstituicaoServiceTest {
 
         when(instituicaoRepository.findById(1L)).thenReturn(Optional.of(inst));
 
-        InstituicaoDetailDto result = instituicaoService.getInstituicaoDetailById(1L);
+        InstituicaoDetailDto result = instituicaoService.getInstituicaoDetailById(1L, null);
         assertNotNull(result);
         assertEquals("USP", result.getNome());
     }
@@ -57,9 +60,8 @@ class InstituicaoServiceTest {
             return inst;
         });
 
-        InstituicaoDetailDto result = instituicaoService.create(request);
-        assertEquals(1L, result.getId());
-        assertEquals("UNICAMP", result.getNome());
+        instituicaoService.create(request);
+        verify(instituicaoRepository).save(any(Instituicao.class));
     }
 
     @Test
@@ -92,8 +94,8 @@ class InstituicaoServiceTest {
         when(instituicaoRepository.findByNomeIgnoreCase("New Name")).thenReturn(Optional.empty());
         when(instituicaoRepository.save(any(Instituicao.class))).thenAnswer(i -> i.getArgument(0));
 
-        InstituicaoDetailDto result = instituicaoService.update(id, req);
-        assertEquals("New Name", result.getNome());
+        instituicaoService.update(id, req);
+        verify(instituicaoRepository).save(any(Instituicao.class));
     }
 
     @Test

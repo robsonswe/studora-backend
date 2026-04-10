@@ -46,23 +46,9 @@ class DisciplinaServiceTest {
     @Mock
     private EstudoSubtemaRepository estudoSubtemaRepository;
     @Mock
-    private QuestaoRepository questaoRepository;
-    @Mock
-    private RespostaRepository respostaRepository;
-    @Mock
-    private TemaService temaService;
+    private com.studora.service.StatsAssembler statsAssembler;
 
     private DisciplinaService disciplinaService;
-
-    private static List<Object[]> emptyObjectList() {
-        return new ArrayList<>();
-    }
-
-    private static List<Object[]> listOf(Object[]... items) {
-        List<Object[]> list = new ArrayList<>();
-        for (Object[] item : items) list.add(item);
-        return list;
-    }
 
     @BeforeEach
     void setUp() {
@@ -71,7 +57,7 @@ class DisciplinaServiceTest {
         TemaMapper temaMapper = org.mapstruct.factory.Mappers.getMapper(TemaMapper.class);
         SubtemaMapper subtemaMapper = org.mapstruct.factory.Mappers.getMapper(SubtemaMapper.class);
         disciplinaService = new DisciplinaService(disciplinaRepository, temaRepository, subtemaRepository,
-                estudoSubtemaRepository, questaoRepository, respostaRepository, realMapper, temaMapper, subtemaMapper, temaService, Runnable::run);
+                estudoSubtemaRepository, realMapper, temaMapper, subtemaMapper, statsAssembler);
     }
 
     @Test
@@ -81,16 +67,11 @@ class DisciplinaServiceTest {
         d.setNome("Direito");
 
         when(disciplinaRepository.findById(1L)).thenReturn(Optional.of(d));
-        when(temaService.findByDisciplinaId(1L, null)).thenReturn(Collections.emptyList());
 
         DisciplinaDetailDto result = disciplinaService.getDisciplinaDetailById(1L, null);
         assertNotNull(result);
         assertEquals("Direito", result.getNome());
-        assertNull(result.getTotalEstudos());
-        assertNull(result.getTotalTemas());
-        assertNull(result.getTotalSubtemas());
-        assertNull(result.getTemasEstudados());
-        assertNull(result.getSubtemasEstudados());
+        assertNull(result.getQuestaoStats());
     }
 
     @Test
@@ -100,27 +81,14 @@ class DisciplinaServiceTest {
         d.setNome("Direito");
 
         when(disciplinaRepository.findById(1L)).thenReturn(Optional.of(d));
-        when(estudoSubtemaRepository.countByDisciplinaIds(List.of(1L))).thenReturn(listOf(new Object[]{1L, 10L}));
-        when(estudoSubtemaRepository.findLatestStudyDatesByDisciplinaIds(List.of(1L))).thenReturn(emptyObjectList());
-        when(respostaRepository.findLatestResponseDatesByDisciplinaIds(List.of(1L))).thenReturn(emptyObjectList());
-        when(temaRepository.countByDisciplinaIds(List.of(1L))).thenReturn(listOf(new Object[]{1L, 2L}));
-        when(subtemaRepository.countByDisciplinaIds(List.of(1L))).thenReturn(listOf(new Object[]{1L, 4L}));
-        when(estudoSubtemaRepository.countDistinctStudiedSubtemasByDisciplinaIds(List.of(1L))).thenReturn(listOf(new Object[]{1L, 3L}));
-        when(temaRepository.countTemasEstudadosByDisciplinaIds(List.of(1L))).thenReturn(listOf(new Object[]{1L, 1L}));
-        when(temaService.findByDisciplinaId(1L, MetricsLevel.FULL)).thenReturn(Collections.emptyList());
-        when(questaoRepository.countQuestoesByDisciplinaIds(List.of(1L))).thenReturn(emptyObjectList());
-        when(respostaRepository.countRespondidasByDisciplinaIds(List.of(1L))).thenReturn(emptyObjectList());
-        when(respostaRepository.countAcertadasByDisciplinaIds(List.of(1L))).thenReturn(emptyObjectList());
-        when(respostaRepository.avgTempoByDisciplinaIds(List.of(1L))).thenReturn(emptyObjectList());
-        when(respostaRepository.getDificuldadeStatsByDisciplinaIds(List.of(1L))).thenReturn(emptyObjectList());
+
+        com.studora.dto.QuestaoStatsDto mockStats = new com.studora.dto.QuestaoStatsDto();
+        when(statsAssembler.buildStats(1L, "DISCIPLINA", MetricsLevel.FULL)).thenReturn(mockStats);
 
         DisciplinaDetailDto result = disciplinaService.getDisciplinaDetailById(1L, MetricsLevel.FULL);
         assertNotNull(result);
-        assertEquals(10L, result.getTotalEstudos());
-        assertEquals(2L, result.getTotalTemas());
-        assertEquals(4L, result.getTotalSubtemas());
-        assertEquals(3L, result.getSubtemasEstudados());
-        assertEquals(1L, result.getTemasEstudados());
+        assertEquals("Direito", result.getNome());
+        assertNotNull(result.getQuestaoStats());
     }
 
     @Test
@@ -200,6 +168,5 @@ class DisciplinaServiceTest {
         Page<DisciplinaSummaryDto> result = disciplinaService.findAll(null, Pageable.unpaged(), null);
         assertEquals(1, result.getTotalElements());
         assertEquals("Direito", result.getContent().get(0).getNome());
-        assertNull(result.getContent().get(0).getTotalEstudos());
     }
 }

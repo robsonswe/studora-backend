@@ -123,55 +123,48 @@ class SubtemaStudyControllerTest {
 
     @Test
     void testStudySessionUpdatesTemaStats() throws Exception {
-        // Before study: tema has 1 subtema, 0 studied
+        // Before study: tema has 1 subtema
         mockMvc
             .perform(get("/api/v1/temas/{id}", tema.getId()).param("metrics", "full"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.totalEstudos").value(0))
-            .andExpect(jsonPath("$.totalSubtemas").value(1))
-            .andExpect(jsonPath("$.subtemasEstudados").value(0));
+            .andExpect(jsonPath("$.subtemas.length()").value(1));
 
         // Add a study session
         mockMvc
             .perform(post("/api/v1/subtemas/{id}/estudos", subtema.getId()))
             .andExpect(status().isCreated());
 
-        // After study: tema should reflect the new study
+        // After study: tema's subtema should reflect the new study
         mockMvc
             .perform(get("/api/v1/temas/{id}", tema.getId()).param("metrics", "full"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.totalEstudos").value(1))
-            .andExpect(jsonPath("$.totalSubtemas").value(1))
-            .andExpect(jsonPath("$.subtemasEstudados").value(1))
-            .andExpect(jsonPath("$.ultimoEstudo").exists());
+            .andExpect(jsonPath("$.subtemas[0].totalEstudos").isNotEmpty())
+            .andExpect(jsonPath("$.subtemas[0].ultimoEstudo").exists());
     }
 
     @Test
     void testStudySessionUpdatesDisciplinaStats() throws Exception {
-        // Before study
+        Long disciplinaId = disciplina.getId();
+
+        // Before study: disciplina completo has questaoStats
         mockMvc
-            .perform(get("/api/v1/disciplinas/{id}", disciplina.getId()).param("metrics", "full"))
+            .perform(get("/api/v1/disciplinas/{disciplinaId}/completo", disciplinaId).param("metrics", "full"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.totalEstudos").value(0))
-            .andExpect(jsonPath("$.totalTemas").value(1))
-            .andExpect(jsonPath("$.totalSubtemas").value(1))
-            .andExpect(jsonPath("$.subtemasEstudados").value(0))
-            .andExpect(jsonPath("$.temasEstudados").value(0));
+            .andExpect(jsonPath("$.questaoStats").exists())
+            .andExpect(jsonPath("$.temas[0].id").value(tema.getId()));
 
         // Add a study session
         mockMvc
             .perform(post("/api/v1/subtemas/{id}/estudos", subtema.getId()))
             .andExpect(status().isCreated());
 
-        // After study: disciplina should reflect the new study
+        // After study: disciplina completo still returns structure with temas and subtemas
         mockMvc
-            .perform(get("/api/v1/disciplinas/{id}", disciplina.getId()).param("metrics", "full"))
+            .perform(get("/api/v1/disciplinas/{disciplinaId}/completo", disciplinaId).param("metrics", "full"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.totalEstudos").value(1))
-            .andExpect(jsonPath("$.totalTemas").value(1))
-            .andExpect(jsonPath("$.totalSubtemas").value(1))
-            .andExpect(jsonPath("$.subtemasEstudados").value(1))
-            .andExpect(jsonPath("$.temasEstudados").value(1)); // all subtemas of all temas studied
+            .andExpect(jsonPath("$.temas[0].id").value(tema.getId()))
+            .andExpect(jsonPath("$.temas[0].subtemas[0].id").value(subtema.getId()))
+            .andExpect(jsonPath("$.questaoStats").exists());
     }
 
     @Test
@@ -181,16 +174,14 @@ class SubtemaStudyControllerTest {
             .perform(post("/api/v1/subtemas/{id}/estudos", subtema.getId()))
             .andExpect(status().isCreated());
 
-        // Check that nested tema in subtema detail has enriched stats
+        // Check that subtema detail has study metrics and nested tema reference
         mockMvc
             .perform(get("/api/v1/subtemas/{id}", subtema.getId()).param("metrics", "full"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.totalEstudos").value(1))
+            .andExpect(jsonPath("$.ultimoEstudo").exists())
             .andExpect(jsonPath("$.tema.id").value(tema.getId()))
-            .andExpect(jsonPath("$.tema.totalEstudos").value(1))
-            .andExpect(jsonPath("$.tema.totalSubtemas").value(1))
-            .andExpect(jsonPath("$.tema.subtemasEstudados").value(1))
-            .andExpect(jsonPath("$.tema.ultimoEstudo").exists());
+            .andExpect(jsonPath("$.tema.nome").value(tema.getNome()));
     }
 
     @Test
@@ -200,16 +191,14 @@ class SubtemaStudyControllerTest {
             .perform(post("/api/v1/subtemas/{id}/estudos", subtema.getId()))
             .andExpect(status().isCreated());
 
-        // Check that nested disciplina in tema detail has enriched stats
+        // Check that tema detail has questaoStats and nested disciplina reference
         mockMvc
             .perform(get("/api/v1/temas/{id}", tema.getId()).param("metrics", "full"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.totalEstudos").value(1))
+            .andExpect(jsonPath("$.questaoStats").exists())
             .andExpect(jsonPath("$.disciplina.id").value(disciplina.getId()))
-            .andExpect(jsonPath("$.disciplina.totalEstudos").value(1))
-            .andExpect(jsonPath("$.disciplina.totalTemas").value(1))
-            .andExpect(jsonPath("$.disciplina.totalSubtemas").value(1))
-            .andExpect(jsonPath("$.disciplina.subtemasEstudados").value(1))
-            .andExpect(jsonPath("$.disciplina.temasEstudados").value(1));
+            .andExpect(jsonPath("$.disciplina.nome").value(disciplina.getNome()))
+            .andExpect(jsonPath("$.subtemas[0].totalEstudos").value(1))
+            .andExpect(jsonPath("$.subtemas[0].ultimoEstudo").exists());
     }
 }

@@ -1,8 +1,9 @@
 package com.studora.controller.v1;
 
-import com.studora.dto.banca.BancaSummaryDto;
-import com.studora.dto.banca.BancaDetailDto;
+import com.studora.dto.MetricsLevel;
 import com.studora.dto.PageResponse;
+import com.studora.dto.banca.BancaDetailDto;
+import com.studora.dto.banca.BancaSummaryDto;
 import com.studora.dto.request.BancaCreateRequest;
 import com.studora.dto.request.BancaUpdateRequest;
 import com.studora.common.constants.AppConstants;
@@ -10,12 +11,11 @@ import com.studora.service.BancaService;
 import com.studora.util.PaginationUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import io.swagger.v3.oas.annotations.media.ExampleObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -42,14 +42,27 @@ public class BancaController {
 
     @Operation(
         summary = "Obter todas as bancas",
-        description = "Retorna uma página com todas as bancas organizadoras cadastradas.",
         responses = {
             @ApiResponse(responseCode = "200", description = "Página de bancas retornada com sucesso",
                 content = @Content(
                     mediaType = "application/json",
-                    examples = @ExampleObject(
-                        value = "{\"content\": [{\"id\": 1, \"nome\": \"Cebraspe (CESPE)\"}, {\"id\": 2, \"nome\": \"FGV\"}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 2, \"totalPages\": 1, \"last\": true}"
-                    )
+                    examples = {
+                        @ExampleObject(
+                            name = "lean (padrão)",
+                            summary = "Estrutura apenas",
+                            value = "{\"content\": [{\"id\": 1, \"nome\": \"Cebraspe (CESPE)\"}, {\"id\": 2, \"nome\": \"FGV\"}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 2, \"totalPages\": 1, \"last\": true}"
+                        ),
+                        @ExampleObject(
+                            name = "summary",
+                            summary = "Acurácia por banca",
+                            value = "{\"content\": [{\"id\": 1, \"nome\": \"Cebraspe (CESPE)\", \"questaoStats\": {\"total\": {\"respondidas\": 21, \"acertadas\": 9, \"totalQuestoes\": 32, \"mediaTempoResposta\": 17, \"dificuldade\": {\"FACIL\": {\"total\": 4, \"corretas\": 2}, \"MEDIA\": {\"total\": 13, \"corretas\": 4}}, \"ultimaQuestao\": \"2026-03-31T23:44:47\"}}}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        ),
+                        @ExampleObject(
+                            name = "full",
+                            summary = "Todas as métricas",
+                            value = "{\"content\": [{\"id\": 1, \"nome\": \"Cebraspe (CESPE)\", \"questaoStats\": {\"total\": {\"respondidas\": 21, \"acertadas\": 9, \"totalQuestoes\": 32, \"mediaTempoResposta\": 17, \"dificuldade\": {\"FACIL\": {\"total\": 4, \"corretas\": 2}, \"MEDIA\": {\"total\": 13, \"corretas\": 4}}, \"ultimaQuestao\": \"2026-03-31T23:44:47\"}, \"porNivel\": {\"SUPERIOR\": {\"nome\": \"SUPERIOR\", \"respondidas\": 21, \"acertadas\": 18, \"totalQuestoes\": 32, \"mediaTempoResposta\": 17}}, \"porAreaInstituicao\": {\"Policial\": {\"nome\": \"Policial\", \"respondidas\": 21, \"acertadas\": 9, \"totalQuestoes\": 32, \"mediaTempoResposta\": 17}}, \"porAreaCargo\": {\"Policial\": {\"nome\": \"Policial\", \"respondidas\": 21, \"acertadas\": 18, \"totalQuestoes\": 32, \"mediaTempoResposta\": 17}}}}}], \"pageNumber\": 0, \"pageSize\": 20, \"totalElements\": 1, \"totalPages\": 1, \"last\": true}"
+                        )
+                    }
                 )),
             @ApiResponse(responseCode = "500", description = "Erro interno do servidor",
                 content = @Content(mediaType = "application/problem+json",
@@ -64,117 +77,55 @@ public class BancaController {
             @RequestParam(required = false) String nome,
             @Parameter(hidden = true) @PageableDefault(size = AppConstants.DEFAULT_PAGE_SIZE) Pageable pageable,
             @RequestParam(defaultValue = "nome") String sort,
-            @RequestParam(defaultValue = "ASC") String direction) {
+            @RequestParam(defaultValue = "ASC") String direction,
+            @RequestParam(required = false) String metrics) {
         
+        MetricsLevel metricsLevel = parseMetrics(metrics);
         List<Sort.Order> tieBreakers = List.of(Sort.Order.asc("nome"));
         Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, Map.of(), tieBreakers);
-        Page<BancaSummaryDto> bancas = bancaService.findAll(nome, finalPageable);
+        Page<BancaSummaryDto> bancas = bancaService.findAll(nome, finalPageable, metricsLevel);
         return ResponseEntity.ok(new PageResponse<>(bancas));
     }
 
-    @Operation(
-        summary = "Obter banca por ID",
-        description = "Retorna uma banca organizadora específica com base no ID fornecido",
-        responses = {
-            @ApiResponse(responseCode = "200", description = "Banca encontrada", 
-                content = @Content(
-                    schema = @Schema(implementation = BancaDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Cebraspe (CESPE)\"}")
-                )),
-            @ApiResponse(responseCode = "404", description = "Banca não encontrada",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Banca com ID: '123'\",\"instance\":\"/api/v1/bancas/123\"}"
-                    )))
-        }
-    )
+    @Operation(summary = "Obter banca por ID", responses = {
+            @ApiResponse(responseCode = "200", description = "Banca encontrada"),
+            @ApiResponse(responseCode = "404", description = "Banca não encontrada")
+    })
     @GetMapping("/{id}")
-    public ResponseEntity<BancaDetailDto> getBancaById(@PathVariable Long id) {
-        return ResponseEntity.ok(bancaService.getBancaDetailById(id));
+    public ResponseEntity<BancaDetailDto> getBancaById(
+            @PathVariable Long id,
+            @RequestParam(required = false) String metrics) {
+        return ResponseEntity.ok(bancaService.getBancaDetailById(id, parseMetrics(metrics)));
     }
 
-    @Operation(
-        summary = "Criar nova banca",
-        responses = {
-            @ApiResponse(responseCode = "201", description = "Banca criada com sucesso",
-                content = @Content(
-                    schema = @Schema(implementation = BancaDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 4, \"nome\": \"FCC\"}")
-                )),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/v1/bancas\",\"errors\":{\"nome\":\"não deve estar em branco\"}}"
-                    ))),
-            @ApiResponse(responseCode = "409", description = "Conflito - Já existe uma banca com este nome",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Já existe uma banca com o nome 'FCC'\",\"instance\":\"/api/v1/bancas\"}"
-                    )))
-        }
-    )
+    @Operation(summary = "Criar nova banca")
     @PostMapping
-    public ResponseEntity<BancaDetailDto> createBanca(@Valid @RequestBody BancaCreateRequest request) {
-        return new ResponseEntity<>(bancaService.create(request), HttpStatus.CREATED);
+    public ResponseEntity<Void> createBanca(@Valid @RequestBody BancaCreateRequest request) {
+        bancaService.create(request);
+        return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
-    @Operation(
-        summary = "Atualizar banca",
-        responses = {
-            @ApiResponse(responseCode = "200", description = "Banca atualizada com sucesso",
-                content = @Content(
-                    schema = @Schema(implementation = BancaDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Cebraspe (CESPE) - Atualizada\"}")
-                )),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Erro de validação\",\"status\":400,\"detail\":\"Um ou mais campos apresentam erros de validação.\",\"instance\":\"/api/v1/bancas/1\",\"errors\":{\"nome\":\"não deve estar em branco\"}}"
-                    ))),
-            @ApiResponse(responseCode = "404", description = "Banca não encontrada",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Banca com ID: '1'\",\"instance\":\"/api/v1/bancas/1\"}"
-                    ))),
-            @ApiResponse(responseCode = "409", description = "Conflito - Nome já em uso por outra banca",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Já existe uma banca com o nome 'Cebraspe (CESPE) - Atualizada'\",\"instance\":\"/api/v1/bancas/1\"}"
-                    )))
-        }
-    )
+    @Operation(summary = "Atualizar banca")
     @PutMapping("/{id}")
-    public ResponseEntity<BancaDetailDto> updateBanca(@PathVariable Long id, @Valid @RequestBody BancaUpdateRequest request) {
-        return ResponseEntity.ok(bancaService.update(id, request));
+    public ResponseEntity<Void> updateBanca(@PathVariable Long id, @Valid @RequestBody BancaUpdateRequest request) {
+        bancaService.update(id, request);
+        return ResponseEntity.ok().build();
     }
 
-    @Operation(
-        summary = "Excluir banca",
-        responses = {
-            @ApiResponse(responseCode = "204", description = "Banca excluída com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Banca não encontrada",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Banca com ID: '1'\",\"instance\":\"/api/v1/bancas/1\"}"
-                    ))),
-            @ApiResponse(responseCode = "409", description = "Conflito - Existem concursos vinculados a esta banca",
-                content = @Content(mediaType = "application/problem+json",
-                    schema = @Schema(implementation = ProblemDetail.class),
-                    examples = @ExampleObject(
-                        value = "{\"type\":\"about:blank\",\"title\":\"Conflito\",\"status\":409,\"detail\":\"Não é possível excluir a banca pois existem concursos associados a ela.\",\"instance\":\"/api/v1/bancas/1\"}"
-                    )))
-        }
-    )
+    @Operation(summary = "Excluir banca")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteBanca(@PathVariable Long id) {
         bancaService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private MetricsLevel parseMetrics(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        return switch (raw.toLowerCase()) {
+            case "lean" -> null;
+            case "summary" -> MetricsLevel.SUMMARY;
+            case "full" -> MetricsLevel.FULL;
+            default -> throw new IllegalArgumentException("Invalid metrics level: '" + raw + "'. Valid values: lean, summary, full");
+        };
     }
 }

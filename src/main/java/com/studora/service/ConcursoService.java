@@ -59,6 +59,8 @@ public class ConcursoService {
     private final ConcursoCargoSubtemaRepository concursoCargoSubtemaRepository;
     private final ConcursoMapper concursoMapper;
 
+    private final StatsAssembler statsAssembler;
+
     public ConcursoService(ConcursoRepository concursoRepository,
                            InstituicaoRepository instituicaoRepository,
                            BancaRepository bancaRepository,
@@ -70,7 +72,8 @@ public class ConcursoService {
                            QuestaoRepository questaoRepository,
                            RespostaRepository respostaRepository,
                            ConcursoCargoSubtemaRepository concursoCargoSubtemaRepository,
-                           ConcursoMapper concursoMapper) {
+                           ConcursoMapper concursoMapper,
+                           StatsAssembler statsAssembler) {
         this.concursoRepository = concursoRepository;
         this.instituicaoRepository = instituicaoRepository;
         this.bancaRepository = bancaRepository;
@@ -83,6 +86,7 @@ public class ConcursoService {
         this.respostaRepository = respostaRepository;
         this.concursoCargoSubtemaRepository = concursoCargoSubtemaRepository;
         this.concursoMapper = concursoMapper;
+        this.statsAssembler = statsAssembler;
     }
 
     @Cacheable(value = "concurso-stats", key = "T(java.util.Objects).hash(#filter, #pageable.pageNumber, #pageable.pageSize, #pageable.sort.toString())")
@@ -380,59 +384,21 @@ public class ConcursoService {
             return;
         }
 
-        boolean isFull = metrics != null;
-
-        // Sequential execution for subtema enrichment (typically small result sets)
+        // Study sessions
         Map<Long, Long> counts = toCountMap(estudoSubtemaRepository.countBySubtemaIds(subtemaIds));
         Map<Long, LocalDateTime> dates = toDateMap(estudoSubtemaRepository.findLatestStudyDatesBySubtemaIds(subtemaIds));
-        Map<Long, Long> respondidasMap = isFull ? toCountMap(respostaRepository.countRespondidasBySubtemaIds(subtemaIds)) : Collections.emptyMap();
-        Map<Long, Long> acertadasMap = isFull ? toCountMap(respostaRepository.countAcertadasBySubtemaIds(subtemaIds)) : Collections.emptyMap();
-        Map<Long, LocalDateTime> ultimaQuestaoDates = isFull ? toDateMap(respostaRepository.findLatestResponseDatesBySubtemaIds(subtemaIds)) : Collections.emptyMap();
-        Map<Long, Long> totalQuestoesMap = isFull ? toCountMap(questaoRepository.countQuestoesBySubtemaIds(subtemaIds)) : Collections.emptyMap();
-        Map<Long, Double> avgTempoMap = isFull ? toDoubleMap(respostaRepository.avgTempoBySubtemaIds(subtemaIds)) : Collections.emptyMap();
-        Map<Long, Map<String, DificuldadeStatDto>> dificuldadeMap = isFull ? parseDificuldadeStats(respostaRepository.getDificuldadeStatsBySubtemaIds(subtemaIds)) : Collections.emptyMap();
 
         for (ConcursoCargoSummaryDto cargo : cargos) {
             if (cargo.getTopicos() == null) continue;
             for (SubtemaSummaryDto topico : cargo.getTopicos()) {
                 Long topId = topico.getId();
-                // Lean: structural only (id, nome, parent refs already set by mapper)
-                if (isFull) {
+                if (metrics != null) {
+                    topico.setQuestaoStats(statsAssembler.buildStats(topId, "SUBTEMA", metrics));
                     topico.setTotalEstudos(counts.getOrDefault(topId, 0L));
                     topico.setUltimoEstudo(dates.get(topId));
-                    topico.setUltimaQuestao(ultimaQuestaoDates.get(topId));
-                    topico.setTotalQuestoes(totalQuestoesMap.getOrDefault(topId, 0L));
-                    topico.setQuestoesRespondidas(respondidasMap.getOrDefault(topId, 0L));
-                    topico.setQuestoesAcertadas(acertadasMap.getOrDefault(topId, 0L));
-                    topico.setMediaTempoResposta(avgTempoMap.containsKey(topId) ? avgTempoMap.get(topId).intValue() : null);
-                    topico.setDificuldadeRespostas(dificuldadeMap.get(topId));
                 }
             }
         }
-    }
-
-    private Map<String, DificuldadeStatDto> initEmptyDificuldadeMap() {
-        Map<String, DificuldadeStatDto> map = new HashMap<>();
-        for (Dificuldade d : Dificuldade.values()) {
-            map.put(d.name(), new DificuldadeStatDto(0, 0));
-        }
-        return map;
-    }
-
-    private Map<Long, Map<String, DificuldadeStatDto>> parseDificuldadeStats(List<Object[]> rows) {
-        Map<Long, Map<String, DificuldadeStatDto>> result = new HashMap<>();
-        for (Object[] row : rows) {
-            Long scopeId = ((Number) row[0]).longValue();
-            int diffId = ((Number) row[1]).intValue();
-            int total = ((Number) row[2]).intValue();
-            int corretas = row[3] != null ? ((Number) row[3]).intValue() : 0;
-
-            String diffName = Dificuldade.fromId(diffId).name();
-
-            result.computeIfAbsent(scopeId, k -> initEmptyDificuldadeMap())
-                  .put(diffName, new DificuldadeStatDto(total, corretas));
-        }
-        return result;
     }
 
     private Map<Long, Long> toCountMap(List<Object[]> rows) {
@@ -447,15 +413,10 @@ public class ConcursoService {
                 row -> parseDate(row[1])));
     }
 
-    private Map<Long, Double> toDoubleMap(List<Object[]> rows) {
-        return rows.stream().collect(Collectors.toMap(
-                row -> ((Number) row[0]).longValue(),
-                row -> ((Number) row[1]).doubleValue()));
-    }
-
     private LocalDateTime parseDate(Object val) {
         if (val instanceof LocalDateTime) return (LocalDateTime) val;
         if (val instanceof String) return LocalDateTime.parse((String) val, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         return null;
     }
+
 }

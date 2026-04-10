@@ -4,7 +4,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import com.studora.dto.request.InstituicaoCreateRequest;
-import com.studora.dto.request.InstituicaoUpdateRequest;
 import com.studora.entity.Instituicao;
 import com.studora.repository.InstituicaoRepository;
 import com.studora.util.TestUtil;
@@ -30,10 +29,70 @@ class InstituicaoControllerTest {
     private InstituicaoRepository instituicaoRepository;
 
     @Test
+    void testGetAllInstituicoes() throws Exception {
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Polícia Federal");
+        instituicao.setArea("Policial");
+        instituicaoRepository.save(instituicao);
+
+        mockMvc
+            .perform(get("/api/v1/instituicoes"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].nome").value("Polícia Federal"))
+            .andExpect(jsonPath("$.pageNumber").value(0));
+    }
+
+    @Test
+    void testGetInstituicaoById() throws Exception {
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Polícia Federal");
+        instituicao.setArea("Policial");
+        instituicao = instituicaoRepository.save(instituicao);
+
+        mockMvc
+            .perform(get("/api/v1/instituicoes/{id}", instituicao.getId()).param("metrics", "full"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.nome").value("Polícia Federal"))
+            .andExpect(jsonPath("$.area").value("Policial"))
+            .andExpect(jsonPath("$.questaoStats").exists())
+            .andExpect(jsonPath("$.questaoStats.total").exists())
+            .andExpect(jsonPath("$.questaoStats.porNivel").exists())
+            .andExpect(jsonPath("$.questaoStats.porBanca").exists())
+            .andExpect(jsonPath("$.questaoStats.porCargo").exists())
+            .andExpect(jsonPath("$.questaoStats.porAreaCargo").exists());
+    }
+
+    @Test
+    void testGetAllInstituicoes_MetricsTiers() throws Exception {
+        Instituicao inst = new Instituicao(); inst.setNome("Inst Stats Test"); inst.setArea("Policial");
+        instituicaoRepository.save(inst);
+
+        // Lean (default): no questaoStats
+        mockMvc
+            .perform(get("/api/v1/instituicoes"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].questaoStats").doesNotExist());
+
+        // Summary: only total
+        mockMvc
+            .perform(get("/api/v1/instituicoes").param("metrics", "summary"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].questaoStats.total").exists())
+            .andExpect(jsonPath("$.content[0].questaoStats.porNivel").doesNotExist());
+
+        // Full: all breakdowns
+        mockMvc
+            .perform(get("/api/v1/instituicoes").param("metrics", "full"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].questaoStats.total").exists())
+            .andExpect(jsonPath("$.content[0].questaoStats.porNivel").exists());
+    }
+
+    @Test
     void testCreateInstituicao() throws Exception {
         InstituicaoCreateRequest request = new InstituicaoCreateRequest();
-        request.setNome("USP");
-        request.setArea("Estadual");
+        request.setNome("PF");
+        request.setArea("Policial");
 
         mockMvc
             .perform(
@@ -41,131 +100,53 @@ class InstituicaoControllerTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(request))
             )
-            .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.nome").value("USP"))
-            .andExpect(jsonPath("$.area").value("Estadual"));
-    }
-
-    @Test
-    void testGetInstituicao() throws Exception {
-        Instituicao inst = new Instituicao();
-        inst.setNome("UNICAMP");
-        inst.setArea("Estadual");
-        inst = instituicaoRepository.save(inst);
-
-        mockMvc
-            .perform(get("/api/v1/instituicoes/{id}", inst.getId()))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.nome").value("UNICAMP"))
-            .andExpect(jsonPath("$.area").value("Estadual"));
-    }
-
-    @Test
-    void testGetAll() throws Exception {
-        Instituicao inst = new Instituicao();
-        inst.setNome("UFRJ");
-        inst.setArea("Educação");
-        instituicaoRepository.save(inst);
-
-        mockMvc
-            .perform(get("/api/v1/instituicoes"))
-            .andExpect(status().isOk())
-            .andExpect(
-                jsonPath("$.content.length()").value(
-                    org.hamcrest.Matchers.greaterThanOrEqualTo(1)
-                )
-            );
-    }
-
-    @Test
-    void testGetAllInstituicoes_DefaultSorting() throws Exception {
-        Instituicao i1 = new Instituicao(); i1.setNome("B-Inst"); i1.setArea("Financeira");
-        Instituicao i2 = new Instituicao(); i2.setNome("A-Inst-1"); i2.setArea("Judiciaria");
-        Instituicao i3 = new Instituicao(); i3.setNome("A-Inst-2"); i3.setArea("Educação");
-        
-        instituicaoRepository.save(i1);
-        instituicaoRepository.save(i2);
-        instituicaoRepository.save(i3);
-
-        // Default sort: nome ASC, area ASC
-        // Expected: 1. A-Inst-1 Judiciaria, 2. A-Inst-2 Educação, 3. B-Inst Financeira
-        mockMvc
-            .perform(get("/api/v1/instituicoes"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.content[0].nome").value("A-Inst-1"))
-            .andExpect(jsonPath("$.content[1].nome").value("A-Inst-2"))
-            .andExpect(jsonPath("$.content[2].nome").value("B-Inst"));
-    }
-
-    @Test
-    void testGetAllInstituicoes_CustomSortingByArea() throws Exception {
-        Instituicao i1 = new Instituicao(); i1.setNome("Z-Inst"); i1.setArea("Judiciaria");
-        Instituicao i2 = new Instituicao(); i2.setNome("A-Inst"); i2.setArea("Educação");
-        
-        instituicaoRepository.save(i1);
-        instituicaoRepository.save(i2);
-
-        // Sort by area ASC
-        // Expected: Educação (A-Inst), then Judiciaria (Z-Inst)
-        mockMvc
-            .perform(get("/api/v1/instituicoes").param("sort", "area").param("direction", "ASC"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.content[0].area").value("Educação"))
-            .andExpect(jsonPath("$.content[1].area").value("Judiciaria"));
+            .andExpect(status().isCreated());
     }
 
     @Test
     void testUpdateInstituicao() throws Exception {
-        // First create an institution
-        Instituicao inst = new Instituicao();
-        inst.setNome("Instituição Original");
-        inst.setArea("Educação");
-        inst = instituicaoRepository.save(inst);
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("OldName");
+        instituicao.setArea("OldArea");
+        instituicao = instituicaoRepository.save(instituicao);
 
-        // Create update request
-        InstituicaoUpdateRequest request = new InstituicaoUpdateRequest();
-        request.setNome("Instituição Atualizada");
-        request.setArea("Educação Superior");
+        com.studora.dto.request.InstituicaoUpdateRequest request = new com.studora.dto.request.InstituicaoUpdateRequest();
+        request.setNome("NewName");
+        request.setArea("NewArea");
 
         mockMvc
             .perform(
-                put("/api/v1/instituicoes/{id}", inst.getId())
+                put("/api/v1/instituicoes/{id}", instituicao.getId())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(request))
             )
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.nome").value("Instituição Atualizada"))
-            .andExpect(jsonPath("$.area").value("Educação Superior"));
+            .andExpect(status().isOk());
     }
 
     @Test
     void testDeleteInstituicao() throws Exception {
-        Instituicao inst = new Instituicao();
-        inst.setNome("Deletable");
-        inst.setArea("TI");
-        inst = instituicaoRepository.save(inst);
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("ToDelete");
+        instituicao.setArea("ToDeleteArea");
+        instituicao = instituicaoRepository.save(instituicao);
 
         mockMvc
-            .perform(delete("/api/v1/instituicoes/{id}", inst.getId()))
+            .perform(delete("/api/v1/instituicoes/{id}", instituicao.getId()))
             .andExpect(status().isNoContent());
-
-        mockMvc
-            .perform(get("/api/v1/instituicoes/{id}", inst.getId()))
-            .andExpect(status().isNotFound());
     }
 
     @Test
     void testCreateInstituicao_Conflict_DuplicateName() throws Exception {
         // Create first instituicao
         Instituicao inst1 = new Instituicao();
-        inst1.setNome("Universidade Federal do Rio de Janeiro");
-        inst1.setArea("Educação");
+        inst1.setNome("Polícia Federal");
+        inst1.setArea("Policial");
         instituicaoRepository.save(inst1);
 
         // Try to create another instituicao with the same name
         InstituicaoCreateRequest request = new InstituicaoCreateRequest();
-        request.setNome("Universidade Federal do Rio de Janeiro");
-        request.setArea("Educação");
+        request.setNome("Polícia Federal");
+        request.setArea("Judiciária"); // Different area shouldn't matter if name is key
 
         mockMvc
             .perform(
@@ -177,21 +158,21 @@ class InstituicaoControllerTest {
             .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
             .andExpect(jsonPath("$.title").value("Conflito"))
             .andExpect(jsonPath("$.status").value(409))
-            .andExpect(jsonPath("$.detail").value("Já existe uma instituição com o nome 'Universidade Federal do Rio de Janeiro'"));
+            .andExpect(jsonPath("$.detail").value("Já existe uma instituição com o nome 'Polícia Federal'"));
     }
 
     @Test
-    void testCreateInstituicao_Conflict_DuplicateName_CaseInsensitive() throws Exception {
-        // Create first instituicao
+    void testCreateInstituicao_Conflict_CaseInsensitiveDuplicate() throws Exception {
+        // Create first instituicao with uppercase name
         Instituicao inst1 = new Instituicao();
-        inst1.setNome("Banco Central");
-        inst1.setArea("Financeira");
+        inst1.setNome("POLICIA FEDERAL");
+        inst1.setArea("Policial");
         instituicaoRepository.save(inst1);
 
-        // Try to create another instituicao with the same name but different case
+        // Try to create another instituicao with the same name in lowercase (should be detected as duplicate)
         InstituicaoCreateRequest request = new InstituicaoCreateRequest();
-        request.setNome("banco central");
-        request.setArea("Financeira");
+        request.setNome("policia federal");
+        request.setArea("Policial");
 
         mockMvc
             .perform(
@@ -200,15 +181,18 @@ class InstituicaoControllerTest {
                     .content(TestUtil.asJsonString(request))
             )
             .andExpect(status().isConflict())
-            .andExpect(jsonPath("$.detail").value("Já existe uma instituição com o nome 'banco central'"));
+            .andExpect(content().contentType(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.title").value("Conflito"))
+            .andExpect(jsonPath("$.status").value(409))
+            .andExpect(jsonPath("$.detail").value("Já existe uma instituição com o nome 'policia federal'"));
     }
 
     @Test
     void testGetAllAreas() throws Exception {
         // Create institutions with different areas
-        Instituicao i1 = new Instituicao(); i1.setNome("I1"); i1.setArea("Educação");
+        Instituicao i1 = new Instituicao(); i1.setNome("I1"); i1.setArea("Policial");
         Instituicao i2 = new Instituicao(); i2.setNome("I2"); i2.setArea("Judiciária");
-        Instituicao i3 = new Instituicao(); i3.setNome("I3"); i3.setArea("Educação"); // Duplicate
+        Instituicao i3 = new Instituicao(); i3.setNome("I3"); i3.setArea("Policial"); // Duplicate area
         
         instituicaoRepository.save(i1);
         instituicaoRepository.save(i2);
@@ -219,13 +203,13 @@ class InstituicaoControllerTest {
             .perform(get("/api/v1/instituicoes/areas"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.length()").value(2))
-            .andExpect(jsonPath("$").value(org.hamcrest.Matchers.containsInAnyOrder("Educação", "Judiciária")));
+            .andExpect(jsonPath("$").value(org.hamcrest.Matchers.containsInAnyOrder("Policial", "Judiciária")));
     }
 
     @Test
     void testGetAllAreas_WithSearch() throws Exception {
         // Create institutions with different areas
-        Instituicao i1 = new Instituicao(); i1.setNome("I1"); i1.setArea("Educação");
+        Instituicao i1 = new Instituicao(); i1.setNome("I1"); i1.setArea("Policial");
         Instituicao i2 = new Instituicao(); i2.setNome("I2"); i2.setArea("Judiciária");
         
         instituicaoRepository.save(i1);

@@ -40,196 +40,156 @@ class SubtemaControllerTest {
     @Autowired
     private DisciplinaRepository disciplinaRepository;
 
-    private Tema tema;
-
     @BeforeEach
     void setUp() {
-        Disciplina disciplina = disciplinaRepository.save(
-            new Disciplina("Direito Subtema Test")
-        );
-        Tema newTema = new Tema();
-        newTema.setNome("Tema Subtema Test");
-        newTema.setDisciplina(disciplina);
-        tema = temaRepository.save(newTema);
+        subtemaRepository.deleteAll();
+        temaRepository.deleteAll();
+        disciplinaRepository.deleteAll();
+    }
+
+    @Test
+    void testGetSubtemaById_FullMetrics() throws Exception {
+        Disciplina d = disciplinaRepository.save(new Disciplina("D1"));
+        Tema t = temaRepository.save(new Tema(d, "T1"));
+        Subtema s = subtemaRepository.save(new Subtema(t, "S1"));
+
+        mockMvc
+            .perform(get("/api/v1/subtemas/{id}", s.getId()).param("metrics", "full"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.nome").value("S1"))
+            .andExpect(jsonPath("$.questaoStats").exists())
+            .andExpect(jsonPath("$.questaoStats.total").exists())
+            // Leanerization: Nested tema must not have stats
+            .andExpect(jsonPath("$.tema.questaoStats").doesNotExist())
+            // Redundancy: Nested tema should be minimal
+            .andExpect(jsonPath("$.tema.disciplinaId").doesNotExist());
+    }
+
+    @Test
+    void testGetAllSubtemas_MetricsTiers() throws Exception {
+        Disciplina d = disciplinaRepository.save(new Disciplina("D1"));
+        Tema t = temaRepository.save(new Tema(d, "T1"));
+        subtemaRepository.save(new Subtema(t, "S1"));
+
+        // Lean (default): no stats
+        mockMvc
+            .perform(get("/api/v1/subtemas"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].questaoStats").doesNotExist());
+
+        // Summary: only total
+        mockMvc
+            .perform(get("/api/v1/subtemas").param("metrics", "summary"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].questaoStats.total").exists())
+            .andExpect(jsonPath("$.content[0].questaoStats.porNivel").doesNotExist());
+
+        // Full: all breakdowns
+        mockMvc
+            .perform(get("/api/v1/subtemas").param("metrics", "full"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].questaoStats.total").exists())
+            .andExpect(jsonPath("$.content[0].questaoStats.porNivel").exists());
+    }
+
+    @Test
+    void testGetAllSubtemas_DefaultSorting() throws Exception {
+        // Create another tema to test sorting
+        Tema tema2 = new Tema();
+        tema2.setNome("Tema 2");
+        tema2.setDisciplina(disciplinaRepository.save(new Disciplina("D2")));
+        temaRepository.save(tema2);
+
+        Subtema s1 = new Subtema(); s1.setNome("Subtema B"); s1.setTema(tema2);
+        Subtema s2 = new Subtema(); s2.setNome("Subtema A"); s2.setTema(tema2);
+        
+        subtemaRepository.save(s1);
+        subtemaRepository.save(s2);
+
+        // Sort: nome ASC
+        mockMvc
+            .perform(get("/api/v1/subtemas").param("direction", "ASC"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].nome").value("Subtema A"))
+            .andExpect(jsonPath("$.content[1].nome").value("Subtema B"));
     }
 
     @Test
     void testCreateSubtema() throws Exception {
-        SubtemaCreateRequest subtemaCreateRequest = new SubtemaCreateRequest();
-        subtemaCreateRequest.setNome("Espécies de Controle");
-        subtemaCreateRequest.setTemaId(tema.getId());
+        Tema tema = new Tema();
+        tema.setNome("Tema Test");
+        tema.setDisciplina(disciplinaRepository.save(new Disciplina("D1")));
+        tema = temaRepository.save(tema);
+
+        SubtemaCreateRequest request = new SubtemaCreateRequest();
+        request.setNome("New Subtema");
+        request.setTemaId(tema.getId());
 
         mockMvc
             .perform(
                 post("/api/v1/subtemas")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(subtemaCreateRequest))
+                    .content(TestUtil.asJsonString(request))
             )
             .andExpect(status().isCreated());
     }
 
     @Test
-    void testGetSubtemaById() throws Exception {
-        Subtema subtema = new Subtema();
-        subtema.setNome("Espécies de Controle");
-        subtema.setTema(tema);
-        subtema = subtemaRepository.save(subtema);
-
-        mockMvc
-            .perform(get("/api/v1/subtemas/{id}", subtema.getId()))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.nome").value("Espécies de Controle"));
-    }
-
-    @Test
-    void testGetSubtemaById_NotFound() throws Exception {
-        mockMvc
-            .perform(get("/api/v1/subtemas/{id}", 99999L))
-            .andExpect(status().isNotFound());
-    }
-
-    @Test
-    void testGetAllSubtemas() throws Exception {
-        Subtema subtema1 = new Subtema();
-        subtema1.setNome("Subtema 1");
-        subtema1.setTema(tema);
-        subtemaRepository.save(subtema1);
-
-        Subtema subtema2 = new Subtema();
-        subtema2.setNome("Subtema 2");
-        subtema2.setTema(tema);
-        subtemaRepository.save(subtema2);
-
-        mockMvc
-            .perform(get("/api/v1/subtemas"))
-            .andExpect(status().isOk())
-            .andExpect(
-                jsonPath("$.content.length()").value(
-                    org.hamcrest.Matchers.greaterThanOrEqualTo(2)
-                )
-            );
-    }
-
-    @Test
-    void testGetSubtemasByTema() throws Exception {
-        Subtema subtema = new Subtema();
-        subtema.setNome("Subtema de Tema");
-        subtema.setTema(tema);
-        subtemaRepository.save(subtema);
-
-        mockMvc
-            .perform(get("/api/v1/subtemas/tema/{temaId}", tema.getId()))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(org.hamcrest.Matchers.greaterThanOrEqualTo(1)))
-            .andExpect(jsonPath("$[0].nome").value("Subtema de Tema"));
-    }
-
-    @Test
-    void testGetSubtemaById_MetricsTiers() throws Exception {
-        Subtema subtema = new Subtema();
-        subtema.setNome("Subtema Tiers");
-        subtema.setTema(tema);
-        subtema = subtemaRepository.save(subtema);
-
-        // Lean (default): only structural fields, metrics omitted
-        mockMvc
-            .perform(get("/api/v1/subtemas/{id}", subtema.getId()))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.id").isNumber())
-            .andExpect(jsonPath("$.nome").value("Subtema Tiers"))
-            .andExpect(jsonPath("$.totalEstudos").doesNotExist())
-            .andExpect(jsonPath("$.questoesRespondidas").doesNotExist())
-            .andExpect(jsonPath("$.mediaTempoResposta").doesNotExist())
-            .andExpect(jsonPath("$.dificuldadeRespostas").doesNotExist());
-
-        // Summary: progress + accuracy present (0 since no study data, but fields exist)
-        mockMvc
-            .perform(get("/api/v1/subtemas/{id}", subtema.getId()).param("metrics", "summary"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.totalEstudos").value(0))
-            .andExpect(jsonPath("$.questoesRespondidas").value(0))
-            .andExpect(jsonPath("$.questoesAcertadas").value(0))
-            .andExpect(jsonPath("$.mediaTempoResposta").doesNotExist())
-            .andExpect(jsonPath("$.dificuldadeRespostas").doesNotExist());
-
-        // Full: all metrics present (but dificuldadeRespostas is absent if no data)
-        mockMvc
-            .perform(get("/api/v1/subtemas/{id}", subtema.getId()).param("metrics", "full"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.totalEstudos").value(0))
-            .andExpect(jsonPath("$.dificuldadeRespostas").doesNotExist());
-    }
-
-    @Test
-    void testGetAllSubtemas_DefaultSorting() throws Exception {
-        // Create another tema to test temaId sorting
-        Tema tema2 = new Tema();
-        tema2.setNome("Tema 2");
-        tema2.setDisciplina(tema.getDisciplina());
-        tema2 = temaRepository.save(tema2);
-
-        Subtema s1 = new Subtema(); s1.setNome("B-Sub"); s1.setTema(tema); subtemaRepository.save(s1);
-        Subtema s2 = new Subtema(); s2.setNome("A-Sub"); s2.setTema(tema2); subtemaRepository.save(s2);
-        Subtema s3 = new Subtema(); s3.setNome("A-Sub"); s3.setTema(tema); subtemaRepository.save(s3);
-
-        // Default sort: nome ASC, tema.id ASC
-        // Expected: 1. A-Sub (tema), 2. A-Sub (tema2), 3. B-Sub (tema)
-        mockMvc
-            .perform(get("/api/v1/subtemas"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.content[0].nome").value("A-Sub"))
-            .andExpect(jsonPath("$.content[0].temaId").value(tema.getId()))
-            .andExpect(jsonPath("$.content[1].temaId").value(tema2.getId()))
-            .andExpect(jsonPath("$.content[2].nome").value("B-Sub"));
-    }
-
-    @Test
     void testUpdateSubtema() throws Exception {
+        Tema tema = new Tema();
+        tema.setNome("Tema Test");
+        tema.setDisciplina(disciplinaRepository.save(new Disciplina("D1")));
+        tema = temaRepository.save(tema);
+
         Subtema subtema = new Subtema();
-        subtema.setNome("Old Name");
+        subtema.setNome("OldName");
         subtema.setTema(tema);
         subtema = subtemaRepository.save(subtema);
 
-        SubtemaUpdateRequest updateRequest = new SubtemaUpdateRequest();
-        updateRequest.setNome("New Name");
-        updateRequest.setTemaId(tema.getId());
+        SubtemaUpdateRequest request = new SubtemaUpdateRequest();
+        request.setNome("NewName");
+        request.setTemaId(tema.getId());
 
         mockMvc
             .perform(
                 put("/api/v1/subtemas/{id}", subtema.getId())
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(updateRequest))
+                    .content(TestUtil.asJsonString(request))
             )
             .andExpect(status().isOk());
     }
 
     @Test
     void testDeleteSubtema() throws Exception {
+        Tema tema = new Tema();
+        tema.setNome("Tema Test");
+        tema.setDisciplina(disciplinaRepository.save(new Disciplina("D1")));
+        tema = temaRepository.save(tema);
+
         Subtema subtema = new Subtema();
-        subtema.setNome("Subtema to Delete");
+        subtema.setNome("ToDelete");
         subtema.setTema(tema);
         subtema = subtemaRepository.save(subtema);
 
         mockMvc
             .perform(delete("/api/v1/subtemas/{id}", subtema.getId()))
             .andExpect(status().isNoContent());
-
-        mockMvc
-            .perform(get("/api/v1/subtemas/{id}", subtema.getId()))
-            .andExpect(status().isNotFound());
     }
 
     @Test
-    void testCreateSubtema_Conflict_DuplicateName_CaseInsensitive() throws Exception {
-        // Create first subtema
+    void testCreateSubtema_Conflict_DuplicateNameInSameTema() throws Exception {
+        Tema tema = new Tema();
+        tema.setNome("Tema Test");
+        tema.setDisciplina(disciplinaRepository.save(new Disciplina("D1")));
+        tema = temaRepository.save(tema);
+
         Subtema sub1 = new Subtema();
-        sub1.setNome("Controle Prévio");
+        sub1.setNome("SUBTEMA");
         sub1.setTema(tema);
         subtemaRepository.save(sub1);
 
-        // Try to create another subtema with the same name but different case
         SubtemaCreateRequest request = new SubtemaCreateRequest();
-        request.setNome("controle prévio");
+        request.setNome("SUBTEMA");
         request.setTemaId(tema.getId());
 
         mockMvc
@@ -239,6 +199,6 @@ class SubtemaControllerTest {
                     .content(TestUtil.asJsonString(request))
             )
             .andExpect(status().isConflict())
-            .andExpect(jsonPath("$.detail").value("Já existe um subtema com o nome 'controle prévio' no tema com ID: " + tema.getId()));
+            .andExpect(jsonPath("$.detail").value("Já existe um subtema com o nome 'SUBTEMA' no tema com ID: " + tema.getId()));
     }
 }

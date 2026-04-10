@@ -1,5 +1,7 @@
 package com.studora.service;
 
+import com.studora.dto.MetricsLevel;
+import com.studora.dto.QuestaoStatsDto;
 import com.studora.dto.cargo.CargoDetailDto;
 import com.studora.dto.cargo.CargoSummaryDto;
 import com.studora.dto.request.CargoCreateRequest;
@@ -30,25 +32,39 @@ public class CargoService {
     private final CargoRepository cargoRepository;
     private final CargoMapper cargoMapper;
     private final ConcursoCargoRepository concursoCargoRepository;
+    private final StatsAssembler statsAssembler;
 
     @Transactional(readOnly = true)
-    public Page<CargoSummaryDto> findAll(String nome, Pageable pageable) {
+    public Page<CargoSummaryDto> findAll(String nome, Pageable pageable, MetricsLevel metrics) {
+        Page<Cargo> page;
         if (nome != null && !nome.isBlank()) {
-            return cargoRepository.findByNomeContainingIgnoreCase(nome, pageable)
-                    .map(cargoMapper::toSummaryDto);
+            page = cargoRepository.findByNomeContainingIgnoreCase(nome, pageable);
+        } else {
+            page = cargoRepository.findAll(pageable);
         }
-        return cargoRepository.findAll(pageable)
-                .map(cargoMapper::toSummaryDto);
+
+        return page.map(cargo -> {
+            CargoSummaryDto dto = cargoMapper.toSummaryDto(cargo);
+            if (metrics != null) {
+                dto.setQuestaoStats(statsAssembler.buildStats(cargo.getId(), "CARGO", metrics));
+            }
+            return dto;
+        });
     }
 
     @Transactional(readOnly = true)
-    public CargoDetailDto getCargoDetailById(Long id) {
+    public CargoDetailDto getCargoDetailById(Long id, MetricsLevel metrics) {
         Cargo cargo = cargoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Cargo", "ID", id));
-        return cargoMapper.toDetailDto(cargo);
+        
+        CargoDetailDto dto = cargoMapper.toDetailDto(cargo);
+        if (metrics != null) {
+            dto.setQuestaoStats(statsAssembler.buildStats(id, "CARGO", metrics));
+        }
+        return dto;
     }
 
-    public CargoDetailDto create(CargoCreateRequest request) {
+    public void create(CargoCreateRequest request) {
         log.info("Criando novo cargo: {} ({})", request.getNome(), request.getNivel());
         
         Optional<Cargo> existing = cargoRepository.findByNomeAndNivelAndArea(
@@ -60,10 +76,10 @@ public class CargoService {
         }
 
         Cargo cargo = cargoMapper.toEntity(request);
-        return cargoMapper.toDetailDto(cargoRepository.save(cargo));
+        cargoRepository.save(cargo);
     }
 
-    public CargoDetailDto update(Long id, CargoUpdateRequest request) {
+    public void update(Long id, CargoUpdateRequest request) {
         log.info("Atualizando cargo ID: {}", id);
         
         Cargo cargo = cargoRepository.findById(id)
@@ -71,7 +87,7 @@ public class CargoService {
 
         if (request.getNome() != null || request.getNivel() != null || request.getArea() != null) {
             String nome = request.getNome() != null ? request.getNome() : cargo.getNome();
-            com.studora.entity.NivelCargo nivel = request.getNivel() != null ? request.getNivel() : cargo.getNivel();
+            var nivel = request.getNivel() != null ? request.getNivel() : cargo.getNivel();
             String area = request.getArea() != null ? request.getArea() : cargo.getArea();
 
             Optional<Cargo> existing = cargoRepository.findByNomeAndNivelAndArea(nome, nivel, area);
@@ -82,7 +98,7 @@ public class CargoService {
         }
 
         cargoMapper.updateEntityFromDto(request, cargo);
-        return cargoMapper.toDetailDto(cargoRepository.save(cargo));
+        cargoRepository.save(cargo);
     }
 
     public void delete(Long id) {

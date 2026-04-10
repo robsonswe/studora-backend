@@ -69,12 +69,7 @@ class DisciplinaControllerTest {
             .perform(get("/api/v1/disciplinas/{id}", disciplina.getId()).param("metrics", "full"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.nome").value("Direito Get Test"))
-            .andExpect(jsonPath("$.totalEstudos").value(0))
-            .andExpect(jsonPath("$.totalTemas").value(0))
-            .andExpect(jsonPath("$.totalSubtemas").value(0))
-            .andExpect(jsonPath("$.temasEstudados").value(0))
-            .andExpect(jsonPath("$.subtemasEstudados").value(0))
-            .andExpect(jsonPath("$.temas").isArray());
+            .andExpect(jsonPath("$.questaoStats").exists());
     }
 
     @Test
@@ -97,9 +92,7 @@ class DisciplinaControllerTest {
                     org.hamcrest.Matchers.greaterThanOrEqualTo(2)
                 )
             )
-            .andExpect(jsonPath("$.content[0].totalEstudos").exists())
-            .andExpect(jsonPath("$.content[0].totalSubtemas").exists())
-            .andExpect(jsonPath("$.content[0].subtemasEstudados").exists());
+            .andExpect(jsonPath("$.content[0].questaoStats").exists());
     }
 
     @Test
@@ -119,35 +112,32 @@ class DisciplinaControllerTest {
     void testGetAllDisciplinas_MetricsTiers() throws Exception {
         Disciplina disciplina = disciplinaRepository.save(new Disciplina("Direito Tiers"));
 
-        // Lean (default): only structural fields, metrics omitted entirely
+        // Lean (default): only structural fields, questaoStats omitted
         mockMvc
             .perform(get("/api/v1/disciplinas"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].id").isNumber())
             .andExpect(jsonPath("$.content[0].nome").value("Direito Tiers"))
-            .andExpect(jsonPath("$.content[0].totalEstudos").doesNotExist())
-            .andExpect(jsonPath("$.content[0].subtemasEstudados").doesNotExist())
-            .andExpect(jsonPath("$.content[0].mediaTempoResposta").doesNotExist())
-            .andExpect(jsonPath("$.content[0].dificuldadeRespostas").doesNotExist());
+            .andExpect(jsonPath("$.content[0].questaoStats").doesNotExist());
 
-        // Summary: same structural fields, but service computes summary-level metrics (0 since no data)
+        // Summary: questaoStats with basic metrics
         mockMvc
             .perform(get("/api/v1/disciplinas").param("metrics", "summary"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.content[0].totalEstudos").value(0))
-            .andExpect(jsonPath("$.content[0].totalSubtemas").value(0))
-            .andExpect(jsonPath("$.content[0].subtemasEstudados").value(0))
-            .andExpect(jsonPath("$.content[0].questoesRespondidas").value(0))
-            .andExpect(jsonPath("$.content[0].questoesAcertadas").value(0));
+            .andExpect(jsonPath("$.content[0].questaoStats").exists())
+            .andExpect(jsonPath("$.content[0].questaoStats.total").exists())
+            .andExpect(jsonPath("$.content[0].questaoStats.porBanca").doesNotExist());
 
-        // Full: same metrics + additional fields (0 since no data)
+        // Full: questaoStats with all breakdowns
         mockMvc
             .perform(get("/api/v1/disciplinas").param("metrics", "full"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.content[0].totalEstudos").value(0))
-            .andExpect(jsonPath("$.content[0].totalTemas").value(0))
-            .andExpect(jsonPath("$.content[0].totalQuestoes").value(0))
-            .andExpect(jsonPath("$.content[0].dificuldadeRespostas").exists());
+            .andExpect(jsonPath("$.content[0].questaoStats").exists())
+            .andExpect(jsonPath("$.content[0].questaoStats.total").exists())
+            .andExpect(jsonPath("$.content[0].questaoStats.porNivel").exists())
+            .andExpect(jsonPath("$.content[0].questaoStats.porBanca").exists())
+            .andExpect(jsonPath("$.content[0].questaoStats.porInstituicao").exists())
+            .andExpect(jsonPath("$.content[0].questaoStats.porCargo").exists());
     }
 
     @Test
@@ -228,15 +218,12 @@ class DisciplinaControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(disciplina.getId()))
             .andExpect(jsonPath("$.nome").value("Disciplina Completa"))
-            .andExpect(jsonPath("$.totalEstudos").doesNotExist())
-            .andExpect(jsonPath("$.temas").isArray());
+            .andExpect(jsonPath("$.questaoStats").doesNotExist());
 
-        // Full: metrics populated
+        // Full: metrics populated with recursive stats
         mockMvc
             .perform(get("/api/v1/disciplinas/{id}/completo", disciplina.getId()).param("metrics", "full"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.totalEstudos").value(0))
-            .andExpect(jsonPath("$.totalTemas").value(0))
-            .andExpect(jsonPath("$.temas").isArray());
+            .andExpect(jsonPath("$.questaoStats").exists());
     }
 }

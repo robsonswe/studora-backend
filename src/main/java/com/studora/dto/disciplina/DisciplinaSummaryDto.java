@@ -1,16 +1,15 @@
 package com.studora.dto.disciplina;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.studora.dto.DificuldadeStatDto;
+import com.studora.dto.QuestaoStatsDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
-import java.util.Map;
+import java.time.LocalDateTime;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-
-@Schema(description = "DTO simplificado para listagem de disciplinas")
 @Data
+@Schema(description = "DTO simplificado para listagem de disciplinas")
 public class DisciplinaSummaryDto {
     @Schema(description = "ID único da disciplina", example = "1")
     private Long id;
@@ -18,39 +17,21 @@ public class DisciplinaSummaryDto {
     @Schema(description = "Nome da disciplina", example = "Direito Constitucional")
     private String nome;
 
-    @Schema(description = "Total de sessões de estudo realizadas para todos os subtemas desta disciplina", example = "10")
-    private Long totalEstudos;
+    @Schema(description = "Data e hora do último estudo realizado")
+    private LocalDateTime ultimoEstudo;
 
-    @Schema(description = "Data e hora do último estudo realizado entre todos os subtemas desta disciplina")
-    private java.time.LocalDateTime ultimoEstudo;
-
-    @Schema(description = "Data e hora da última questão respondida entre todos os subtemas desta disciplina")
-    private java.time.LocalDateTime ultimaQuestao;
-
-    @Schema(description = "Total de temas nesta disciplina", example = "5")
+    @Schema(description = "Total de temas associados", example = "5")
     private Long totalTemas;
 
-    @Schema(description = "Total de subtemas nesta disciplina", example = "12")
+    @Schema(description = "Total de subtemas associados", example = "15")
     private Long totalSubtemas;
 
-    @Schema(description = "Número de temas onde todos os subtemas possuem pelo menos uma sessão de estudo", example = "2")
-    private Long temasEstudados;
-
-    @Schema(description = "Número de subtemas que possuem pelo menos uma sessão de estudo", example = "8")
+    @Schema(description = "Total de subtemas estudados", example = "10")
     private Long subtemasEstudados;
 
-    @Schema(description = "Total de questões associadas a esta disciplina (somando temas/subtemas)", example = "100")
-    private Long totalQuestoes;
+    @Schema(description = "Total de temas estudados", example = "3")
+    private Long temasEstudados;
 
-    @Schema(description = "Total de questões que possuem pelo menos uma resposta", example = "50")
-    private Long questoesRespondidas;
-
-    @Schema(description = "Total de questões que possuem pelo menos uma resposta correta", example = "40")
-    private Long questoesAcertadas;
-
-    @Schema(description = "Tempo médio de resposta em segundos", example = "45")
-    private Integer mediaTempoResposta;
-
-    @Schema(description = "Estatísticas de respostas por nível de dificuldade (considerando apenas a resposta mais recente por questão)")
-    private Map<String, DificuldadeStatDto> dificuldadeRespostas;
+    @Schema(description = "Estatísticas de questões da disciplina")
+    private QuestaoStatsDto questaoStats;
 }
