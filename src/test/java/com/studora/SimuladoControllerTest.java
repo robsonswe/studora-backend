@@ -108,6 +108,8 @@ class SimuladoControllerTest {
                 .andExpect(jsonPath("$.banca.id").value(1))
                 .andExpect(jsonPath("$.ignorarRespondidas").value(true))
                 .andExpect(jsonPath("$.disciplinas").exists())
+                .andExpect(jsonPath("$.disciplinas[0].id").value(disciplinaRepository.findById(1L).get().getId()))
+                .andExpect(jsonPath("$.disciplinas[0].nome").value("Direito"))
                 .andExpect(jsonPath("$.questoes").doesNotExist());
     }
 

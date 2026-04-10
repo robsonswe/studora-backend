@@ -338,8 +338,10 @@ public class SimuladoService {
             if (tema != null) {
                 dto.setNome(tema.getNome());
                 if (tema.getDisciplina() != null) {
-                    dto.setDisciplinaId(tema.getDisciplina().getId());
-                    dto.setDisciplinaNome(tema.getDisciplina().getNome());
+                    var discRef = new com.studora.dto.subtema.DisciplinaReferenceDto();
+                    discRef.setId(tema.getDisciplina().getId());
+                    discRef.setNome(tema.getDisciplina().getNome());
+                    dto.setDisciplina(discRef);
                 }
             }
             return dto;
@@ -361,11 +363,16 @@ public class SimuladoService {
             if (subtema != null) {
                 dto.setNome(subtema.getNome());
                 if (subtema.getTema() != null) {
-                    dto.setTemaId(subtema.getTema().getId());
-                    dto.setTemaNome(subtema.getTema().getNome());
+                    var temaRef = new com.studora.dto.subtema.TemaReferenceDto();
+                    temaRef.setId(subtema.getTema().getId());
+                    temaRef.setNome(subtema.getTema().getNome());
+                    dto.setTema(temaRef);
+                    
                     if (subtema.getTema().getDisciplina() != null) {
-                        dto.setDisciplinaId(subtema.getTema().getDisciplina().getId());
-                        dto.setDisciplinaNome(subtema.getTema().getDisciplina().getNome());
+                        var discRef = new com.studora.dto.subtema.DisciplinaReferenceDto();
+                        discRef.setId(subtema.getTema().getDisciplina().getId());
+                        discRef.setNome(subtema.getTema().getDisciplina().getNome());
+                        dto.setDisciplina(discRef);
                     }
                 }
             }

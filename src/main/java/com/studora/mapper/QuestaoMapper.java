@@ -57,10 +57,8 @@ public interface QuestaoMapper {
     @Mapping(target = "instituicaoArea", source = "instituicao.area")
     ConcursoQuestaoDto toConcursoQuestaoDto(com.studora.entity.Concurso concurso);
 
-    @Mapping(target = "temaId", source = "tema.id")
-    @Mapping(target = "temaNome", source = "tema.nome")
-    @Mapping(target = "disciplinaId", source = "tema.disciplina.id")
-    @Mapping(target = "disciplinaNome", source = "tema.disciplina.nome")
+    @Mapping(target = "tema", source = "tema")
+    @Mapping(target = "disciplina", source = "tema.disciplina")
     SubtemaQuestaoDto toSubtemaQuestaoDto(com.studora.entity.Subtema subtema);
 
     default java.util.List<com.studora.dto.cargo.CargoSummaryDto> mapCargos(java.util.Set<com.studora.entity.QuestaoCargo> questaoCargos) {

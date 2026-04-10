@@ -136,6 +136,10 @@ class QuestaoControllerTest {
         // Add alternativas to comply with validation
         questaoCreateRequest.setAlternativas(Arrays.asList(alt1, alt2));
 
+        // Store tema and disciplina for assertions
+        Tema tema = subtema.getTema();
+        Disciplina disciplina = tema.getDisciplina();
+
         mockMvc
             .perform(
                 post("/api/v1/questoes")
@@ -146,7 +150,13 @@ class QuestaoControllerTest {
             .andExpect(
                 jsonPath("$.enunciado").value("Qual a capital do Brasil?")
             )
-            .andExpect(jsonPath("$.cargos[0].id").value(cargo.getId()));
+            .andExpect(jsonPath("$.cargos[0].id").value(cargo.getId()))
+            .andExpect(jsonPath("$.subtemas[0].id").value(subtema.getId()))
+            .andExpect(jsonPath("$.subtemas[0].nome").value(subtema.getNome()))
+            .andExpect(jsonPath("$.subtemas[0].tema.id").value(tema.getId()))
+            .andExpect(jsonPath("$.subtemas[0].tema.nome").value(tema.getNome()))
+            .andExpect(jsonPath("$.subtemas[0].disciplina.id").value(disciplina.getId()))
+            .andExpect(jsonPath("$.subtemas[0].disciplina.nome").value(disciplina.getNome()));
     }
 
     @Test
