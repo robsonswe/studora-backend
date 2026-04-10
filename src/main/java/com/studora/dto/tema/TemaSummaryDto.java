@@ -2,6 +2,7 @@ package com.studora.dto.tema;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.studora.dto.QuestaoStatsDto;
+import com.studora.dto.subtema.DisciplinaReferenceDto;
 import com.studora.dto.subtema.SubtemaSummaryDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -16,14 +17,11 @@ public class TemaSummaryDto {
     @Schema(description = "ID único do tema", example = "1")
     private Long id;
 
-    @Schema(description = "ID da disciplina à qual o tema pertence", example = "1")
-    private Long disciplinaId;
+    @Schema(description = "Disciplina à qual o tema pertence")
+    private DisciplinaReferenceDto disciplina;
 
     @Schema(description = "Nome do tema", example = "Direitos Fundamentais")
     private String nome;
-
-    @Schema(description = "Nome da disciplina (para evitar lookups)")
-    private String disciplinaNome;
 
     @Schema(description = "Data e hora do último estudo realizado entre todos os subtemas deste tema")
     private LocalDateTime ultimoEstudo;

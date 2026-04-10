@@ -71,10 +71,17 @@ public interface ConcursoMapper {
                     com.studora.dto.subtema.SubtemaSummaryDto dto = new com.studora.dto.subtema.SubtemaSummaryDto();
                     dto.setId(subtema.getId());
                     dto.setNome(subtema.getNome());
-                    dto.setTemaId(subtema.getTema().getId());
-                    dto.setTemaNome(subtema.getTema().getNome());
-                    dto.setDisciplinaId(subtema.getTema().getDisciplina().getId());
-                    dto.setDisciplinaNome(subtema.getTema().getDisciplina().getNome());
+                    
+                    com.studora.dto.subtema.TemaReferenceDto temaRef = new com.studora.dto.subtema.TemaReferenceDto();
+                    temaRef.setId(subtema.getTema().getId());
+                    temaRef.setNome(subtema.getTema().getNome());
+                    dto.setTema(temaRef);
+                    
+                    com.studora.dto.subtema.DisciplinaReferenceDto discRef = new com.studora.dto.subtema.DisciplinaReferenceDto();
+                    discRef.setId(subtema.getTema().getDisciplina().getId());
+                    discRef.setNome(subtema.getTema().getDisciplina().getNome());
+                    dto.setDisciplina(discRef);
+                    
                     return dto;
                 })
                 .sorted(java.util.Comparator.comparing(com.studora.dto.subtema.SubtemaSummaryDto::getNome))

@@ -188,6 +188,7 @@ class TemaControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$").isArray())
             .andExpect(jsonPath("$[0].nome").value("Atos Administrativos"))
-            .andExpect(jsonPath("$[0].disciplina.id").doesNotExist()); // Redundancy: should be removed when in disciplina context
+            .andExpect(jsonPath("$[0].disciplina.id").value(disciplina.getId()))
+            .andExpect(jsonPath("$[0].disciplina.nome").value("Direito Administrativo"));
     }
 }

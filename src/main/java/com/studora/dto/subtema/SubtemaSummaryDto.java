@@ -14,17 +14,11 @@ public class SubtemaSummaryDto {
     @Schema(description = "ID único do subtema", example = "1")
     private Long id;
 
-    @Schema(description = "ID do tema ao qual o subtema pertence", example = "1")
-    private Long temaId;
+    @Schema(description = "Tema ao qual o subtema pertence")
+    private TemaReferenceDto tema;
 
-    @Schema(description = "Nome do tema ao qual o subtema pertence")
-    private String temaNome;
-
-    @Schema(description = "ID da disciplina à qual o subtema pertence")
-    private Long disciplinaId;
-
-    @Schema(description = "Nome da disciplina à qual o subtema pertence")
-    private String disciplinaNome;
+    @Schema(description = "Disciplina à qual o subtema pertence")
+    private DisciplinaReferenceDto disciplina;
 
     @Schema(description = "Nome do subtema", example = "Atos Administrativos")
     private String nome;

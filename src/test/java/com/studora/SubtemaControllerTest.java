@@ -59,10 +59,13 @@ class SubtemaControllerTest {
             .andExpect(jsonPath("$.nome").value("S1"))
             .andExpect(jsonPath("$.questaoStats").exists())
             .andExpect(jsonPath("$.questaoStats.total").exists())
-            // Leanerization: Nested tema must not have stats
-            .andExpect(jsonPath("$.tema.questaoStats").doesNotExist())
-            // Redundancy: Nested tema should be minimal
-            .andExpect(jsonPath("$.tema.disciplinaId").doesNotExist());
+            // Nested objects
+            .andExpect(jsonPath("$.tema.id").value(t.getId()))
+            .andExpect(jsonPath("$.tema.nome").value("T1"))
+            .andExpect(jsonPath("$.disciplina.id").value(d.getId()))
+            .andExpect(jsonPath("$.disciplina.nome").value("D1"))
+            // Leanerization: Nested objects must not have stats
+            .andExpect(jsonPath("$.tema.questaoStats").doesNotExist());
     }
 
     @Test

@@ -611,10 +611,10 @@ class ConcursoControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.cargos[0].topicos.length()").value(2))
             .andExpect(jsonPath("$.cargos[0].topicos[0].nome").value("Atos Vinculados"))
-            .andExpect(jsonPath("$.cargos[0].topicos[0].temaId").value(tema.getId()))
-            .andExpect(jsonPath("$.cargos[0].topicos[0].temaNome").value("Poderes"))
-            .andExpect(jsonPath("$.cargos[0].topicos[0].disciplinaId").value(disciplina.getId()))
-            .andExpect(jsonPath("$.cargos[0].topicos[0].disciplinaNome").value("Direito Administrativo Topicos"))
+            .andExpect(jsonPath("$.cargos[0].topicos[0].tema.id").value(tema.getId()))
+            .andExpect(jsonPath("$.cargos[0].topicos[0].tema.nome").value("Poderes"))
+            .andExpect(jsonPath("$.cargos[0].topicos[0].disciplina.id").value(disciplina.getId()))
+            .andExpect(jsonPath("$.cargos[0].topicos[0].disciplina.nome").value("Direito Administrativo Topicos"))
             .andExpect(jsonPath("$.cargos[0].topicos[1].nome").value("Espécies de Atos"));
     }
 
@@ -661,8 +661,8 @@ class ConcursoControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].cargos[0].topicos.length()").value(1))
             .andExpect(jsonPath("$.content[0].cargos[0].topicos[0].nome").value("Subtema Topicos List"))
-            .andExpect(jsonPath("$.content[0].cargos[0].topicos[0].temaNome").value("Tema Topicos List"))
-            .andExpect(jsonPath("$.content[0].cargos[0].topicos[0].disciplinaNome").value("Direito Topicos List"));
+            .andExpect(jsonPath("$.content[0].cargos[0].topicos[0].tema.nome").value("Tema Topicos List"))
+            .andExpect(jsonPath("$.content[0].cargos[0].topicos[0].disciplina.nome").value("Direito Topicos List"));
     }
 
     @Test

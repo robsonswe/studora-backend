@@ -14,6 +14,8 @@ import org.mapstruct.MappingTarget;
 @Mapper(componentModel = "spring")
 public interface SubtemaMapper {
 
+    @Mapping(target = "disciplina", source = "tema.disciplina")
+    @Mapping(target = "questaoStats", ignore = true)
     SubtemaSummaryDto toSummaryDto(Subtema subtema);
 
     @Mapping(target = "questaoStats", ignore = true)
