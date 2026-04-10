@@ -18,7 +18,9 @@ public interface QuestaoRepository extends JpaRepository<Questao, Long>, JpaSpec
 
     @Query("SELECT DISTINCT q FROM Questao q " +
            "LEFT JOIN FETCH q.alternativas " +
-           "LEFT JOIN FETCH q.subtemas " +
+           "LEFT JOIN FETCH q.subtemas s " +
+           "LEFT JOIN FETCH s.tema st " +
+           "LEFT JOIN FETCH st.disciplina " +
            "LEFT JOIN FETCH q.questaoCargos qc " +
            "LEFT JOIN FETCH qc.concursoCargo " +
            "LEFT JOIN FETCH q.concurso")
@@ -26,7 +28,9 @@ public interface QuestaoRepository extends JpaRepository<Questao, Long>, JpaSpec
 
     @Query("SELECT DISTINCT q FROM Questao q " +
            "LEFT JOIN FETCH q.alternativas a " +
-           "LEFT JOIN FETCH q.subtemas " +
+           "LEFT JOIN FETCH q.subtemas s " +
+           "LEFT JOIN FETCH s.tema st " +
+           "LEFT JOIN FETCH st.disciplina " +
            "LEFT JOIN FETCH q.questaoCargos qc " +
            "LEFT JOIN FETCH qc.concursoCargo cc " +
            "LEFT JOIN FETCH cc.cargo " +
@@ -38,7 +42,9 @@ public interface QuestaoRepository extends JpaRepository<Questao, Long>, JpaSpec
 
     @Query("SELECT DISTINCT q FROM Questao q " +
            "LEFT JOIN FETCH q.alternativas a " +
-           "LEFT JOIN FETCH q.subtemas " +
+           "LEFT JOIN FETCH q.subtemas s " +
+           "LEFT JOIN FETCH s.tema st " +
+           "LEFT JOIN FETCH st.disciplina " +
            "LEFT JOIN FETCH q.questaoCargos qc " +
            "LEFT JOIN FETCH qc.concursoCargo cc " +
            "LEFT JOIN FETCH cc.cargo " +

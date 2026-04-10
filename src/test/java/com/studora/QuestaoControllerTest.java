@@ -291,6 +291,43 @@ class QuestaoControllerTest {
     }
 
     @Test
+    void testGetQuestaoById_SubtemasHaveNestedReferences() throws Exception {
+        Questao questao = new Questao();
+        questao.setEnunciado("Nested References Test");
+        questao.setConcurso(concurso);
+        questao.getSubtemas().add(subtema);
+        questao = questaoRepository.save(questao);
+
+        // Create cargo association
+        QuestaoCargo qc = new QuestaoCargo();
+        qc.setQuestao(questao);
+        qc.setConcursoCargo(concursoCargo);
+        questao.addQuestaoCargo(qc);
+        questaoCargoRepository.save(qc);
+
+        // Add alternatives (required for valid response)
+        com.studora.entity.Alternativa alt1 = new com.studora.entity.Alternativa();
+        alt1.setQuestao(questao);
+        alt1.setOrdem(1); alt1.setTexto("A"); alt1.setCorreta(true);
+        alt1.setJustificativa("Correct");
+        alt1 = alternativaRepository.save(alt1);
+        questao.getAlternativas().add(alt1);
+
+        Tema tema = subtema.getTema();
+        Disciplina disciplina = tema.getDisciplina();
+
+        mockMvc
+            .perform(get("/api/v1/questoes/{id}", questao.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.subtemas[0].id").value(subtema.getId()))
+            .andExpect(jsonPath("$.subtemas[0].nome").value(subtema.getNome()))
+            .andExpect(jsonPath("$.subtemas[0].tema.id").value(tema.getId()))
+            .andExpect(jsonPath("$.subtemas[0].tema.nome").value(tema.getNome()))
+            .andExpect(jsonPath("$.subtemas[0].disciplina.id").value(disciplina.getId()))
+            .andExpect(jsonPath("$.subtemas[0].disciplina.nome").value(disciplina.getNome()));
+    }
+
+    @Test
     void testGetQuestaoById_NotFound() throws Exception {
         mockMvc
             .perform(get("/api/v1/questoes/{id}", 99999L))
