@@ -42,7 +42,7 @@ public class TemaController {
 
     @Operation(
         summary = "Obter todos os temas",
-        description = "Retorna uma página com todos os temas cadastrados. Use o parâmetro `metrics` para incluir dados de desempenho.",
+        description = "Retorna uma página com todos os temas cadastrados. Use o parâmetro `metrics` para incluir dados de desempenho e `disciplinaIds` para filtrar por disciplinas.",
         responses = {
             @ApiResponse(responseCode = "200", description = "Página de temas retornada com sucesso",
                 content = @Content(
@@ -70,6 +70,7 @@ public class TemaController {
     @GetMapping
     public ResponseEntity<PageResponse<TemaSummaryDto>> getAllTemas(
             @RequestParam(required = false) String nome,
+            @RequestParam(required = false) List<Long> disciplinaIds,
             @Parameter(hidden = true) @PageableDefault(size = AppConstants.DEFAULT_PAGE_SIZE) Pageable pageable,
             @RequestParam(defaultValue = "nome") String sort,
             @RequestParam(defaultValue = "ASC") String direction,
@@ -88,7 +89,7 @@ public class TemaController {
             Sort.Order.asc("disciplina.id")
         );
         Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, propertyMapping, tieBreakers);
-        Page<TemaSummaryDto> temas = temaService.findAll(nome, finalPageable, metricsLevel);
+        Page<TemaSummaryDto> temas = temaService.findAll(nome, disciplinaIds, finalPageable, metricsLevel);
         return ResponseEntity.ok(new PageResponse<>(temas));
     }
 
@@ -126,36 +127,6 @@ public class TemaController {
             @Parameter(description = "Nível de métricas: full (todos os dados). Padrão: lean (estrutura apenas).")
             @RequestParam(required = false) String metrics) {
         return ResponseEntity.ok(temaService.getTemaDetailById(id, parseMetrics(metrics)));
-    }
-
-    @Operation(
-        summary = "Obter temas por disciplina",
-        description = "Retorna todos os temas de uma disciplina. Use o parâmetro `metrics` para incluir dados de desempenho.",
-        responses = {
-            @ApiResponse(responseCode = "200", description = "Lista de temas retornada com sucesso",
-                content = @Content(
-                    mediaType = "application/json",
-                    examples = {
-                        @ExampleObject(
-                            name = "lean (padrão)",
-                            summary = "Estrutura apenas",
-                            value = "[{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\"}]"
-                        ),
-                        @ExampleObject(
-                            name = "full",
-                            summary = "Todas as métricas",
-                            value = "[{\"id\": 1, \"nome\": \"Direitos Fundamentais\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Constitucional\", \"totalSubtemas\": 3, \"subtemasEstudados\": 2, \"questoesRespondidas\": 20, \"questoesAcertadas\": 15, \"mediaTempoResposta\": 45, \"dificuldadeRespostas\": {\"FACIL\": {\"total\": 10, \"corretas\": 8}}}]"
-                        )
-                    }
-                ))
-        }
-    )
-    @GetMapping("/disciplina/{disciplinaId}")
-    public ResponseEntity<List<TemaSummaryDto>> getTemasByDisciplina(
-            @PathVariable Long disciplinaId,
-            @Parameter(description = "Nível de métricas: summary, full. Padrão: lean.")
-            @RequestParam(required = false) String metrics) {
-        return ResponseEntity.ok(temaService.findByDisciplinaId(disciplinaId, parseMetrics(metrics)));
     }
 
     @Operation(

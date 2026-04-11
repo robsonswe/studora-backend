@@ -4,6 +4,7 @@ import com.studora.entity.Subtema;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -12,7 +13,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface SubtemaRepository extends JpaRepository<Subtema, Long> {
+public interface SubtemaRepository extends JpaRepository<Subtema, Long>, JpaSpecificationExecutor<Subtema> {
     Page<Subtema> findByTemaId(Long temaId, Pageable pageable);
     List<Subtema> findByTemaId(Long temaId);
 

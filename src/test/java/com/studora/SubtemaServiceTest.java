@@ -167,9 +167,9 @@ class SubtemaServiceTest {
         Subtema sub = new Subtema(); sub.setId(1L); sub.setNome("Espécies"); sub.setTema(tema);
         Page<Subtema> page = new PageImpl<>(List.of(sub));
 
-        when(subtemaRepository.findAll(any(Pageable.class))).thenReturn(page);
+        when(subtemaRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(Pageable.class))).thenReturn(page);
 
-        Page<SubtemaSummaryDto> result = subtemaService.findAll(null, Pageable.unpaged(), null);
+        Page<SubtemaSummaryDto> result = subtemaService.findAll(null, null, null, Pageable.unpaged(), null);
         assertEquals(1, result.getTotalElements());
         assertNull(result.getContent().get(0).getTotalEstudos());
     }

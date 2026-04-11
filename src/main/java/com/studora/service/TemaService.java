@@ -15,12 +15,14 @@ import com.studora.repository.DisciplinaRepository;
 import com.studora.repository.SubtemaRepository;
 import com.studora.repository.TemaRepository;
 import com.studora.repository.EstudoSubtemaRepository;
+import com.studora.repository.specification.TemaSpecification;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,15 +46,11 @@ public class TemaService {
     private final SubtemaService subtemaService;
     private final StatsAssembler statsAssembler;
 
-    @Cacheable(value = "tema-stats", key = "T(java.util.Objects).hash('all', #nome, #pageable.pageNumber, #pageable.pageSize, #pageable.sort, #metrics)")
+    @Cacheable(value = "tema-stats", key = "T(java.util.Objects).hash('all', #nome, #disciplinaIds, #pageable.pageNumber, #pageable.pageSize, #pageable.sort, #metrics)")
     @Transactional(readOnly = true)
-    public Page<TemaSummaryDto> findAll(String nome, Pageable pageable, MetricsLevel metrics) {
-        Page<Tema> page;
-        if (nome != null && !nome.isBlank()) {
-            page = temaRepository.findByNomeContainingIgnoreCase(nome, pageable);
-        } else {
-            page = temaRepository.findAll(pageable);
-        }
+    public Page<TemaSummaryDto> findAll(String nome, List<Long> disciplinaIds, Pageable pageable, MetricsLevel metrics) {
+        Specification<Tema> spec = TemaSpecification.withFilters(nome, disciplinaIds);
+        Page<Tema> page = temaRepository.findAll(spec, pageable);
 
         if (page.isEmpty() || metrics == null) {
             return page.map(temaMapper::toSummaryDto);

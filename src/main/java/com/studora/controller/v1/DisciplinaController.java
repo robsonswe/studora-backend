@@ -43,9 +43,6 @@ public class DisciplinaController {
     @Operation(
         summary = "Obter todas as disciplinas",
         description = "Retorna uma página com todas as disciplinas cadastradas. Use o parâmetro `metrics` para incluir dados de desempenho.",
-        parameters = {
-            @Parameter(description = "Nível de métricas: summary (progresso+acurácia), full (+tempo+dificuldade). Padrão: lean (estrutura apenas)."),
-        },
         responses = {
             @ApiResponse(responseCode = "200", description = "Página de disciplinas retornada com sucesso",
                 content = @Content(

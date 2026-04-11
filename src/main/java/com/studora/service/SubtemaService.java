@@ -15,12 +15,14 @@ import com.studora.repository.QuestaoRepository;
 import com.studora.repository.SubtemaRepository;
 import com.studora.repository.TemaRepository;
 import com.studora.repository.EstudoSubtemaRepository;
+import com.studora.repository.specification.SubtemaSpecification;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -60,15 +62,11 @@ public class SubtemaService {
         this.dbStatsExecutor = dbStatsExecutor;
     }
 
-    @Cacheable(value = "subtema-stats", key = "T(java.util.Objects).hash('all', #nome, #pageable.pageNumber, #pageable.pageSize, #pageable.sort, #metrics)")
+    @Cacheable(value = "subtema-stats", key = "T(java.util.Objects).hash('all', #nome, #temaIds, #disciplinaIds, #pageable.pageNumber, #pageable.pageSize, #pageable.sort, #metrics)")
     @Transactional(readOnly = true)
-    public Page<SubtemaSummaryDto> findAll(String nome, Pageable pageable, MetricsLevel metrics) {
-        Page<Subtema> page;
-        if (nome != null && !nome.isBlank()) {
-            page = subtemaRepository.findByNomeContainingIgnoreCase(nome, pageable);
-        } else {
-            page = subtemaRepository.findAll(pageable);
-        }
+    public Page<SubtemaSummaryDto> findAll(String nome, List<Long> temaIds, List<Long> disciplinaIds, Pageable pageable, MetricsLevel metrics) {
+        Specification<Subtema> spec = SubtemaSpecification.withFilters(nome, temaIds, disciplinaIds);
+        Page<Subtema> page = subtemaRepository.findAll(spec, pageable);
 
         if (page.isEmpty() || metrics == null) {
             return page.map(subtemaMapper::toSummaryDto);

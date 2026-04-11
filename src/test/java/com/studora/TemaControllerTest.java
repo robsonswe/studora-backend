@@ -173,22 +173,22 @@ class TemaControllerTest {
     }
 
     @Test
-    void testGetTemasByDisciplina() throws Exception {
-        Disciplina disciplina = new Disciplina();
-        disciplina.setNome("Direito Administrativo");
-        disciplina = disciplinaRepository.save(disciplina);
-
-        Tema tema = new Tema();
-        tema.setNome("Atos Administrativos");
-        tema.setDisciplina(disciplina);
-        temaRepository.save(tema);
+    void testGetAllTemas_FilterByDisciplinaIds() throws Exception {
+        Disciplina d1 = disciplinaRepository.save(new Disciplina("D1"));
+        Disciplina d2 = disciplinaRepository.save(new Disciplina("D2"));
+        
+        temaRepository.save(new Tema(d1, "Tema D1"));
+        temaRepository.save(new Tema(d2, "Tema D2"));
 
         mockMvc
-            .perform(get("/api/v1/temas/disciplina/{disciplinaId}", disciplina.getId()))
+            .perform(get("/api/v1/temas").param("disciplinaIds", d1.getId().toString()))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$").isArray())
-            .andExpect(jsonPath("$[0].nome").value("Atos Administrativos"))
-            .andExpect(jsonPath("$[0].disciplina.id").value(disciplina.getId()))
-            .andExpect(jsonPath("$[0].disciplina.nome").value("Direito Administrativo"));
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].nome").value("Tema D1"));
+
+        mockMvc
+            .perform(get("/api/v1/temas").param("disciplinaIds", d1.getId() + "," + d2.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(2));
     }
 }

@@ -204,4 +204,47 @@ class SubtemaControllerTest {
             .andExpect(status().isConflict())
             .andExpect(jsonPath("$.detail").value("Já existe um subtema com o nome 'SUBTEMA' no tema com ID: " + tema.getId()));
     }
+
+    @Test
+    void testGetAllSubtemas_FilterByTemaAndDisciplinaIds() throws Exception {
+        Disciplina d1 = disciplinaRepository.save(new Disciplina("D1"));
+        Disciplina d2 = disciplinaRepository.save(new Disciplina("D2"));
+        Tema t1 = temaRepository.save(new Tema(d1, "T1"));
+        Tema t2 = temaRepository.save(new Tema(d2, "T2"));
+        
+        subtemaRepository.save(new Subtema(t1, "S1"));
+        subtemaRepository.save(new Subtema(t2, "S2"));
+
+        // Filter by Disciplina 1 -> returns S1
+        mockMvc
+            .perform(get("/api/v1/subtemas").param("disciplinaIds", d1.getId().toString()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].nome").value("S1"));
+
+        // Filter by Tema 2 -> returns S2
+        mockMvc
+            .perform(get("/api/v1/subtemas").param("temaIds", t2.getId().toString()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].nome").value("S2"));
+
+        // Inclusive filter: Disciplina 1 OR Tema 2 -> returns both S1 and S2
+        mockMvc
+            .perform(get("/api/v1/subtemas")
+                .param("disciplinaIds", d1.getId().toString())
+                .param("temaIds", t2.getId().toString()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(2));
+
+        // Name filter (exclusive)
+        mockMvc
+            .perform(get("/api/v1/subtemas")
+                .param("disciplinaIds", d1.getId().toString())
+                .param("temaIds", t2.getId().toString())
+                .param("nome", "S1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].nome").value("S1"));
+    }
 }

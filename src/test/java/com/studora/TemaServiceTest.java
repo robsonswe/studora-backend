@@ -177,9 +177,9 @@ class TemaServiceTest {
         Tema tema = new Tema(); tema.setId(1L); tema.setNome("Atos"); tema.setDisciplina(disc);
         Page<Tema> page = new PageImpl<>(List.of(tema));
 
-        when(temaRepository.findAll(any(Pageable.class))).thenReturn(page);
+        when(temaRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(Pageable.class))).thenReturn(page);
 
-        Page<TemaSummaryDto> result = temaService.findAll(null, Pageable.unpaged(), null);
+        Page<TemaSummaryDto> result = temaService.findAll(null, null, Pageable.unpaged(), null);
         assertEquals(1, result.getTotalElements());
     }
 

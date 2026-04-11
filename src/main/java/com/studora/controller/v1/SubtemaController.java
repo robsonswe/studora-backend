@@ -45,7 +45,7 @@ public class SubtemaController {
 
     @Operation(
         summary = "Obter todos os subtemas",
-        description = "Retorna uma página com todos os subtemas cadastrados. Use o parâmetro `metrics` para incluir dados de desempenho.",
+        description = "Retorna uma página com todos os subtemas cadastrados. Use o parâmetro `metrics` para incluir dados de desempenho, e `temaIds` ou `disciplinaIds` para filtrar.",
         responses = {
             @ApiResponse(responseCode = "200", description = "Página de subtemas retornada com sucesso",
                 content = @Content(
@@ -79,6 +79,8 @@ public class SubtemaController {
     @GetMapping
     public ResponseEntity<PageResponse<SubtemaSummaryDto>> getAllSubtemas(
             @RequestParam(required = false) String nome,
+            @RequestParam(required = false) List<Long> temaIds,
+            @RequestParam(required = false) List<Long> disciplinaIds,
             @Parameter(hidden = true) @PageableDefault(size = AppConstants.DEFAULT_PAGE_SIZE) Pageable pageable,
             @RequestParam(defaultValue = "nome") String sort,
             @RequestParam(defaultValue = "ASC") String direction,
@@ -100,7 +102,7 @@ public class SubtemaController {
         );
         Pageable finalPageable = PaginationUtils.applyPrioritySort(pageable, sort, direction, propertyMapping, tieBreakers);
 
-        Page<SubtemaSummaryDto> subtemas = subtemaService.findAll(nome, finalPageable, metricsLevel);
+        Page<SubtemaSummaryDto> subtemas = subtemaService.findAll(nome, temaIds, disciplinaIds, finalPageable, metricsLevel);
         return ResponseEntity.ok(new PageResponse<>(subtemas));
     }
 
@@ -138,36 +140,6 @@ public class SubtemaController {
             @Parameter(description = "Nível de métricas: full (todos os dados). Padrão: lean (estrutura apenas).")
             @RequestParam(required = false) String metrics) {
         return ResponseEntity.ok(subtemaService.getSubtemaDetailById(id, parseMetrics(metrics)));
-    }
-
-    @Operation(
-        summary = "Obter subtemas por tema",
-        description = "Retorna todos os subtemas de um tema. Use o parâmetro `metrics` para incluir dados de desempenho.",
-        responses = {
-            @ApiResponse(responseCode = "200", description = "Lista de subtemas retornada com sucesso",
-                content = @Content(
-                    mediaType = "application/json",
-                    examples = {
-                        @ExampleObject(
-                            name = "lean (padrão)",
-                            summary = "Estrutura apenas",
-                            value = "[{\"id\": 1, \"nome\": \"Atos Administrativos\", \"temaId\": 5, \"temaNome\": \"Poderes\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Administrativo\"}]"
-                        ),
-                        @ExampleObject(
-                            name = "full",
-                            summary = "Todas as métricas",
-                            value = "[{\"id\": 1, \"nome\": \"Atos Administrativos\", \"temaId\": 5, \"temaNome\": \"Poderes\", \"disciplinaId\": 1, \"disciplinaNome\": \"Direito Administrativo\", \"totalEstudos\": 2, \"ultimoEstudo\": \"2026-03-01T09:15:00\", \"ultimaQuestao\": \"2026-03-02T11:00:00\", \"totalQuestoes\": 15, \"questoesRespondidas\": 10, \"questoesAcertadas\": 8, \"mediaTempoResposta\": 45, \"dificuldadeRespostas\": {\"FACIL\": {\"total\": 4, \"corretas\": 4}, \"MEDIA\": {\"total\": 6, \"corretas\": 4}}}]"
-                        )
-                    }
-                ))
-        }
-    )
-    @GetMapping("/tema/{temaId}")
-    public ResponseEntity<List<SubtemaSummaryDto>> getSubtemasByTema(
-            @PathVariable Long temaId,
-            @Parameter(description = "Nível de métricas: summary, full. Padrão: lean.")
-            @RequestParam(required = false) String metrics) {
-        return ResponseEntity.ok(subtemaService.findByTemaId(temaId, parseMetrics(metrics)));
     }
 
     @Operation(
