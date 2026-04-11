@@ -414,6 +414,7 @@ class QuestaoControllerTest {
         updatedRequest.setAnulada(true);
         // Maintain the cargo association (using cargoId)
         updatedRequest.setCargos(Collections.singletonList(cargo.getId()));
+        updatedRequest.setSubtemaIds(Collections.singletonList(subtema.getId()));
         // Add new alternatives for the update
         updatedRequest.setAlternativas(Arrays.asList(alt1, alt2));
 
@@ -645,6 +646,7 @@ class QuestaoControllerTest {
         updateRequest.setEnunciado("Cargo Mgmt Test");
         updateRequest.setConcursoId(concurso.getId());
         updateRequest.setCargos(Collections.singletonList(cargo2.getId()));
+        updateRequest.setSubtemaIds(Collections.singletonList(subtema.getId()));
         
         // Re-send alternatives to keep them
         com.studora.dto.request.AlternativaUpdateRequest altUp1 = new com.studora.dto.request.AlternativaUpdateRequest();

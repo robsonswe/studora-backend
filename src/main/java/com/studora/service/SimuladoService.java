@@ -158,6 +158,7 @@ public class SimuladoService {
         simulado.setAreas(request.getAreas());
         simulado.setNivel(request.getNivel());
         simulado.setIgnorarRespondidas(request.getIgnorarRespondidas());
+        simulado.setIncludeAutoral(request.getIncludeAutoral());
         
         if (request.getDisciplinas() != null) {
             simulado.setDisciplinas(request.getDisciplinas().stream()

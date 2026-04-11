@@ -35,6 +35,10 @@ public class QuestaoDetailDto {
     @JsonView(Views.RespostaOculta.class)
     private Boolean desatualizada;
 
+    @Schema(description = "Indica se a questão é autoral (sem vínculo com concurso ou cargo).", example = "false")
+    @JsonView(Views.RespostaOculta.class)
+    private Boolean autoral;
+
     @Schema(description = "Indica se a questão já foi respondida pelo usuário", example = "true")
     @JsonView(Views.RespostaOculta.class)
     private Boolean respondida;

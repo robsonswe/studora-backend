@@ -37,4 +37,7 @@ public class QuestaoRandomFilter {
     @Schema(description = "Filtrar por questões anuladas (true) ou não anuladas (false). Padrão: false.", example = "false")
     @io.swagger.v3.oas.annotations.Parameter(description = "Se verdadeiro, permite que questões anuladas sejam retornadas. Por padrão, elas são excluídas.")
     private Boolean anulada;
+
+    @Schema(description = "Se verdadeiro, questões autorais são incluídas na seleção aleatória. Padrão: false.", example = "false", defaultValue = "false")
+    private Boolean includeAutoral = false;
 }

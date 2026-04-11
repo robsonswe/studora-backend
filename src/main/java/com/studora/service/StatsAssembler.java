@@ -41,7 +41,51 @@ public class StatsAssembler {
         
         // --- Total ---
         stats.setTotal(fetchTotalStats(scopeId, scopeType));
-        
+
+        // --- Autoral breakdown for taxonomy scopes (only when FULL) ---
+        if (isFull && (scopeType.equals("DISCIPLINA") || scopeType.equals("TEMA") || scopeType.equals("SUBTEMA"))) {
+            Long autoralCount = fetchAutoralCount(scopeId, scopeType);
+            if (autoralCount != null && autoralCount > 0) {
+                StatSliceDto autoralSlice = new StatSliceDto();
+                autoralSlice.setTotalQuestoes(autoralCount);
+
+                List<Object[]> autoralResp = fetchAutoralRespondidas(scopeId, scopeType);
+                List<Object[]> autoralAcert = fetchAutoralAcertadas(scopeId, scopeType);
+                if (!autoralResp.isEmpty()) {
+                    long acertadas = 0;
+                    if (!autoralAcert.isEmpty()) acertadas = ((Number) autoralAcert.get(0)[1]).longValue();
+                    autoralSlice.setRespondidas(((Number) autoralResp.get(0)[1]).longValue());
+                    autoralSlice.setAcertadas(acertadas);
+                }
+
+                List<Object[]> autoralTempo = fetchAutoralTempo(scopeId, scopeType);
+                if (!autoralTempo.isEmpty() && autoralTempo.get(0)[1] != null) {
+                    autoralSlice.setMediaTempoResposta(((Double) autoralTempo.get(0)[1]).intValue());
+                }
+
+                List<Object[]> autoralLatest = fetchAutoralLatest(scopeId, scopeType);
+                if (!autoralLatest.isEmpty()) {
+                    autoralSlice.setUltimaQuestao((java.time.LocalDateTime) autoralLatest.get(0)[1]);
+                }
+
+                List<Object[]> autoralDiff = fetchAutoralDificuldade(scopeId, scopeType);
+                if (!autoralDiff.isEmpty()) {
+                    Map<String, DificuldadeStatDto> diffMap = new HashMap<>();
+                    for (Object[] row : autoralDiff) {
+                        int dId = ((Number) row[1]).intValue();
+                        String dName = Dificuldade.fromId(dId).name();
+                        DificuldadeStatDto dDto = new DificuldadeStatDto();
+                        dDto.setTotal(((Number) row[2]).longValue());
+                        dDto.setCorretas(((Number) row[3]).longValue());
+                        diffMap.put(dName, dDto);
+                    }
+                    autoralSlice.setDificuldade(diffMap);
+                }
+
+                stats.setPorAutoral(autoralSlice);
+            }
+        }
+
         // --- Breakdowns ---
         if (isFull) {
             switch (scopeType) {
@@ -151,7 +195,7 @@ public class StatsAssembler {
         // Clear nome/id from total - they don't make sense at the aggregate level
         slice.setNome(null);
         slice.setId(null);
-        
+
         // Add latest response date
         if (!latest.isEmpty()) {
             slice.setUltimaQuestao((java.time.LocalDateTime) latest.get(0)[1]);
@@ -177,12 +221,66 @@ public class StatsAssembler {
     private List<Object[]> mergeRespAcert(List<Object[]> resp, List<Object[]> acert) {
         Map<Object, Long> acertMap = new HashMap<>();
         for (Object[] row : acert) acertMap.put(row[0], ((Number) row[1]).longValue());
-        
+
         List<Object[]> result = new ArrayList<>();
         for (Object[] row : resp) {
             result.add(new Object[]{row[0], row[1], acertMap.getOrDefault(row[0], 0L)});
         }
         return result;
+    }
+
+    private Long fetchAutoralCount(Long scopeId, String scopeType) {
+        return switch (scopeType) {
+            case "DISCIPLINA" -> questaoRepository.countAutoralQuestoesByDisciplinaId(scopeId);
+            case "TEMA" -> questaoRepository.countAutoralQuestoesByTemaId(scopeId);
+            case "SUBTEMA" -> questaoRepository.countAutoralQuestoesBySubtemaId(scopeId);
+            default -> null;
+        };
+    }
+
+    private List<Object[]> fetchAutoralRespondidas(Long scopeId, String scopeType) {
+        return switch (scopeType) {
+            case "DISCIPLINA" -> respostaRepository.countRespondidasByDisciplinaIdsAutoral(List.of(scopeId));
+            case "TEMA" -> respostaRepository.countRespondidasByTemaIdsAutoral(List.of(scopeId));
+            case "SUBTEMA" -> respostaRepository.countRespondidasBySubtemaIdsAutoral(List.of(scopeId));
+            default -> List.of();
+        };
+    }
+
+    private List<Object[]> fetchAutoralAcertadas(Long scopeId, String scopeType) {
+        return switch (scopeType) {
+            case "DISCIPLINA" -> respostaRepository.countAcertadasByDisciplinaIdsAutoral(List.of(scopeId));
+            case "TEMA" -> respostaRepository.countAcertadasByTemaIdsAutoral(List.of(scopeId));
+            case "SUBTEMA" -> respostaRepository.countAcertadasBySubtemaIdsAutoral(List.of(scopeId));
+            default -> List.of();
+        };
+    }
+
+    private List<Object[]> fetchAutoralTempo(Long scopeId, String scopeType) {
+        return switch (scopeType) {
+            case "DISCIPLINA" -> respostaRepository.avgTempoByDisciplinaIdsAutoral(List.of(scopeId));
+            case "TEMA" -> respostaRepository.avgTempoByTemaIdsAutoral(List.of(scopeId));
+            case "SUBTEMA" -> respostaRepository.avgTempoBySubtemaIdsAutoral(List.of(scopeId));
+            default -> List.of();
+        };
+    }
+
+    private List<Object[]> fetchAutoralLatest(Long scopeId, String scopeType) {
+        return switch (scopeType) {
+            case "DISCIPLINA" -> respostaRepository.findLatestResponseDatesByDisciplinaIdsAutoral(List.of(scopeId));
+            case "TEMA" -> respostaRepository.findLatestResponseDatesByTemaIdsAutoral(List.of(scopeId));
+            case "SUBTEMA" -> respostaRepository.findLatestResponseDatesBySubtemaIdsAutoral(List.of(scopeId));
+            default -> List.of();
+        };
+    }
+
+    private List<Object[]> fetchAutoralDificuldade(Long scopeId, String scopeType) {
+        return switch (scopeType) {
+            case "DISCIPLINA" -> respostaRepository.getDificuldadeStatsByDisciplinaIdsAutoral(List.of(scopeId));
+            case "TEMA" -> respostaRepository.getDificuldadeStatsByTemaIdsAutoral(List.of(scopeId));
+            case "SUBTEMA" -> respostaRepository.getDificuldadeStatsBySubtemaIdsAutoral(List.of(scopeId));
+            default -> List.of();
+        };
     }
 
     // --- Disciplina Methods ---

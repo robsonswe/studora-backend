@@ -74,7 +74,7 @@ public class QuestaoRepositoryImpl implements QuestaoRepositoryCustom {
                                    List<Long> avoidTemaIds, List<Long> avoidSubtemaIdsForDisc) {
         
         StringBuilder hql = new StringBuilder("SELECT DISTINCT q.id FROM Questao q ");
-        hql.append("JOIN q.concurso c LEFT JOIN c.banca b LEFT JOIN c.instituicao i ");
+        hql.append("LEFT JOIN q.concurso c LEFT JOIN c.banca b LEFT JOIN c.instituicao i ");
         hql.append(scopeJoin).append(" ");
 
         // WHERE Clauses
@@ -102,24 +102,15 @@ public class QuestaoRepositoryImpl implements QuestaoRepositoryCustom {
         }
 
         // Nivel Filtering (Hard Constraint for 'Teto')
+        // When includeAutoral is true, autoral questions bypass the nivel filter
         if (req.getNivel() != null) {
-            String nivelFilter = "EXISTS (SELECT 1 FROM q.questaoCargos qc JOIN qc.concursoCargo cc JOIN cc.cargo cargo WHERE ";
-            if (req.getNivel() == NivelCargo.SUPERIOR) {
-                // Allow all (Superior, Medio, Fundamental) - Logic: "Superior" allows downgrades?
-                // User: "if i pick nivel superior ... try to get ... from medio... from fundamental"
-                // So Superior allows ALL.
-                // Wait, if I pick Superior, I can get anything?
-                // User: "opposite is not true tho. if i pick fundamental ... you can't fill it with questoes from medio or superior."
-                // So:
-                // Superior -> All allowed.
-                // Medio -> Medio, Fundamental allowed.
-                // Fundamental -> Fundamental allowed.
-                nivelFilter += "cargo.nivel IN ('SUPERIOR', 'MEDIO', 'FUNDAMENTAL'))"; // Actually redundant if all enums covered, but safe.
-            } else if (req.getNivel() == NivelCargo.MEDIO) {
-                nivelFilter += "cargo.nivel IN ('MEDIO', 'FUNDAMENTAL'))";
-            } else {
-                nivelFilter += "cargo.nivel = 'FUNDAMENTAL')";
-            }
+            String nivelLevels = switch (req.getNivel()) {
+                case SUPERIOR -> "'SUPERIOR', 'MEDIO', 'FUNDAMENTAL'";
+                case MEDIO -> "'MEDIO', 'FUNDAMENTAL'";
+                case FUNDAMENTAL -> "'FUNDAMENTAL'";
+            };
+            String nivelFilter =
+                "(q.autoral = true OR EXISTS (SELECT 1 FROM q.questaoCargos qc JOIN qc.concursoCargo cc JOIN cc.cargo cargo WHERE cargo.nivel IN (" + nivelLevels + ")))";
             whereClauses.add(nivelFilter);
         }
 

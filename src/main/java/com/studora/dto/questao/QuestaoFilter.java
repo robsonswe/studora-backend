@@ -42,4 +42,7 @@ public class QuestaoFilter {
 
     @Schema(description = "Filtrar por questões desatualizadas (true) ou atualizadas (false)", example = "false")
     private Boolean desatualizada;
+
+    @Schema(description = "Filtrar por questões autorais (true) ou de concurso (false)", example = "true")
+    private Boolean autoral;
 }

@@ -167,4 +167,23 @@ public interface QuestaoRepository extends JpaRepository<Questao, Long>, JpaSpec
 
     @Query("SELECT c.instituicao.area, COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoCargos qc JOIN q.concurso c WHERE qc.concursoCargo.cargo.id = :cargoId AND q.anulada = false GROUP BY c.instituicao.area")
     List<Object[]> countQuestoesByCargoIdGroupByAreaInstituicao(@Param("cargoId") Long cargoId);
+
+    // --- Autoral aggregate count queries for taxonomy scopes ---
+    @Query("SELECT s.tema.disciplina.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s WHERE s.tema.disciplina.id IN :ids AND q.autoral = true GROUP BY s.tema.disciplina.id")
+    List<Object[]> countAutoralQuestoesByDisciplinaIds(@Param("ids") List<Long> ids);
+
+    @Query("SELECT s.tema.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s WHERE s.tema.id IN :ids AND q.autoral = true GROUP BY s.tema.id")
+    List<Object[]> countAutoralQuestoesByTemaIds(@Param("ids") List<Long> ids);
+
+    @Query("SELECT s.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s WHERE s.id IN :ids AND q.autoral = true GROUP BY s.id")
+    List<Object[]> countAutoralQuestoesBySubtemaIds(@Param("ids") List<Long> ids);
+
+    @Query("SELECT COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s WHERE s.tema.disciplina.id = :id AND q.autoral = true")
+    Long countAutoralQuestoesByDisciplinaId(@Param("id") Long id);
+
+    @Query("SELECT COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s WHERE s.tema.id = :id AND q.autoral = true")
+    Long countAutoralQuestoesByTemaId(@Param("id") Long id);
+
+    @Query("SELECT COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s WHERE s.id = :id AND q.autoral = true")
+    Long countAutoralQuestoesBySubtemaId(@Param("id") Long id);
 }

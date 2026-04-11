@@ -55,7 +55,11 @@ public class Simulado extends BaseEntity {
 
     @Column(name = "ignorar_respondidas")
     @Schema(description = "Se questões respondidas foram ignoradas na geração")
-    private Boolean ignorarRespondidas;
+    private Boolean ignorarRespondidas = false;
+
+    @Column(name = "include_autoral")
+    @Schema(description = "Se questões autorais foram incluídas na geração")
+    private Boolean includeAutoral = false;
 
     @ElementCollection
     @CollectionTable(name = "simulado_disciplina", joinColumns = @JoinColumn(name = "simulado_id"))

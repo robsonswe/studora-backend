@@ -10,6 +10,8 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class QuestaoStatsDto {
     private StatSliceDto total;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private StatSliceDto porAutoral;
     private Map<String, StatSliceDto> porNivel;
     private Map<Long, StatSliceDto> porBanca;
     private Map<Long, StatSliceDto> porInstituicao;
@@ -18,6 +20,7 @@ public class QuestaoStatsDto {
     private Map<String, StatSliceDto> porAreaCargo;
 
     public void setTotal(StatSliceDto total) { this.total = total; }
+    public void setPorAutoral(StatSliceDto porAutoral) { this.porAutoral = porAutoral; }
     public void setPorNivel(Map<String, StatSliceDto> porNivel) { this.porNivel = porNivel; }
     public void setPorBanca(Map<Long, StatSliceDto> porBanca) { this.porBanca = porBanca; }
     public void setPorInstituicao(Map<Long, StatSliceDto> porInstituicao) { this.porInstituicao = porInstituicao; }

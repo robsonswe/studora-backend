@@ -10,8 +10,7 @@ import java.util.List;
 @Data
 public class QuestaoCreateRequest {
 
-    @NotNull(message = "ID do concurso é obrigatório")
-    @Schema(description = "ID do concurso ao qual a questão pertence", example = "1", required = true)
+    @Schema(description = "ID do concurso ao qual a questão pertence (ignorada se autoral=true)", example = "1")
     private Long concursoId;
 
     @NotBlank(message = "Enunciado da questão é obrigatório")
@@ -23,6 +22,9 @@ public class QuestaoCreateRequest {
 
     @Schema(description = "Indica se a questão está desatualizada", example = "false", defaultValue = "false")
     private Boolean desatualizada = false;
+
+    @Schema(description = "Se verdadeiro, a questão é autoral e não requer concurso ou cargo.", example = "false", defaultValue = "false")
+    private Boolean autoral = false;
 
     @Schema(description = "URL da imagem associada à questão", example = "https://exemplo.com/imagem.jpg")
     private String imageUrl;
@@ -38,9 +40,8 @@ public class QuestaoCreateRequest {
     @Schema(description = "IDs dos subtemas associados à questão")
     private List<Long> subtemaIds; // IDs of associated subtemas
 
-    @NotNull(message = "Pelo menos um cargo deve ser associado à questão")
     @jakarta.validation.constraints.Size(min = com.studora.common.constants.AppConstants.MIN_CARGO_ASSOCIATIONS, message = "A questão deve estar associada a pelo menos {min} cargo")
-    @Schema(description = "IDs dos cargos associados à questão")
+    @Schema(description = "IDs dos cargos associados à questão (ignorado se autoral=true)")
     private List<Long> cargos; // IDs of associated Cargo records
 
     @NotNull(message = "Alternativas são obrigatórias")

@@ -31,6 +31,9 @@ public class SimuladoGenerationRequest {
     @Schema(description = "Se verdadeiro, ignora questões que o usuário já respondeu. Padrão: false (inclui todas).", defaultValue = "false")
     private Boolean ignorarRespondidas = false;
 
+    @Schema(description = "Se verdadeiro, questões autorais elegíveis por taxonomia serão incluídas na geração.", example = "false", defaultValue = "false")
+    private Boolean includeAutoral = false;
+
     @Valid
     @Schema(description = "Seleção de questões por Disciplina")
     private List<ItemSelection> disciplinas;

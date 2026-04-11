@@ -80,12 +80,19 @@ public class QuestaoService {
         filter.setInstituicaoArea(randomFilter.getInstituicaoArea());
         filter.setCargoArea(randomFilter.getCargoArea());
         filter.setCargoNivel(randomFilter.getCargoNivel());
-        
+
         // 1. Force desatualizada to false (not an option for random endpoint)
         filter.setDesatualizada(false);
-        
+
         // 2. Default anulada to false if not provided
         filter.setAnulada(java.util.Objects.requireNonNullElse(randomFilter.getAnulada(), false));
+
+        // 3. Handle autoral filter: default to standard-only, include both when includeAutoral=true
+        if (Boolean.TRUE.equals(randomFilter.getIncludeAutoral())) {
+            // Don't set the filter — both types eligible
+        } else {
+            filter.setAutoral(false); // standard only
+        }
 
         Specification<Questao> spec = QuestaoSpecification.withFilter(filter)
                 .and(QuestaoSpecification.notAnsweredRecently(java.time.LocalDateTime.now().minusMonths(1)));
@@ -110,14 +117,17 @@ public class QuestaoService {
 
     public QuestaoDetailDto create(QuestaoCreateRequest request) {
         log.info("Criando nova questão para o concurso ID: {}", request.getConcursoId());
-        
-        Concurso concurso = concursoRepository.findById(request.getConcursoId())
-                .orElseThrow(() -> new ResourceNotFoundException("Concurso", "ID", request.getConcursoId()));
 
-        validateQuestaoBusinessRules(request.getAlternativas(), request.getAnulada(), request.getCargos(), request.getConcursoId());
+        boolean isAutoral = Boolean.TRUE.equals(request.getAutoral());
+        validateQuestaoBusinessRules(request.getAlternativas(), request.getAnulada(), request.getCargos(), request.getConcursoId(), isAutoral, request.getSubtemaIds());
 
         Questao questao = questaoMapper.toEntity(request);
-        questao.setConcurso(concurso);
+
+        if (!isAutoral) {
+            Concurso concurso = concursoRepository.findById(request.getConcursoId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Concurso", "ID", request.getConcursoId()));
+            questao.setConcurso(concurso);
+        }
 
         if (request.getSubtemaIds() != null && !request.getSubtemaIds().isEmpty()) {
             List<Subtema> subtemas = subtemaRepository.findAllById(request.getSubtemaIds());
@@ -136,12 +146,12 @@ public class QuestaoService {
             });
         }
 
-        if (request.getCargos() != null && !request.getCargos().isEmpty()) {
+        if (!isAutoral && request.getCargos() != null && !request.getCargos().isEmpty()) {
             for (Long cargoId : request.getCargos()) {
                 ConcursoCargo cc = concursoCargoRepository.findByConcursoIdAndCargoId(request.getConcursoId(), cargoId)
                         .stream().findFirst()
                         .orElseThrow(() -> new com.studora.exception.ValidationException("O cargo ID " + cargoId + " não pertence ao concurso ID " + request.getConcursoId()));
-                
+
                 QuestaoCargo qc = new QuestaoCargo();
                 qc.setConcursoCargo(cc);
                 questao.addQuestaoCargo(qc);
@@ -157,19 +167,25 @@ public class QuestaoService {
 
     public QuestaoDetailDto update(Long id, QuestaoUpdateRequest request) {
         log.info("Atualizando questão ID: {}", id);
-        
+
         Questao questao = questaoRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Questão", "ID", id));
 
-        validateQuestaoBusinessRules(request.getAlternativas(), request.getAnulada(), request.getCargos(), request.getConcursoId());
+        // Guard: type cannot be changed after creation
+        if (request.getAutoral() != null && !request.getAutoral().equals(questao.getAutoral())) {
+            throw new com.studora.exception.ValidationException("O tipo da questão (autoral/concurso) não pode ser alterado após a criação.");
+        }
 
-        boolean contentChanged = hasContentChanged(questao, request);
+        boolean isAutoral = Boolean.TRUE.equals(questao.getAutoral());
+        validateQuestaoBusinessRules(request.getAlternativas(), request.getAnulada(), request.getCargos(), request.getConcursoId(), isAutoral, request.getSubtemaIds());
+
+        boolean contentChanged = hasContentChanged(questao, request, isAutoral);
         if (contentChanged) {
             log.info("Mudança de conteúdo detectada na questão {}. Excluindo histórico de respostas.", id);
             respostaRepository.deleteByQuestaoId(id);
         }
 
-        if (request.getConcursoId() != null) {
+        if (!isAutoral && request.getConcursoId() != null) {
             Concurso concurso = concursoRepository.findById(request.getConcursoId())
                     .orElseThrow(() -> new ResourceNotFoundException("Concurso", "ID", request.getConcursoId()));
             questao.setConcurso(concurso);
@@ -230,7 +246,7 @@ public class QuestaoService {
             }
         }
 
-        if (request.getCargos() != null) {
+        if (!isAutoral && request.getCargos() != null) {
             synchronizeCargos(questao, request.getCargos(), request.getConcursoId());
         }
 
@@ -253,10 +269,15 @@ public class QuestaoService {
         }
     }
 
-    private void validateQuestaoBusinessRules(List<? extends com.studora.dto.request.AlternativaBaseRequest> alternativas, 
-                                            Boolean anulada, List<Long> cargoIds, Long concursoId) {
+    private void validateQuestaoBusinessRules(List<? extends com.studora.dto.request.AlternativaBaseRequest> alternativas,
+                                            Boolean anulada, List<Long> cargoIds, Long concursoId, boolean autoral,
+                                            List<Long> subtemaIds) {
         if (alternativas == null || alternativas.size() < com.studora.common.constants.AppConstants.MIN_ALTERNATIVAS) {
             throw new com.studora.exception.ValidationException("A questão deve ter pelo menos " + com.studora.common.constants.AppConstants.MIN_ALTERNATIVAS + " alternativas");
+        }
+
+        if (subtemaIds == null || subtemaIds.isEmpty()) {
+            throw new com.studora.exception.ValidationException("A questão deve estar associada a pelo menos um subtema");
         }
 
         if (Boolean.FALSE.equals(anulada)) {
@@ -266,23 +287,28 @@ public class QuestaoService {
             }
         }
 
-        if (cargoIds == null || cargoIds.isEmpty()) {
-            throw new com.studora.exception.ValidationException("A questão deve estar associada a pelo menos um cargo");
-        }
-
-        for (Long cargoId : cargoIds) {
-            if (!concursoCargoRepository.existsByConcursoIdAndCargoId(concursoId, cargoId)) {
-                throw new com.studora.exception.ValidationException("O cargo ID " + cargoId + " não pertence ao concurso ID " + concursoId);
+        // Only enforced for standard (non-autoral) questions
+        if (!autoral) {
+            if (concursoId == null) {
+                throw new com.studora.exception.ValidationException("Uma questão de concurso deve estar associada a um concurso");
+            }
+            if (cargoIds == null || cargoIds.isEmpty()) {
+                throw new com.studora.exception.ValidationException("Uma questão de concurso deve estar associada a pelo menos um cargo");
+            }
+            for (Long cargoId : cargoIds) {
+                if (!concursoCargoRepository.existsByConcursoIdAndCargoId(concursoId, cargoId)) {
+                    throw new com.studora.exception.ValidationException("O cargo ID " + cargoId + " não pertence ao concurso ID " + concursoId);
+                }
             }
         }
     }
 
-    private boolean hasContentChanged(Questao questao, QuestaoUpdateRequest request) {
+    private boolean hasContentChanged(Questao questao, QuestaoUpdateRequest request, boolean isAutoral) {
         if (!request.getEnunciado().equals(questao.getEnunciado())) return true;
         if (!request.getAnulada().equals(questao.getAnulada())) return true;
-        
-        // Check cargos change
-        if (request.getCargos() != null) {
+
+        // Check cargos change (only for non-autoral questions)
+        if (request.getCargos() != null && !isAutoral) {
             Set<Long> currentCargoIds = questao.getQuestaoCargos().stream()
                     .map(qc -> qc.getConcursoCargo().getCargo().getId())
                     .collect(Collectors.toSet());

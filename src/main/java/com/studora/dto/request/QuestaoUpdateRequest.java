@@ -12,8 +12,7 @@ import com.studora.common.constants.AppConstants;
 @Data
 public class QuestaoUpdateRequest {
 
-    @NotNull(message = "ID do concurso é obrigatório")
-    @Schema(description = "ID do concurso ao qual a questão pertence", example = "1", required = true)
+    @Schema(description = "ID do concurso ao qual a questão pertence (ignorado se autoral=true)", example = "1")
     private Long concursoId;
 
     @NotBlank(message = "Enunciado da questão é obrigatório")
@@ -26,15 +25,17 @@ public class QuestaoUpdateRequest {
     @Schema(description = "Indica se a questão está desatualizada", example = "false", defaultValue = "false")
     private Boolean desatualizada = false;
 
+    @Schema(description = "Tipo da questão. Não pode ser alterado após a criação.", example = "false")
+    private Boolean autoral; // read-only intent; used only for validation guard
+
     @Schema(description = "URL da imagem associada à questão", example = "https://exemplo.com/imagem.jpg")
     private String imageUrl;
 
     @Schema(description = "IDs dos subtemas associados à questão")
+    @com.fasterxml.jackson.annotation.JsonProperty("subtemas")
     private List<Long> subtemaIds;
 
-    @NotNull(message = "Pelo menos um cargo deve ser associado à questão")
-    @Size(min = AppConstants.MIN_CARGO_ASSOCIATIONS, message = "A questão deve estar associada a pelo menos {min} cargo")
-    @Schema(description = "IDs dos cargos associados à questão")
+    @Schema(description = "IDs dos cargos associados à questão (ignorado se autoral=true)")
     private List<Long> cargos;
 
     @Schema(description = "Alternativas da questão")

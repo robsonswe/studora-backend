@@ -10,8 +10,9 @@ import com.studora.entity.Questao;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
+import org.mapstruct.NullValueMappingStrategy;
 
-@Mapper(componentModel = "spring", uses = {AlternativaMapper.class, SubtemaMapper.class, RespostaMapper.class, CargoMapper.class, ConcursoMapper.class})
+@Mapper(componentModel = "spring", uses = {AlternativaMapper.class, SubtemaMapper.class, RespostaMapper.class, CargoMapper.class, ConcursoMapper.class}, nullValueMappingStrategy = NullValueMappingStrategy.RETURN_NULL)
 public interface QuestaoMapper {
 
     @Mapping(target = "concurso", source = "concurso")
@@ -20,6 +21,7 @@ public interface QuestaoMapper {
     @Mapping(target = "respostas", source = "respostas")
     @Mapping(target = "subtemas", source = "subtemas")
     @Mapping(target = "respondida", expression = "java(questao.getRespostas() != null && !questao.getRespostas().isEmpty())")
+    @Mapping(target = "autoral", source = "autoral")
     QuestaoSummaryDto toSummaryDto(Questao questao);
 
     @Mapping(target = "concurso", source = "concurso")
@@ -28,6 +30,7 @@ public interface QuestaoMapper {
     @Mapping(target = "cargos", source = "questaoCargos")
     @Mapping(target = "respostas", source = "respostas")
     @Mapping(target = "respondida", expression = "java(questao.getRespostas() != null && !questao.getRespostas().isEmpty())")
+    @Mapping(target = "autoral", source = "autoral")
     QuestaoDetailDto toDetailDto(Questao questao);
 
     @Mapping(target = "id", ignore = true)
@@ -38,6 +41,7 @@ public interface QuestaoMapper {
     @Mapping(target = "respostas", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "autoral", source = "autoral")
     Questao toEntity(QuestaoCreateRequest request);
 
     @Mapping(target = "id", ignore = true)
@@ -48,6 +52,7 @@ public interface QuestaoMapper {
     @Mapping(target = "respostas", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "autoral", ignore = true)
     void updateEntityFromDto(QuestaoUpdateRequest request, @MappingTarget Questao questao);
 
     @Mapping(target = "bancaId", source = "banca.id")

@@ -255,6 +255,103 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     @Query("SELECT qc.concursoCargo.cargo.id, MAX(r.createdAt) FROM Resposta r JOIN r.questao q JOIN q.questaoCargos qc WHERE qc.concursoCargo.cargo.id IN :ids GROUP BY qc.concursoCargo.cargo.id")
     List<Object[]> findLatestResponseDatesByCargoIds(@Param("ids") List<Long> ids);
 
+    // --- Autoral resposta batch queries ---
+    @Query("SELECT s.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao q JOIN q.subtemas s WHERE s.id IN :ids AND q.autoral = true GROUP BY s.id")
+    List<Object[]> countRespondidasBySubtemaIdsAutoral(@Param("ids") List<Long> ids);
+
+    @Query("SELECT s.tema.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao q JOIN q.subtemas s WHERE s.tema.id IN :ids AND q.autoral = true GROUP BY s.tema.id")
+    List<Object[]> countRespondidasByTemaIdsAutoral(@Param("ids") List<Long> ids);
+
+    @Query("SELECT s.tema.disciplina.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao q JOIN q.subtemas s WHERE s.tema.disciplina.id IN :ids AND q.autoral = true GROUP BY s.tema.disciplina.id")
+    List<Object[]> countRespondidasByDisciplinaIdsAutoral(@Param("ids") List<Long> ids);
+
+    @Query("SELECT s.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao q JOIN q.subtemas s WHERE s.id IN :ids AND q.autoral = true AND r.alternativaEscolhida.correta = true GROUP BY s.id")
+    List<Object[]> countAcertadasBySubtemaIdsAutoral(@Param("ids") List<Long> ids);
+
+    @Query("SELECT s.tema.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao q JOIN q.subtemas s WHERE s.tema.id IN :ids AND q.autoral = true AND r.alternativaEscolhida.correta = true GROUP BY s.tema.id")
+    List<Object[]> countAcertadasByTemaIdsAutoral(@Param("ids") List<Long> ids);
+
+    @Query("SELECT s.tema.disciplina.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao q JOIN q.subtemas s WHERE s.tema.disciplina.id IN :ids AND q.autoral = true AND r.alternativaEscolhida.correta = true GROUP BY s.tema.disciplina.id")
+    List<Object[]> countAcertadasByDisciplinaIdsAutoral(@Param("ids") List<Long> ids);
+
+    @Query("SELECT s.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s WHERE s.id IN :ids AND q.autoral = true AND r.tempoRespostaSegundos IS NOT NULL GROUP BY s.id")
+    List<Object[]> avgTempoBySubtemaIdsAutoral(@Param("ids") List<Long> ids);
+
+    @Query("SELECT s.tema.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s WHERE s.tema.id IN :ids AND q.autoral = true AND r.tempoRespostaSegundos IS NOT NULL GROUP BY s.tema.id")
+    List<Object[]> avgTempoByTemaIdsAutoral(@Param("ids") List<Long> ids);
+
+    @Query("SELECT s.tema.disciplina.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s WHERE s.tema.disciplina.id IN :ids AND q.autoral = true AND r.tempoRespostaSegundos IS NOT NULL GROUP BY s.tema.disciplina.id")
+    List<Object[]> avgTempoByDisciplinaIdsAutoral(@Param("ids") List<Long> ids);
+
+    @Query("SELECT s.id, MAX(r.createdAt) FROM Resposta r JOIN r.questao q JOIN q.subtemas s WHERE s.id IN :ids AND q.autoral = true GROUP BY s.id")
+    List<Object[]> findLatestResponseDatesBySubtemaIdsAutoral(@Param("ids") List<Long> ids);
+
+    @Query("SELECT s.tema.id, MAX(r.createdAt) FROM Resposta r JOIN r.questao q JOIN q.subtemas s WHERE s.tema.id IN :ids AND q.autoral = true GROUP BY s.tema.id")
+    List<Object[]> findLatestResponseDatesByTemaIdsAutoral(@Param("ids") List<Long> ids);
+
+    @Query("SELECT s.tema.disciplina.id, MAX(r.createdAt) FROM Resposta r JOIN r.questao q JOIN q.subtemas s WHERE s.tema.disciplina.id IN :ids AND q.autoral = true GROUP BY s.tema.disciplina.id")
+    List<Object[]> findLatestResponseDatesByDisciplinaIdsAutoral(@Param("ids") List<Long> ids);
+
+    @Query(value = """
+        SELECT s.id AS object_id,
+               COALESCE(r.dificuldade_id, 2) AS diff_val,
+               COUNT(r.id) AS total_ans,
+               SUM(CASE WHEN a.correta = 1 THEN 1 ELSE 0 END) AS total_corr
+        FROM (
+            SELECT id, questao_id, alternativa_id, dificuldade_id,
+                   ROW_NUMBER() OVER(PARTITION BY questao_id ORDER BY created_at DESC) as rn
+            FROM resposta
+        ) r
+        JOIN questao q ON r.questao_id = q.id
+        JOIN questao_subtema qs ON q.id = qs.questao_id
+        JOIN subtema s ON qs.subtema_id = s.id
+        JOIN alternativa a ON r.alternativa_id = a.id
+        WHERE q.autoral = 1 AND s.id IN (:ids) AND r.rn = 1
+        GROUP BY s.id, COALESCE(r.dificuldade_id, 2)
+    """, nativeQuery = true)
+    List<Object[]> getDificuldadeStatsBySubtemaIdsAutoral(@Param("ids") List<Long> ids);
+
+    @Query(value = """
+        SELECT t.id AS object_id,
+               COALESCE(r.dificuldade_id, 2) AS diff_val,
+               COUNT(r.id) AS total_ans,
+               SUM(CASE WHEN a.correta = 1 THEN 1 ELSE 0 END) AS total_corr
+        FROM (
+            SELECT id, questao_id, alternativa_id, dificuldade_id,
+                   ROW_NUMBER() OVER(PARTITION BY questao_id ORDER BY created_at DESC) as rn
+            FROM resposta
+        ) r
+        JOIN questao q ON r.questao_id = q.id
+        JOIN questao_subtema qs ON q.id = qs.questao_id
+        JOIN subtema s ON qs.subtema_id = s.id
+        JOIN tema t ON s.tema_id = t.id
+        JOIN alternativa a ON r.alternativa_id = a.id
+        WHERE q.autoral = 1 AND t.id IN (:ids) AND r.rn = 1
+        GROUP BY t.id, COALESCE(r.dificuldade_id, 2)
+    """, nativeQuery = true)
+    List<Object[]> getDificuldadeStatsByTemaIdsAutoral(@Param("ids") List<Long> ids);
+
+    @Query(value = """
+        SELECT d.id AS object_id,
+               COALESCE(r.dificuldade_id, 2) AS diff_val,
+               COUNT(r.id) AS total_ans,
+               SUM(CASE WHEN a.correta = 1 THEN 1 ELSE 0 END) AS total_corr
+        FROM (
+            SELECT id, questao_id, alternativa_id, dificuldade_id,
+                   ROW_NUMBER() OVER(PARTITION BY questao_id ORDER BY created_at DESC) as rn
+            FROM resposta
+        ) r
+        JOIN questao q ON r.questao_id = q.id
+        JOIN questao_subtema qs ON q.id = qs.questao_id
+        JOIN subtema s ON qs.subtema_id = s.id
+        JOIN tema t ON s.tema_id = t.id
+        JOIN disciplina d ON t.disciplina_id = d.id
+        JOIN alternativa a ON r.alternativa_id = a.id
+        WHERE q.autoral = 1 AND d.id IN (:ids) AND r.rn = 1
+        GROUP BY d.id, COALESCE(r.dificuldade_id, 2)
+    """, nativeQuery = true)
+    List<Object[]> getDificuldadeStatsByDisciplinaIdsAutoral(@Param("ids") List<Long> ids);
+
     // --- Batch: DificuldadeStats (Native queries) ---
     @Query(value = """
         SELECT s.id AS object_id,

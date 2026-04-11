@@ -124,6 +124,7 @@ class QuestaoServiceTest {
             new AlternativaCreateRequest(2, "B", false)
         ));
         req.setCargos(Collections.singletonList(10L)); // Cargo ID
+        req.setSubtemaIds(Collections.singletonList(1L)); // Subtema ID
 
         when(concursoRepository.findById(1L)).thenReturn(Optional.of(c));
         when(concursoCargoRepository.existsByConcursoIdAndCargoId(1L, 10L)).thenReturn(true);
@@ -174,6 +175,7 @@ class QuestaoServiceTest {
             new AlternativaUpdateRequest() {{ setTexto("B"); setCorreta(false); setOrdem(2); }}
         ));
         req.setCargos(Collections.singletonList(10L));
+        req.setSubtemaIds(Collections.singletonList(1L));
 
         when(questaoRepository.findByIdWithDetails(id)).thenReturn(Optional.of(existing));
         when(concursoRepository.findById(1L)).thenReturn(Optional.of(c));
@@ -204,6 +206,7 @@ class QuestaoServiceTest {
         req.setAnulada(false);
         req.setAlternativas(Arrays.asList(new AlternativaUpdateRequest() {{ setTexto("A"); setCorreta(true); setOrdem(1); }}, new AlternativaUpdateRequest() {{ setTexto("B"); setCorreta(false); setOrdem(2); }}));
         req.setCargos(Collections.singletonList(20L)); // Change to Cargo ID 20
+        req.setSubtemaIds(Collections.singletonList(1L));
 
         when(questaoRepository.findByIdWithDetails(id)).thenReturn(Optional.of(existing));
         when(concursoRepository.findById(1L)).thenReturn(Optional.of(c));
@@ -269,6 +272,7 @@ class QuestaoServiceTest {
         QuestaoUpdateRequest req = new QuestaoUpdateRequest();
         req.setConcursoId(1L);
         req.setEnunciado("New"); req.setAnulada(false); req.setCargos(Collections.singletonList(10L));
+        req.setSubtemaIds(Collections.singletonList(1L));
         req.setAlternativas(Arrays.asList(new AlternativaUpdateRequest() {{ setTexto("A"); setCorreta(true); setOrdem(1); }}, new AlternativaUpdateRequest() {{ setTexto("B"); setCorreta(false); setOrdem(2); }}));
 
         questaoService.update(1L, req);
@@ -306,6 +310,7 @@ class QuestaoServiceTest {
         req.setEnunciado("Old");
         req.setAnulada(false);
         req.setCargos(Collections.singletonList(10L));
+        req.setSubtemaIds(Collections.singletonList(1L));
         
         AlternativaUpdateRequest update1 = new AlternativaUpdateRequest();
         update1.setId(10L); update1.setOrdem(2); update1.setTexto("A"); update1.setCorreta(true);

@@ -12,6 +12,9 @@ import com.studora.entity.ConcursoCargo;
 import com.studora.entity.Cargo;
 import com.studora.entity.Instituicao;
 import com.studora.entity.NivelCargo;
+import com.studora.entity.Disciplina;
+import com.studora.entity.Tema;
+import com.studora.entity.Subtema;
 import com.studora.repository.*;
 import com.studora.service.ConcursoService;
 import com.studora.service.QuestaoService;
@@ -37,6 +40,9 @@ class ConcursoCascadeDeletionTest {
     @Autowired private InstituicaoRepository instituicaoRepository;
     @Autowired private BancaRepository bancaRepository;
     @Autowired private CargoRepository cargoRepository;
+    @Autowired private DisciplinaRepository disciplinaRepository;
+    @Autowired private TemaRepository temaRepository;
+    @Autowired private SubtemaRepository subtemaRepository;
     @Autowired private ConcursoRepository concursoRepository;
     @Autowired private ConcursoCargoRepository concursoCargoRepository;
     @Autowired private QuestaoRepository questaoRepository;
@@ -61,7 +67,14 @@ class ConcursoCascadeDeletionTest {
         cargo.setNome("Cargo Test");
         cargo.setNivel(NivelCargo.SUPERIOR);
         cargo.setArea("TI");
-        cargoRepository.save(cargo);
+        cargo = cargoRepository.save(cargo);
+
+        Disciplina disciplina = new Disciplina("Disciplina Cascade");
+        disciplinaRepository.save(disciplina);
+        Tema tema = new Tema(disciplina, "Tema Cascade");
+        temaRepository.save(tema);
+        Subtema subtema = new Subtema(tema, "Subtema Cascade");
+        subtema = subtemaRepository.save(subtema);
         
         Concurso concurso = new Concurso(inst, banca, 2023, 1);
         concurso = concursoRepository.save(concurso);
@@ -79,6 +92,7 @@ class ConcursoCascadeDeletionTest {
         qReq.setEnunciado("Enunciado Test");
         qReq.setAnulada(false);
         qReq.setCargos(List.of(cargo.getId()));
+        qReq.setSubtemaIds(List.of(subtema.getId()));
         
         AlternativaCreateRequest alt1 = new AlternativaCreateRequest();
         alt1.setOrdem(1);

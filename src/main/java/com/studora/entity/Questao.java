@@ -11,6 +11,7 @@ import java.util.Set;
     indexes = {
         @Index(name = "idx_questao_concurso", columnList = "concurso_id"),
         @Index(name = "idx_questao_anulada", columnList = "anulada"),
+        @Index(name = "idx_questao_autoral", columnList = "autoral"),
     }
 )
 @Schema(description = "Entidade que representa uma questão de um concurso")
@@ -21,10 +22,10 @@ public class Questao extends BaseEntity {
     @Schema(description = "ID único da questão", example = "1")
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "concurso_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "concurso_id", nullable = true)
     @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
-    @Schema(description = "Concurso ao qual a questão pertence")
+    @Schema(description = "Concurso ao qual a questão pertence (nulo para questões autorais)")
     private Concurso concurso;
 
     @Column(nullable = false, columnDefinition = "TEXT")
@@ -34,6 +35,10 @@ public class Questao extends BaseEntity {
     @Column(nullable = false, columnDefinition = "INTEGER")
     @Schema(description = "Indica se a questão foi anulada", example = "false", defaultValue = "false")
     private Boolean anulada = false;
+
+    @Column(nullable = false, columnDefinition = "INTEGER")
+    @Schema(description = "Indica se a questão é autoral (independente de concurso/cargo)", example = "false", defaultValue = "false")
+    private Boolean autoral = false;
 
     @Column(name = "image_url", columnDefinition = "TEXT")
     @Schema(description = "URL da imagem associada à questão", example = "https://exemplo.com/imagem.jpg")
@@ -125,6 +130,14 @@ public class Questao extends BaseEntity {
 
     public void setAnulada(Boolean anulada) {
         this.anulada = anulada;
+    }
+
+    public Boolean getAutoral() {
+        return autoral;
+    }
+
+    public void setAutoral(Boolean autoral) {
+        this.autoral = autoral;
     }
 
     public Set<Alternativa> getAlternativas() {

@@ -83,6 +83,10 @@ public class QuestaoSpecification {
                 predicates.add(cb.equal(root.get("desatualizada"), filter.getDesatualizada()));
             }
 
+            if (filter.getAutoral() != null) {
+                predicates.add(cb.equal(root.get("autoral"), filter.getAutoral()));
+            }
+
             return cb.and(predicates.toArray(new Predicate[0]));
         };
     }
