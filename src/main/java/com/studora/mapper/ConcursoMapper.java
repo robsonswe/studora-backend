@@ -61,14 +61,14 @@ public interface ConcursoMapper {
                 .collect(java.util.stream.Collectors.toList());
     }
 
-    default java.util.List<com.studora.dto.subtema.SubtemaSummaryDto> mapTopicos(java.util.Set<com.studora.entity.ConcursoCargoSubtema> concursoCargoSubtemas) {
+    default java.util.List<com.studora.dto.concurso.ConcursoCargoSubtemaDto> mapTopicos(java.util.Set<com.studora.entity.ConcursoCargoSubtema> concursoCargoSubtemas) {
         if (concursoCargoSubtemas == null) {
             return java.util.Collections.emptyList();
         }
         return concursoCargoSubtemas.stream()
                 .map(ccs -> {
                     com.studora.entity.Subtema subtema = ccs.getSubtema();
-                    com.studora.dto.subtema.SubtemaSummaryDto dto = new com.studora.dto.subtema.SubtemaSummaryDto();
+                    com.studora.dto.concurso.ConcursoCargoSubtemaDto dto = new com.studora.dto.concurso.ConcursoCargoSubtemaDto();
                     dto.setId(subtema.getId());
                     dto.setNome(subtema.getNome());
                     
@@ -84,7 +84,7 @@ public interface ConcursoMapper {
                     
                     return dto;
                 })
-                .sorted(java.util.Comparator.comparing(com.studora.dto.subtema.SubtemaSummaryDto::getNome))
+                .sorted(java.util.Comparator.comparing(com.studora.dto.concurso.ConcursoCargoSubtemaDto::getNome))
                 .collect(java.util.stream.Collectors.toList());
     }
 }

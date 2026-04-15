@@ -198,6 +198,65 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     @Query("SELECT qc.concursoCargo.cargo.area, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.questaoCargos qc WHERE s.id = :subtemaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY qc.concursoCargo.cargo.area")
     List<Object[]> avgTempoBySubtemaIdGroupByAreaCargo(@Param("subtemaId") Long subtemaId);
 
+    // --- Batch: ConcursoCargo context ---
+    @Query("SELECT s.id, COUNT(DISTINCT r.questao.id) FROM Resposta r " +
+           "JOIN r.questao q " +
+           "JOIN q.subtemas s " +
+           "JOIN q.questaoCargos qc " +
+           "WHERE qc.concursoCargo.id = :concursoCargoId " +
+           "AND s.id IN :subtemaIds " +
+           "GROUP BY s.id")
+    List<Object[]> countRespondidasByConcursoCargoAndSubtemaIds(@Param("concursoCargoId") Long concursoCargoId, @Param("subtemaIds") List<Long> subtemaIds);
+
+    @Query("SELECT s.id, COUNT(DISTINCT r.questao.id) FROM Resposta r " +
+           "JOIN r.questao q " +
+           "JOIN q.subtemas s " +
+           "JOIN q.questaoCargos qc " +
+           "WHERE qc.concursoCargo.id = :concursoCargoId " +
+           "AND s.id IN :subtemaIds " +
+           "AND r.alternativaEscolhida.correta = true " +
+           "GROUP BY s.id")
+    List<Object[]> countAcertadasByConcursoCargoAndSubtemaIds(@Param("concursoCargoId") Long concursoCargoId, @Param("subtemaIds") List<Long> subtemaIds);
+
+    @Query("SELECT s.id, AVG(r.tempoRespostaSegundos) FROM Resposta r " +
+           "JOIN r.questao q " +
+           "JOIN q.subtemas s " +
+           "JOIN q.questaoCargos qc " +
+           "WHERE qc.concursoCargo.id = :concursoCargoId " +
+           "AND s.id IN :subtemaIds " +
+           "AND r.tempoRespostaSegundos IS NOT NULL " +
+           "GROUP BY s.id")
+    List<Object[]> avgTempoByConcursoCargoAndSubtemaIds(@Param("concursoCargoId") Long concursoCargoId, @Param("subtemaIds") List<Long> subtemaIds);
+
+    @Query("SELECT s.id, MAX(r.createdAt) FROM Resposta r " +
+           "JOIN r.questao q " +
+           "JOIN q.subtemas s " +
+           "JOIN q.questaoCargos qc " +
+           "WHERE qc.concursoCargo.id = :concursoCargoId " +
+           "AND s.id IN :subtemaIds " +
+           "GROUP BY s.id")
+    List<Object[]> findLatestResponseDatesByConcursoCargoAndSubtemaIds(@Param("concursoCargoId") Long concursoCargoId, @Param("subtemaIds") List<Long> subtemaIds);
+
+    @Query(value = """
+        SELECT s.id AS object_id,
+               COALESCE(r.dificuldade_id, 2) AS diff_val,
+               COUNT(r.id) AS total_ans,
+               SUM(CASE WHEN a.correta = 1 THEN 1 ELSE 0 END) AS total_corr
+        FROM (
+            SELECT id, questao_id, alternativa_id, dificuldade_id, created_at,
+                   ROW_NUMBER() OVER(PARTITION BY questao_id ORDER BY created_at DESC) as rn
+            FROM resposta
+        ) r
+        JOIN questao q ON r.questao_id = q.id
+        JOIN questao_subtema qs ON q.id = qs.questao_id
+        JOIN subtema s ON qs.subtema_id = s.id
+        JOIN questao_cargo qc ON q.id = qc.questao_id
+        JOIN alternativa a ON r.alternativa_id = a.id
+        WHERE qc.concurso_cargo_id = :concursoCargoId AND s.id IN (:subtemaIds) AND r.rn = 1
+        GROUP BY s.id, COALESCE(r.dificuldade_id, 2)
+    """, nativeQuery = true)
+    List<Object[]> getDificuldadeStatsByConcursoCargoAndSubtemaIds(@Param("concursoCargoId") Long concursoCargoId, @Param("subtemaIds") List<Long> subtemaIds);
+
     // --- Batch: questoesAcertadas ---
     @Query("SELECT s.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao.subtemas s WHERE s.id IN :ids AND r.alternativaEscolhida.correta = true GROUP BY s.id")
     List<Object[]> countAcertadasBySubtemaIds(@Param("ids") List<Long> ids);

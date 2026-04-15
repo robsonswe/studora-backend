@@ -1057,13 +1057,27 @@ class ConcursoControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.cargos[0].topicos[0].nome").value("Subtema Tiers"))
             .andExpect(jsonPath("$.cargos[0].topicos[0].totalEstudos").doesNotExist())
-            .andExpect(jsonPath("$.cargos[0].topicos[0].questaoStats").doesNotExist());
+            .andExpect(jsonPath("$.cargos[0].topicos[0].questaoStats").doesNotExist())
+            .andExpect(jsonPath("$.cargos[0].topicos[0].questoesConcursoCargo").doesNotExist());
 
-        // Full: topicos should have metrics (questaoStats populated, totalEstudos for subtema)
+        // Summary: topicos should have questoesConcursoCargo stats
+        mockMvc
+            .perform(get("/api/v1/concursos/{id}", concurso.getId()).param("metrics", "summary"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.cargos[0].topicos[0].totalEstudos").value(0))
+            .andExpect(jsonPath("$.cargos[0].topicos[0].questoesConcursoCargo").isNotEmpty())
+            .andExpect(jsonPath("$.cargos[0].topicos[0].questoesConcursoCargo.totalQuestoes").isNotEmpty())
+            .andExpect(jsonPath("$.cargos[0].topicos[0].questoesConcursoCargo.respondidas").isNotEmpty())
+            .andExpect(jsonPath("$.cargos[0].topicos[0].questoesConcursoCargo.acertadas").isNotEmpty());
+
+        // Full: topicos should have all metrics (questaoStats, totalEstudos, and full questoesConcursoCargo)
         mockMvc
             .perform(get("/api/v1/concursos/{id}", concurso.getId()).param("metrics", "full"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.cargos[0].topicos[0].totalEstudos").value(0))
-            .andExpect(jsonPath("$.cargos[0].topicos[0].questaoStats").isNotEmpty());
+            .andExpect(jsonPath("$.cargos[0].topicos[0].questaoStats").isNotEmpty())
+            .andExpect(jsonPath("$.cargos[0].topicos[0].questoesConcursoCargo").isNotEmpty())
+            .andExpect(jsonPath("$.cargos[0].topicos[0].questoesConcursoCargo.mediaTempoResposta").isNotEmpty())
+            .andExpect(jsonPath("$.cargos[0].topicos[0].questoesConcursoCargo.dificuldade").isNotEmpty());
     }
 }

@@ -1,6 +1,5 @@
 package com.studora.dto.concurso;
 
-import com.studora.dto.subtema.SubtemaSummaryDto;
 import com.studora.entity.NivelCargo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
@@ -29,5 +28,5 @@ public class ConcursoCargoSummaryDto {
     private boolean inscrito;
 
     @Schema(description = "Subtemas associados a este cargo neste concurso")
-    private List<SubtemaSummaryDto> topicos;
+    private List<ConcursoCargoSubtemaDto> topicos;
 }

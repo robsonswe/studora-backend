@@ -131,6 +131,15 @@ public interface QuestaoRepository extends JpaRepository<Questao, Long>, JpaSpec
     @Query("SELECT qc.concursoCargo.cargo.area, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s JOIN q.questaoCargos qc WHERE s.id = :subtemaId AND q.anulada = false GROUP BY qc.concursoCargo.cargo.area")
     List<Object[]> countQuestoesBySubtemaIdGroupByAreaCargo(@Param("subtemaId") Long subtemaId);
 
+    @Query("SELECT s.id, COUNT(DISTINCT q.id) FROM Questao q " +
+           "JOIN q.subtemas s " +
+           "JOIN q.questaoCargos qc " +
+           "WHERE qc.concursoCargo.id = :concursoCargoId " +
+           "AND s.id IN :subtemaIds " +
+           "AND q.anulada = false " +
+           "GROUP BY s.id")
+    List<Object[]> countQuestoesByConcursoCargoAndSubtemaIds(@Param("concursoCargoId") Long concursoCargoId, @Param("subtemaIds") List<Long> subtemaIds);
+
     // --- Granular breakdown queries for Banca/Cargo/Instituicao ---
 
     @Query("SELECT CAST(cc.cargo.nivel AS string), COUNT(DISTINCT q.id) FROM Questao q JOIN q.concurso c JOIN c.concursoCargos cc WHERE c.banca.id = :bancaId AND q.anulada = false GROUP BY cc.cargo.nivel")

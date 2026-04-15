@@ -6,6 +6,7 @@ import com.studora.dto.concurso.ConcursoFilter;
 import com.studora.dto.concurso.ConcursoDetailDto;
 import com.studora.dto.concurso.ConcursoSummaryDto;
 import com.studora.dto.concurso.ConcursoCargoSummaryDto;
+import com.studora.dto.concurso.ConcursoCargoSubtemaDto;
 import com.studora.dto.request.ConcursoCreateRequest;
 import com.studora.dto.request.ConcursoUpdateRequest;
 import com.studora.dto.subtema.SubtemaSummaryDto;
@@ -372,30 +373,45 @@ public class ConcursoService {
     }
 
     private void enrichTopicos(java.util.List<ConcursoCargoSummaryDto> cargos, MetricsLevel metrics) {
-        List<Long> subtemaIds = cargos.stream()
+        List<Long> allSubtemaIds = cargos.stream()
                 .filter(c -> c.getTopicos() != null)
                 .flatMap(c -> c.getTopicos().stream())
-                .map(SubtemaSummaryDto::getId)
+                .map(ConcursoCargoSubtemaDto::getId)
                 .filter(id -> id != null)
                 .distinct()
                 .collect(Collectors.toList());
 
-        if (subtemaIds.isEmpty()) {
+        if (allSubtemaIds.isEmpty()) {
             return;
         }
 
-        // Study sessions
-        Map<Long, Long> counts = toCountMap(estudoSubtemaRepository.countBySubtemaIds(subtemaIds));
-        Map<Long, LocalDateTime> dates = toDateMap(estudoSubtemaRepository.findLatestStudyDatesBySubtemaIds(subtemaIds));
+        // Global Study sessions
+        Map<Long, Long> counts = toCountMap(estudoSubtemaRepository.countBySubtemaIds(allSubtemaIds));
+        Map<Long, LocalDateTime> dates = toDateMap(estudoSubtemaRepository.findLatestStudyDatesBySubtemaIds(allSubtemaIds));
 
         for (ConcursoCargoSummaryDto cargo : cargos) {
-            if (cargo.getTopicos() == null) continue;
-            for (SubtemaSummaryDto topico : cargo.getTopicos()) {
+            if (cargo.getTopicos() == null || cargo.getTopicos().isEmpty()) continue;
+
+            List<Long> cargoSubtemaIds = cargo.getTopicos().stream()
+                    .map(ConcursoCargoSubtemaDto::getId)
+                    .collect(Collectors.toList());
+
+            // Fetch specific stats for this Cargo context
+            Map<Long, com.studora.dto.concurso.QuestaoEstatisticasConcursoCargoDto> cargoStats = Map.of();
+            if (metrics != null) {
+                cargoStats = statsAssembler.buildBatchConcursoCargoStats(cargo.getId(), cargoSubtemaIds, metrics);
+            }
+
+            for (ConcursoCargoSubtemaDto topico : cargo.getTopicos()) {
                 Long topId = topico.getId();
                 if (metrics != null) {
+                    // Global stats
                     topico.setQuestaoStats(statsAssembler.buildStats(topId, "SUBTEMA", metrics));
                     topico.setTotalEstudos(counts.getOrDefault(topId, 0L));
                     topico.setUltimoEstudo(dates.get(topId));
+
+                    // Specific Cargo context stats
+                    topico.setQuestoesConcursoCargo(cargoStats.get(topId));
                 }
             }
         }
