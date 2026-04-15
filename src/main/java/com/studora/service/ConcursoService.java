@@ -2,6 +2,7 @@ package com.studora.service;
 
 import com.studora.dto.DificuldadeStatDto;
 import com.studora.dto.MetricsLevel;
+import com.studora.dto.StatSliceDto;
 import com.studora.dto.concurso.ConcursoFilter;
 import com.studora.dto.concurso.ConcursoDetailDto;
 import com.studora.dto.concurso.ConcursoSummaryDto;
@@ -270,6 +271,16 @@ public class ConcursoService {
         concursoCargoRepository.save(cc);
     }
 
+    @CacheEvict(value = "concurso-stats", allEntries = true)
+    public void toggleFinalizado(Long id) {
+        log.info("Toggling status finalizado para Concurso ID: {}", id);
+        Concurso concurso = concursoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Concurso", "ID", id));
+        
+        concurso.setFinalizado(!concurso.isFinalizado());
+        concursoRepository.save(concurso);
+    }
+
     private void processTopicos(Map<Long, List<Long>> topicosRequest, Concurso concurso, List<Long> validCargoIds) {
         // Build cargoId -> ConcursoCargo map from the concurso
         Map<Long, ConcursoCargo> cargoMap = concurso.getConcursoCargos().stream()
@@ -397,7 +408,7 @@ public class ConcursoService {
                     .collect(Collectors.toList());
 
             // Fetch specific stats for this Cargo context
-            Map<Long, com.studora.dto.concurso.QuestaoEstatisticasConcursoCargoDto> cargoStats = Map.of();
+            Map<Long, StatSliceDto> cargoStats = Map.of();
             if (metrics != null) {
                 cargoStats = statsAssembler.buildBatchConcursoCargoStats(cargo.getId(), cargoSubtemaIds, metrics);
             }
@@ -405,13 +416,17 @@ public class ConcursoService {
             for (ConcursoCargoSubtemaDto topico : cargo.getTopicos()) {
                 Long topId = topico.getId();
                 if (metrics != null) {
-                    // Global stats
-                    topico.setQuestaoStats(statsAssembler.buildStats(topId, "SUBTEMA", metrics));
+                    // Specific Cargo context stats: SUMMARY or FULL
+                    topico.setQuestoesConcursoCargo(cargoStats.get(topId));
+                    
+                    // User progress on this subtema: SUMMARY or FULL
                     topico.setTotalEstudos(counts.getOrDefault(topId, 0L));
                     topico.setUltimoEstudo(dates.get(topId));
 
-                    // Specific Cargo context stats
-                    topico.setQuestoesConcursoCargo(cargoStats.get(topId));
+                    // Global questaoStats: ONLY FULL
+                    if (metrics == MetricsLevel.FULL) {
+                        topico.setQuestaoStats(statsAssembler.buildStats(topId, "SUBTEMA", metrics));
+                    }
                 }
             }
         }

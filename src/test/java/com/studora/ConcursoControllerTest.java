@@ -1077,7 +1077,62 @@ class ConcursoControllerTest {
             .andExpect(jsonPath("$.cargos[0].topicos[0].totalEstudos").value(0))
             .andExpect(jsonPath("$.cargos[0].topicos[0].questaoStats").isNotEmpty())
             .andExpect(jsonPath("$.cargos[0].topicos[0].questoesConcursoCargo").isNotEmpty())
-            .andExpect(jsonPath("$.cargos[0].topicos[0].questoesConcursoCargo.mediaTempoResposta").isNotEmpty())
-            .andExpect(jsonPath("$.cargos[0].topicos[0].questoesConcursoCargo.dificuldade").isNotEmpty());
+            .andExpect(jsonPath("$.cargos[0].topicos[0].questoesConcursoCargo.mediaTempoResposta").isNumber())
+            .andExpect(jsonPath("$.cargos[0].topicos[0].questoesConcursoCargo.dificuldade").isMap());
+    }
+
+    @Test
+    void testToggleFinalizado() throws Exception {
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Instituição Toggle Finalizado");
+        instituicao.setArea("Educação");
+        instituicao = instituicaoRepository.save(instituicao);
+
+        Banca banca = new Banca();
+        banca.setNome("Banca Toggle Finalizado");
+        banca = bancaRepository.save(banca);
+
+        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
+        concurso.setFinalizado(false);
+        concurso = concursoRepository.save(concurso);
+
+        mockMvc
+            .perform(patch("/api/v1/concursos/{id}/finalizado", concurso.getId()))
+            .andExpect(status().isOk());
+
+        Concurso updated = concursoRepository.findById(concurso.getId()).orElseThrow();
+        org.junit.jupiter.api.Assertions.assertTrue(updated.isFinalizado());
+    }
+
+    @Test
+    void testGetAllConcursos_FilterByFinalizado() throws Exception {
+        Instituicao inst = new Instituicao();
+        inst.setNome("Inst Filter Finalizado");
+        inst.setArea("TI");
+        inst = instituicaoRepository.save(inst);
+
+        Banca banca = new Banca();
+        banca.setNome("Banca Filter Finalizado");
+        banca = bancaRepository.save(banca);
+
+        Concurso c1 = new Concurso(inst, banca, 2023, 1);
+        c1.setFinalizado(true);
+        concursoRepository.save(c1);
+
+        Concurso c2 = new Concurso(inst, banca, 2024, 2);
+        c2.setFinalizado(false);
+        concursoRepository.save(c2);
+
+        mockMvc
+            .perform(get("/api/v1/concursos").param("finalizado", "true"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].finalizado").value(true));
+
+        mockMvc
+            .perform(get("/api/v1/concursos").param("finalizado", "false"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].finalizado").value(false));
     }
 }

@@ -333,4 +333,22 @@ class ConcursoServiceTest {
         concursoService.update(id, req);
         verify(concursoRepository).save(argThat(c -> c.getDataProva().equals(newDataProva)));
     }
+
+    @Test
+    void testToggleFinalizado_Success() {
+        Long id = 1L;
+        Concurso concurso = new Concurso();
+        concurso.setId(id);
+        concurso.setFinalizado(false);
+
+        when(concursoRepository.findById(id)).thenReturn(Optional.of(concurso));
+        when(concursoRepository.save(any(Concurso.class))).thenAnswer(i -> i.getArgument(0));
+
+        concursoService.toggleFinalizado(id);
+        assertTrue(concurso.isFinalizado());
+        verify(concursoRepository).save(concurso);
+
+        concursoService.toggleFinalizado(id);
+        assertFalse(concurso.isFinalizado());
+    }
 }

@@ -64,6 +64,10 @@ public class Concurso extends BaseEntity {
     @Schema(description = "Data e hora da prova do concurso", example = "2024-06-15T08:00:00")
     private java.time.LocalDateTime dataProva;
 
+    @Column(nullable = false)
+    @Schema(description = "Indica se o concurso já foi finalizado (prova realizada e resultados consolidados)", example = "true")
+    private boolean finalizado = false;
+
     @OneToMany(
         mappedBy = "concurso",
         cascade = CascadeType.ALL,
@@ -146,6 +150,14 @@ public class Concurso extends BaseEntity {
 
     public void setDataProva(java.time.LocalDateTime dataProva) {
         this.dataProva = dataProva;
+    }
+
+    public boolean isFinalizado() {
+        return finalizado;
+    }
+
+    public void setFinalizado(boolean finalizado) {
+        this.finalizado = finalizado;
     }
 
     public Set<Questao> getQuestoes() {

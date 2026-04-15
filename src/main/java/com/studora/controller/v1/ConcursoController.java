@@ -218,6 +218,24 @@ public class ConcursoController {
         return ResponseEntity.ok().build();
     }
 
+    @Operation(
+        summary = "Alternar status de finalizado de um concurso",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Status de finalizado alterado com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Concurso não encontrado",
+                content = @Content(mediaType = "application/problem+json",
+                    schema = @Schema(implementation = ProblemDetail.class),
+                    examples = @ExampleObject(
+                        value = "{\"type\":\"about:blank\",\"title\":\"Recurso não encontrado\",\"status\":404,\"detail\":\"Não foi possível encontrar Concurso com ID: '1'\",\"instance\":\"/api/v1/concursos/1/finalizado\"}"
+                    )))
+        }
+    )
+    @PatchMapping("/{id}/finalizado")
+    public ResponseEntity<Void> toggleFinalizado(@PathVariable Long id) {
+        concursoService.toggleFinalizado(id);
+        return ResponseEntity.ok().build();
+    }
+
     private MetricsLevel parseMetrics(String raw) {
         if (raw == null || raw.isBlank()) return null;
         return switch (raw.toLowerCase()) {

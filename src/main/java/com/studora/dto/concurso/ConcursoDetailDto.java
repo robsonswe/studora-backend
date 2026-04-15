@@ -16,5 +16,6 @@ public class ConcursoDetailDto {
     private Integer mes;
     private String edital;
     private java.time.LocalDateTime dataProva;
+    private boolean finalizado;
     private List<ConcursoCargoSummaryDto> cargos;
 }

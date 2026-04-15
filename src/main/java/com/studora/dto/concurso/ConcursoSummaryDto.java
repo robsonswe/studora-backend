@@ -27,6 +27,9 @@ public class ConcursoSummaryDto {
     @Schema(description = "Data e hora da prova do concurso", example = "2024-06-15T08:00:00")
     private java.time.LocalDateTime dataProva;
 
+    @Schema(description = "Indica se o concurso já foi finalizado", example = "true")
+    private boolean finalizado;
+
     @Schema(description = "Lista de cargos associados ao concurso")
     private java.util.List<ConcursoCargoSummaryDto> cargos;
 }

@@ -35,5 +35,5 @@ public class ConcursoCargoSubtemaDto {
     private QuestaoStatsDto questaoStats;
 
     @Schema(description = "Estatísticas específicas de questões para este concurso e cargo")
-    private QuestaoEstatisticasConcursoCargoDto questoesConcursoCargo;
+    private com.studora.dto.StatSliceDto questoesConcursoCargo;
 }

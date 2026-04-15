@@ -27,4 +27,7 @@ public class ConcursoFilter {
 
     @Schema(description = "Filtrar por concursos nos quais o usuário está inscrito")
     private Boolean inscrito;
+
+    @Schema(description = "Filtrar por concursos já finalizados")
+    private Boolean finalizado;
 }

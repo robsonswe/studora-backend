@@ -4,7 +4,6 @@ import com.studora.dto.DificuldadeStatDto;
 import com.studora.dto.MetricsLevel;
 import com.studora.dto.QuestaoStatsDto;
 import com.studora.dto.StatSliceDto;
-import com.studora.dto.concurso.QuestaoEstatisticasConcursoCargoDto;
 import com.studora.entity.Dificuldade;
 import com.studora.repository.BancaRepository;
 import com.studora.repository.CargoRepository;
@@ -138,43 +137,61 @@ public class StatsAssembler {
         return stats;
     }
 
-    public Map<Long, QuestaoEstatisticasConcursoCargoDto> buildBatchConcursoCargoStats(Long concursoCargoId, List<Long> subtemaIds, MetricsLevel metrics) {
+    public Map<Long, StatSliceDto> buildBatchConcursoCargoStats(Long concursoCargoId, List<Long> subtemaIds, MetricsLevel metrics) {
         if (metrics == null || subtemaIds == null || subtemaIds.isEmpty()) return Map.of();
 
-        Map<Long, QuestaoEstatisticasConcursoCargoDto> resultMap = new HashMap<>();
+        Map<Long, StatSliceDto> resultMap = new HashMap<>();
         boolean isFull = metrics == MetricsLevel.FULL;
+
+        // Initialize all subtemas with 0 stats
+        for (Long subId : subtemaIds) {
+            StatSliceDto dto = new StatSliceDto();
+            dto.setTotalQuestoes(0L);
+            dto.setRespondidas(0L);
+            dto.setAcertadas(0L);
+            resultMap.put(subId, dto);
+        }
 
         // Fetch totals
         List<Object[]> totals = questaoRepository.countQuestoesByConcursoCargoAndSubtemaIds(concursoCargoId, subtemaIds);
         for (Object[] row : totals) {
             Long subId = ((Number) row[0]).longValue();
             Long total = ((Number) row[1]).longValue();
-            QuestaoEstatisticasConcursoCargoDto dto = new QuestaoEstatisticasConcursoCargoDto();
-            dto.setTotalQuestoes(total);
-            resultMap.put(subId, dto);
+            StatSliceDto dto = resultMap.get(subId);
+            if (dto != null) dto.setTotalQuestoes(total);
         }
 
-        // Fetch respondidas/acertadas
+        // Fetch respondidas
         List<Object[]> resp = respostaRepository.countRespondidasByConcursoCargoAndSubtemaIds(concursoCargoId, subtemaIds);
-        List<Object[]> acert = respostaRepository.countAcertadasByConcursoCargoAndSubtemaIds(concursoCargoId, subtemaIds);
-        Map<Long, Long> acertMap = new HashMap<>();
-        for (Object[] row : acert) acertMap.put(((Number) row[0]).longValue(), ((Number) row[1]).longValue());
-
         for (Object[] row : resp) {
             Long subId = ((Number) row[0]).longValue();
             Long respondidas = ((Number) row[1]).longValue();
-            QuestaoEstatisticasConcursoCargoDto dto = resultMap.computeIfAbsent(subId, k -> new QuestaoEstatisticasConcursoCargoDto());
-            dto.setRespondidas(respondidas);
-            dto.setAcertadas(acertMap.getOrDefault(subId, 0L));
+            StatSliceDto dto = resultMap.get(subId);
+            if (dto != null) dto.setRespondidas(respondidas);
+        }
+
+        // Fetch acertadas
+        List<Object[]> acert = respostaRepository.countAcertadasByConcursoCargoAndSubtemaIds(concursoCargoId, subtemaIds);
+        for (Object[] row : acert) {
+            Long subId = ((Number) row[0]).longValue();
+            Long acertadas = ((Number) row[1]).longValue();
+            StatSliceDto dto = resultMap.get(subId);
+            if (dto != null) dto.setAcertadas(acertadas);
         }
 
         if (isFull) {
+            // Initialize defaults for FULL metrics
+            for (StatSliceDto dto : resultMap.values()) {
+                dto.setMediaTempoResposta(0);
+                dto.setDificuldade(new HashMap<>());
+            }
+
             // Fetch tempo
             List<Object[]> tempo = respostaRepository.avgTempoByConcursoCargoAndSubtemaIds(concursoCargoId, subtemaIds);
             for (Object[] row : tempo) {
                 Long subId = ((Number) row[0]).longValue();
                 Double avg = (Double) row[1];
-                QuestaoEstatisticasConcursoCargoDto dto = resultMap.get(subId);
+                StatSliceDto dto = resultMap.get(subId);
                 if (dto != null) dto.setMediaTempoResposta(avg != null ? avg.intValue() : null);
             }
 
@@ -182,9 +199,11 @@ public class StatsAssembler {
             List<Object[]> latest = respostaRepository.findLatestResponseDatesByConcursoCargoAndSubtemaIds(concursoCargoId, subtemaIds);
             for (Object[] row : latest) {
                 Long subId = ((Number) row[0]).longValue();
-                LocalDateTime date = (LocalDateTime) row[1];
-                QuestaoEstatisticasConcursoCargoDto dto = resultMap.get(subId);
-                if (dto != null) dto.setUltimaQuestao(date);
+                Object dateObj = row[1];
+                StatSliceDto dto = resultMap.get(subId);
+                if (dto != null && dateObj != null) {
+                    dto.setUltimaQuestao(parseDate(dateObj));
+                }
             }
 
             // Fetch dificuldade
@@ -195,7 +214,7 @@ public class StatsAssembler {
                 Long dTotal = ((Number) row[2]).longValue();
                 Long dCorr = ((Number) row[3]).longValue();
 
-                QuestaoEstatisticasConcursoCargoDto dto = resultMap.get(subId);
+                StatSliceDto dto = resultMap.get(subId);
                 if (dto != null) {
                     if (dto.getDificuldade() == null) dto.setDificuldade(new HashMap<>());
                     DificuldadeStatDto dDto = new DificuldadeStatDto();
@@ -207,6 +226,12 @@ public class StatsAssembler {
         }
 
         return resultMap;
+    }
+
+    private LocalDateTime parseDate(Object val) {
+        if (val instanceof LocalDateTime) return (LocalDateTime) val;
+        if (val instanceof String) return LocalDateTime.parse((String) val, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        return null;
     }
 
     private StatSliceDto fetchTotalStats(Long scopeId, String scopeType) {

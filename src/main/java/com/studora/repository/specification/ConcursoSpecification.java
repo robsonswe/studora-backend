@@ -55,6 +55,10 @@ public class ConcursoSpecification {
                 }
             }
 
+            if (filter.getFinalizado() != null) {
+                predicates.add(cb.equal(root.get("finalizado"), filter.getFinalizado()));
+            }
+
             return cb.and(predicates.toArray(new Predicate[0]));
         };
     }

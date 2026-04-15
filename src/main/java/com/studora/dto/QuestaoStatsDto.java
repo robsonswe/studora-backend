@@ -1,16 +1,13 @@
 package com.studora.dto;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 import lombok.Setter;
 import java.util.Map;
 
 @Getter
 @Setter
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class QuestaoStatsDto {
     private StatSliceDto total;
-    @JsonInclude(JsonInclude.Include.NON_NULL)
     private StatSliceDto porAutoral;
     private Map<String, StatSliceDto> porNivel;
     private Map<Long, StatSliceDto> porBanca;
