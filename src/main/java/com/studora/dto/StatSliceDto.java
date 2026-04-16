@@ -8,6 +8,7 @@ import java.util.Map;
 
 @Getter
 @Setter
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class StatSliceDto {
     private Long id;
     private String nome;

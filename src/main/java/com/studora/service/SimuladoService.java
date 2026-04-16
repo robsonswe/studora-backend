@@ -14,6 +14,7 @@ import com.studora.repository.QuestaoRepository;
 import com.studora.repository.RespostaRepository;
 import com.studora.repository.SimuladoRepository;
 import com.studora.repository.SubtemaRepository;
+import com.studora.common.constants.AppConstants;
 import com.studora.repository.TemaRepository;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -147,8 +148,8 @@ public class SimuladoService {
         int totalDisciplinas = request.getDisciplinas() != null ? request.getDisciplinas().stream().mapToInt(SimuladoGenerationRequest.ItemSelection::getQuantidade).sum() : 0;
         
         int totalRequested = totalSubtemas + totalTemas + totalDisciplinas;
-        if (totalRequested < 20) {
-            throw new ValidationException("O simulado deve ter no total pelo menos 20 questões solicitadas (total atual: " + totalRequested + ").");
+        if (totalRequested < AppConstants.MIN_SIMULADO_QUESTIONS) {
+            throw new ValidationException("O simulado deve ter no total pelo menos " + AppConstants.MIN_SIMULADO_QUESTIONS + " questões solicitadas (total atual: " + totalRequested + ").");
         }
 
         Simulado simulado = new Simulado();
@@ -205,8 +206,8 @@ public class SimuladoService {
             }
         }
 
-        if (collectedIds.size() < 20) {
-            throw new ValidationException("Não foi possível encontrar o número mínimo de 20 questões para gerar o simulado. Encontradas: " + collectedIds.size());
+        if (collectedIds.size() < AppConstants.MIN_SIMULADO_QUESTIONS) {
+            throw new ValidationException("Não foi possível encontrar o número mínimo de " + AppConstants.MIN_SIMULADO_QUESTIONS + " questões para gerar o simulado. Encontradas: " + collectedIds.size());
         }
 
         List<Questao> questions = questaoRepository.findAllById(collectedIds);
