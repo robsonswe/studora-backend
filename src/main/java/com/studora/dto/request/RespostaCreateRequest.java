@@ -10,19 +10,19 @@ import jakarta.validation.constraints.NotNull;
 public class RespostaCreateRequest {
 
     @NotNull(message = "ID da questão é obrigatório")
-    @Schema(description = "ID da questão respondida", example = "1", required = true)
+    @Schema(description = "ID da questão respondida", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long questaoId;
 
     @NotNull(message = "ID da alternativa é obrigatório")
-    @Schema(description = "ID da alternativa selecionada como resposta", example = "1", required = true)
+    @Schema(description = "ID da alternativa selecionada como resposta", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long alternativaId;
 
     @NotBlank(message = "O raciocínio/justificativa é obrigatório")
-    @Schema(description = "Raciocínio ou comentário do usuário para esta tentativa", example = "Achei que era a B por causa de...", required = true)
+    @Schema(description = "Raciocínio ou comentário do usuário para esta tentativa", example = "Achei que era a B por causa de...", requiredMode = Schema.RequiredMode.REQUIRED)
     private String justificativa;
 
     @NotNull(message = "O grau de dificuldade é obrigatório")
-    @Schema(description = "ID do grau de dificuldade percebido (1=Fácil, 2=Média, 3=Difícil, 4=Chute)", example = "2", required = true)
+    @Schema(description = "ID do grau de dificuldade percebido (1=Fácil, 2=Média, 3=Difícil, 4=Chute)", example = "2", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer dificuldadeId;
 
     @Schema(description = "Duração da tentativa em segundos", example = "45")

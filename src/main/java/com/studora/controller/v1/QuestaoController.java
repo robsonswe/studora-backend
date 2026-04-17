@@ -1,5 +1,6 @@
 package com.studora.controller.v1;
 
+import com.studora.dto.PostResponseDto;
 import com.studora.dto.PageResponse;
 import com.studora.dto.questao.QuestaoSummaryDto;
 import com.studora.dto.questao.QuestaoDetailDto;
@@ -204,10 +205,8 @@ public class QuestaoController {
         summary = "Criar nova questão",
         responses = {
             @ApiResponse(responseCode = "201", description = "Questão criada com sucesso",
-                content = @Content(
-                    schema = @Schema(implementation = QuestaoDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 2, \"enunciado\": \"Nova questão...\", \"concurso\": {\"id\": 10, \"ano\": 2024, \"bancaId\": 2, \"bancaNome\": \"Cebraspe\", \"instituicaoId\": 3, \"instituicaoNome\": \"Policia Federal\", \"instituicaoArea\": \"Segurança\"}, \"subtemas\": [{\"id\": 5, \"nome\": \"Habeas Corpus\", \"temaId\": 20, \"temaNome\": \"Remédios Constitucionais\", \"disciplinaId\": 100, \"disciplinaNome\": \"Direito Constitucional\"}], \"cargos\": [{\"id\": 1, \"nome\": \"Agente\", \"nivel\": \"SUPERIOR\", \"area\": \"Policial\"}], \"anulada\": false, \"desatualizada\": false, \"respondida\": false, \"imageUrl\": null, \"alternativas\": [{\"id\": 10, \"texto\": \"Opção A\", \"correta\": true, \"justificativa\": \"...\"}, {\"id\": 11, \"texto\": \"Opção B\", \"correta\": false, \"justificativa\": \"...\"}]}")
-                )),
+                content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = PostResponseDto.class))),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
@@ -223,8 +222,13 @@ public class QuestaoController {
         }
     )
     @PostMapping
-    public ResponseEntity<QuestaoDetailDto> createQuestao(@Valid @RequestBody QuestaoCreateRequest request) {
-        return new ResponseEntity<>(questaoService.create(request), HttpStatus.CREATED);
+    public ResponseEntity<PostResponseDto> createQuestao(@Valid @RequestBody QuestaoCreateRequest request) {
+        Long id = questaoService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(PostResponseDto.builder()
+                        .id(id)
+                        .message("Questão criada com sucesso")
+                        .build());
     }
 
     @Operation(

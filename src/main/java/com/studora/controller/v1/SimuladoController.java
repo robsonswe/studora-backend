@@ -5,9 +5,9 @@ import com.studora.dto.PageResponse;
 import com.studora.dto.Views;
 import com.studora.dto.simulado.SimuladoDetailDto;
 import com.studora.dto.simulado.SimuladoSummaryDto;
+import com.studora.dto.PostResponseDto;
 import com.studora.dto.request.SimuladoGenerationRequest;
 import com.studora.service.SimuladoService;
-import com.studora.util.PaginationUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -17,12 +17,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.json.MappingJacksonValue;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -61,10 +61,8 @@ public class SimuladoController {
         summary = "Gerar um novo simulado",
         responses = {
             @ApiResponse(responseCode = "201", description = "Simulado gerado com sucesso", 
-                content = @Content(
-                    schema = @Schema(implementation = SimuladoDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 1, \"nome\": \"Simulado Geral 2024\", \"startedAt\": null, \"finishedAt\": null, \"banca\": {\"id\": 1, \"nome\": \"FCC\"}, \"disciplinas\": [{\"id\": 1, \"nome\": \"Português\", \"quantidade\": 20}]}")
-                )),
+                content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = PostResponseDto.class))),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
@@ -79,8 +77,13 @@ public class SimuladoController {
                     )))
         }
     )
-    public SimuladoDetailDto gerarSimulado(@Valid @RequestBody SimuladoGenerationRequest request) {
-        return simuladoService.gerarSimulado(request);
+    public ResponseEntity<PostResponseDto> gerarSimulado(@Valid @RequestBody SimuladoGenerationRequest request) {
+        Long id = simuladoService.gerarSimulado(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(PostResponseDto.builder()
+                        .id(id)
+                        .message("Simulado gerado com sucesso")
+                        .build());
     }
 
     @GetMapping("/{id}")
@@ -111,6 +114,9 @@ public class SimuladoController {
     )
     public MappingJacksonValue getSimulado(@PathVariable Long id) {
         SimuladoDetailDto detail = simuladoService.getSimuladoDetailById(id);
+        if (detail == null) {
+            throw new com.studora.exception.ResourceNotFoundException("Simulado", "ID", id);
+        }
         MappingJacksonValue wrapper = new MappingJacksonValue(detail);
 
         // Always show responses for simulado context - filtering is handled by business logic

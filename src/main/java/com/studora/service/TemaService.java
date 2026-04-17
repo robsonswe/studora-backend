@@ -90,7 +90,7 @@ public class TemaService {
     }
 
     @CacheEvict(value = "tema-stats", allEntries = true)
-    public void create(TemaCreateRequest request) {
+    public Long create(TemaCreateRequest request) {
         log.info("Criando novo tema: {} na disciplina ID: {}", request.getNome(), request.getDisciplinaId());
 
         Optional<Tema> existing = temaRepository.findByDisciplinaIdAndNomeIgnoreCase(request.getDisciplinaId(), request.getNome());
@@ -104,7 +104,7 @@ public class TemaService {
         Tema tema = temaMapper.toEntity(request);
         tema.setDisciplina(disciplina);
 
-        temaRepository.save(tema);
+        return temaRepository.save(tema).getId();
     }
 
     @CacheEvict(value = "tema-stats", allEntries = true)

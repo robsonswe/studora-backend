@@ -14,10 +14,10 @@ public class RespostaComAlternativasDto {
     @Schema(description = "ID único da resposta (gerado automaticamente)", example = "1", accessMode = Schema.AccessMode.READ_ONLY)
     private Long id;
 
-    @Schema(description = "ID da questão respondida", example = "1", required = true)
+    @Schema(description = "ID da questão respondida", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long questaoId;
 
-    @Schema(description = "ID da alternativa selecionada como resposta", example = "1", required = true)
+    @Schema(description = "ID da alternativa selecionada como resposta", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long alternativaId;
 
     @Schema(description = "Indica se a alternativa selecionada é a correta", example = "true")

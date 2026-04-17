@@ -115,7 +115,7 @@ public class QuestaoService {
         throw new ResourceNotFoundException("Não foi possível encontrar nenhuma questão com os filtros fornecidos.");
     }
 
-    public QuestaoDetailDto create(QuestaoCreateRequest request) {
+    public Long create(QuestaoCreateRequest request) {
         log.info("Criando nova questão para o concurso ID: {}", request.getConcursoId());
 
         boolean isAutoral = Boolean.TRUE.equals(request.getAutoral());
@@ -162,7 +162,7 @@ public class QuestaoService {
         Questao savedQuestao = questaoRepository.save(questao);
 
         entityManager.flush();
-        return questaoMapper.toDetailDto(questaoRepository.findByIdWithDetails(savedQuestao.getId()).get());
+        return savedQuestao.getId();
     }
 
     public QuestaoDetailDto update(Long id, QuestaoUpdateRequest request) {

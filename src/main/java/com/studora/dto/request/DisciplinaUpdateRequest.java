@@ -12,7 +12,7 @@ public class DisciplinaUpdateRequest {
 
     @NotBlank(message = "Nome da disciplina é obrigatório")
     @Size(max = AppConstants.MAX_NAME_LENGTH, message = "Nome da disciplina deve ter no máximo " + AppConstants.MAX_NAME_LENGTH + " caracteres")
-    @Schema(description = "Nome da disciplina", example = "Matemática", required = true)
+    @Schema(description = "Nome da disciplina", example = "Matemática", requiredMode = Schema.RequiredMode.REQUIRED)
     private String nome;
 
     // Constructors

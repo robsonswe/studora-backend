@@ -12,11 +12,11 @@ public class InstituicaoCreateRequest {
 
     @NotBlank(message = "Nome da instituição é obrigatório")
     @Size(max = AppConstants.MAX_NAME_LENGTH, message = "Nome da instituição deve ter no máximo " + AppConstants.MAX_NAME_LENGTH + " caracteres")
-    @Schema(description = "Nome da instituição", example = "Universidade Federal do Rio de Janeiro", required = true)
+    @Schema(description = "Nome da instituição", example = "Universidade Federal do Rio de Janeiro", requiredMode = Schema.RequiredMode.REQUIRED)
     private String nome;
 
     @NotBlank(message = "Área da instituição é obrigatória")
-    @Schema(description = "Área da instituição", example = "Educação", required = true)
+    @Schema(description = "Área da instituição", example = "Educação", requiredMode = Schema.RequiredMode.REQUIRED)
     private String area;
 
     // Constructors

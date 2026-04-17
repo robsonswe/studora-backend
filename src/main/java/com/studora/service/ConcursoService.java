@@ -126,7 +126,7 @@ public class ConcursoService {
     }
 
     @CacheEvict(value = "concurso-stats", allEntries = true)
-    public void create(ConcursoCreateRequest request) {
+    public Long create(ConcursoCreateRequest request) {
         log.info("Criando novo concurso: Inst {}, Banca {}, Ano {}",
                 request.getInstituicaoId(), request.getBancaId(), request.getAno());
 
@@ -161,7 +161,7 @@ public class ConcursoService {
             processTopicos(request.getTopicos(), concurso, cargoIds);
         }
 
-        concursoRepository.save(concurso);
+        return concursoRepository.save(concurso).getId();
     }
 
     @CacheEvict(value = "concurso-stats", allEntries = true)

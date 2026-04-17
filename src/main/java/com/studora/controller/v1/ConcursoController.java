@@ -4,6 +4,7 @@ import com.studora.dto.MetricsLevel;
 import com.studora.dto.concurso.ConcursoSummaryDto;
 import com.studora.dto.concurso.ConcursoDetailDto;
 import com.studora.dto.concurso.ConcursoFilter;
+import com.studora.dto.PostResponseDto;
 import com.studora.dto.PageResponse;
 import com.studora.dto.request.ConcursoCreateRequest;
 import com.studora.dto.request.ConcursoUpdateRequest;
@@ -124,7 +125,9 @@ public class ConcursoController {
     @Operation(
         summary = "Criar novo concurso",
         responses = {
-            @ApiResponse(responseCode = "201", description = "Concurso criado com sucesso"),
+            @ApiResponse(responseCode = "201", description = "Concurso criado com sucesso",
+                content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = PostResponseDto.class))),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
@@ -140,9 +143,13 @@ public class ConcursoController {
         }
     )
     @PostMapping
-    public ResponseEntity<Void> createConcurso(@Valid @RequestBody ConcursoCreateRequest request) {
-        concursoService.create(request);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<PostResponseDto> createConcurso(@Valid @RequestBody ConcursoCreateRequest request) {
+        Long id = concursoService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(PostResponseDto.builder()
+                        .id(id)
+                        .message("Concurso criado com sucesso")
+                        .build());
     }
 
     @Operation(

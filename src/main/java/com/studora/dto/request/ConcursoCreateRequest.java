@@ -11,23 +11,23 @@ import jakarta.validation.constraints.Positive;
 public class ConcursoCreateRequest {
 
     @NotNull(message = "ID da instituição é obrigatório")
-    @Schema(description = "ID da instituição organizadora do concurso", example = "1", required = true)
+    @Schema(description = "ID da instituição organizadora do concurso", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long instituicaoId;
 
     @NotNull(message = "ID da banca é obrigatório")
-    @Schema(description = "ID da banca organizadora do concurso", example = "1", required = true)
+    @Schema(description = "ID da banca organizadora do concurso", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long bancaId;
 
     @NotNull(message = "Ano é obrigatório")
     @jakarta.validation.constraints.Min(value = AppConstants.MIN_YEAR, message = "Ano deve ser no mínimo " + AppConstants.MIN_YEAR)
     @jakarta.validation.constraints.Max(value = AppConstants.MAX_YEAR, message = "Ano deve ser no máximo " + AppConstants.MAX_YEAR)
-    @Schema(description = "Ano em que o concurso foi realizado", example = "2023", required = true)
+    @Schema(description = "Ano em que o concurso foi realizado", example = "2023", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer ano;
 
     @NotNull(message = "Mês é obrigatório")
     @jakarta.validation.constraints.Min(value = AppConstants.MIN_MONTH, message = "Mês deve ser entre " + AppConstants.MIN_MONTH + " e " + AppConstants.MAX_MONTH)
     @jakarta.validation.constraints.Max(value = AppConstants.MAX_MONTH, message = "Mês deve ser entre " + AppConstants.MIN_MONTH + " e " + AppConstants.MAX_MONTH)
-    @Schema(description = "Mês em que o concurso foi realizado", example = "6", required = true)
+    @Schema(description = "Mês em que o concurso foi realizado", example = "6", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer mes;
 
     @jakarta.validation.constraints.Size(min = 1, message = "Edital não pode ser uma string vazia")
@@ -42,7 +42,7 @@ public class ConcursoCreateRequest {
 
     @NotNull(message = "A lista de cargos é obrigatória")
     @jakarta.validation.constraints.NotEmpty(message = "O concurso deve ter pelo menos um cargo")
-    @Schema(description = "Lista de IDs dos cargos associados ao concurso", example = "[1, 2]", required = true)
+    @Schema(description = "Lista de IDs dos cargos associados ao concurso", example = "[1, 2]", requiredMode = Schema.RequiredMode.REQUIRED)
     private java.util.List<Long> cargos;
 
     @Schema(

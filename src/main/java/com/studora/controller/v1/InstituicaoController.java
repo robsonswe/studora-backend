@@ -1,6 +1,7 @@
 package com.studora.controller.v1;
 
 import com.studora.dto.MetricsLevel;
+import com.studora.dto.PostResponseDto;
 import com.studora.dto.PageResponse;
 import com.studora.dto.instituicao.InstituicaoDetailDto;
 import com.studora.dto.instituicao.InstituicaoSummaryDto;
@@ -102,11 +103,19 @@ public class InstituicaoController {
         return ResponseEntity.ok(instituicaoService.getInstituicaoDetailById(id, parseMetrics(metrics)));
     }
 
-    @Operation(summary = "Criar nova instituição")
+    @Operation(summary = "Criar nova instituição", responses = {
+            @ApiResponse(responseCode = "201", description = "Instituição criada com sucesso",
+                content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = PostResponseDto.class)))
+    })
     @PostMapping
-    public ResponseEntity<Void> createInstituicao(@Valid @RequestBody InstituicaoCreateRequest request) {
-        instituicaoService.create(request);
-        return new ResponseEntity<>(HttpStatus.CREATED);
+    public ResponseEntity<PostResponseDto> createInstituicao(@Valid @RequestBody InstituicaoCreateRequest request) {
+        Long id = instituicaoService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(PostResponseDto.builder()
+                        .id(id)
+                        .message("Instituição criada com sucesso")
+                        .build());
     }
 
     @Operation(summary = "Atualizar instituição")

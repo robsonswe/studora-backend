@@ -18,18 +18,18 @@ public class AlternativaDto {
     @JsonView(Views.RespostaOculta.class)
     private Long questaoId;
 
-    @Schema(description = "Ordem da alternativa na lista", example = "1", required = true)
+    @Schema(description = "Ordem da alternativa na lista", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "Ordem é obrigatória")
     @Positive(message = "Ordem deve ser um número positivo")
     @JsonView(Views.RespostaOculta.class)
     private Integer ordem;
 
-    @Schema(description = "Texto da alternativa", example = "A resposta correta é a opção A", required = true)
+    @Schema(description = "Texto da alternativa", example = "A resposta correta é a opção A", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Texto da alternativa é obrigatório")
     @JsonView(Views.RespostaOculta.class)
     private String texto;
 
-    @Schema(description = "Indica se a alternativa é a correta. (Visível apenas se a questão foi respondida nos últimos 30 dias)", example = "true", required = true)
+    @Schema(description = "Indica se a alternativa é a correta. (Visível apenas se a questão foi respondida nos últimos 30 dias)", example = "true", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "Indicação de correta é obrigatória")
     @JsonView(Views.RespostaVisivel.class)
     private Boolean correta;

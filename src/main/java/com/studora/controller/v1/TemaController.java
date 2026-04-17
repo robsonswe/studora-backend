@@ -3,6 +3,7 @@ package com.studora.controller.v1;
 import com.studora.dto.MetricsLevel;
 import com.studora.dto.tema.TemaSummaryDto;
 import com.studora.dto.tema.TemaDetailDto;
+import com.studora.dto.PostResponseDto;
 import com.studora.dto.PageResponse;
 import com.studora.dto.request.TemaCreateRequest;
 import com.studora.dto.request.TemaUpdateRequest;
@@ -132,7 +133,9 @@ public class TemaController {
     @Operation(
         summary = "Criar novo tema",
         responses = {
-            @ApiResponse(responseCode = "201", description = "Tema criado com sucesso"),
+            @ApiResponse(responseCode = "201", description = "Tema criado com sucesso",
+                content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = PostResponseDto.class))),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
@@ -148,9 +151,13 @@ public class TemaController {
         }
     )
     @PostMapping
-    public ResponseEntity<Void> createTema(@Valid @RequestBody TemaCreateRequest request) {
-        temaService.create(request);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<PostResponseDto> createTema(@Valid @RequestBody TemaCreateRequest request) {
+        Long id = temaService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(PostResponseDto.builder()
+                        .id(id)
+                        .message("Tema criado com sucesso")
+                        .build());
     }
 
     @Operation(

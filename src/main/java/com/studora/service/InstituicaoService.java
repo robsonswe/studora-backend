@@ -65,7 +65,7 @@ public class InstituicaoService {
         return dto;
     }
 
-    public void create(InstituicaoCreateRequest request) {
+    public Long create(InstituicaoCreateRequest request) {
         log.info("Criando nova instituição: {}", request.getNome());
         
         Optional<Instituicao> existing = instituicaoRepository.findByNomeIgnoreCase(request.getNome());
@@ -74,7 +74,7 @@ public class InstituicaoService {
         }
 
         Instituicao instituicao = instituicaoMapper.toEntity(request);
-        instituicaoRepository.save(instituicao);
+        return instituicaoRepository.save(instituicao).getId();
     }
 
     public void update(Long id, InstituicaoUpdateRequest request) {

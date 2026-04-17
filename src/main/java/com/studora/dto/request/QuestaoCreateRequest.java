@@ -14,7 +14,7 @@ public class QuestaoCreateRequest {
     private Long concursoId;
 
     @NotBlank(message = "Enunciado da questão é obrigatório")
-    @Schema(description = "Texto do enunciado da questão", example = "Qual é a capital do Brasil?", required = true)
+    @Schema(description = "Texto do enunciado da questão", example = "Qual é a capital do Brasil?", requiredMode = Schema.RequiredMode.REQUIRED)
     private String enunciado;
 
     @Schema(description = "Indica se a questão foi anulada", example = "false", defaultValue = "false")

@@ -1,6 +1,7 @@
 package com.studora.controller.v1;
 
 import com.studora.dto.MetricsLevel;
+import com.studora.dto.PostResponseDto;
 import com.studora.dto.PageResponse;
 import com.studora.dto.banca.BancaDetailDto;
 import com.studora.dto.banca.BancaSummaryDto;
@@ -98,11 +99,19 @@ public class BancaController {
         return ResponseEntity.ok(bancaService.getBancaDetailById(id, parseMetrics(metrics)));
     }
 
-    @Operation(summary = "Criar nova banca")
+    @Operation(summary = "Criar nova banca", responses = {
+            @ApiResponse(responseCode = "201", description = "Banca criada com sucesso",
+                content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = PostResponseDto.class)))
+    })
     @PostMapping
-    public ResponseEntity<Void> createBanca(@Valid @RequestBody BancaCreateRequest request) {
-        bancaService.create(request);
-        return new ResponseEntity<>(HttpStatus.CREATED);
+    public ResponseEntity<PostResponseDto> createBanca(@Valid @RequestBody BancaCreateRequest request) {
+        Long id = bancaService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(PostResponseDto.builder()
+                        .id(id)
+                        .message("Banca criada com sucesso")
+                        .build());
     }
 
     @Operation(summary = "Atualizar banca")

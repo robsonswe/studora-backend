@@ -10,16 +10,16 @@ import lombok.Data;
 @Data
 public class AlternativaCreateRequest implements AlternativaBaseRequest {
 
-    @Schema(description = "Ordem da alternativa na lista", example = "1", required = true)
+    @Schema(description = "Ordem da alternativa na lista", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "Ordem é obrigatória")
     @Positive(message = "Ordem deve ser um número positivo")
     private Integer ordem;
 
-    @Schema(description = "Texto da alternativa", example = "A resposta correta é a opção A", required = true)
+    @Schema(description = "Texto da alternativa", example = "A resposta correta é a opção A", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Texto da alternativa é obrigatório")
     private String texto;
 
-    @Schema(description = "Indica se a alternativa é a correta", example = "true", required = true)
+    @Schema(description = "Indica se a alternativa é a correta", example = "true", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotNull(message = "Indicação de correta é obrigatória")
     private Boolean correta;
 

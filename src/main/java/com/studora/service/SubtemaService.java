@@ -109,7 +109,7 @@ public class SubtemaService {
     }
 
     @CacheEvict(value = "subtema-stats", allEntries = true)
-    public void create(SubtemaCreateRequest request) {
+    public Long create(SubtemaCreateRequest request) {
         log.info("Criando novo subtema: {} no tema ID: {}", request.getNome(), request.getTemaId());
 
         Optional<Subtema> existing = subtemaRepository.findByTemaIdAndNomeIgnoreCase(request.getTemaId(), request.getNome());
@@ -123,7 +123,7 @@ public class SubtemaService {
         Subtema subtema = subtemaMapper.toEntity(request);
         subtema.setTema(tema);
 
-        subtemaRepository.save(subtema);
+        return subtemaRepository.save(subtema).getId();
     }
 
     @CacheEvict(value = "subtema-stats", allEntries = true)

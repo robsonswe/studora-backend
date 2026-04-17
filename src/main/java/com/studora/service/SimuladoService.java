@@ -123,16 +123,14 @@ public class SimuladoService {
     }
 
     @CacheEvict(value = "simulado-stats", allEntries = true)
-    public SimuladoDetailDto create(SimuladoSummaryDto request) {
+    public Long create(SimuladoSummaryDto request) {
         Simulado simulado = simuladoMapper.toEntity(request);
         Simulado saved = simuladoRepository.save(simulado);
-        SimuladoDetailDto dto = simuladoMapper.toDetailDto(saved);
-        enrichSimuladoDto(saved, dto);
-        return dto;
+        return saved.getId();
     }
 
     @CacheEvict(value = "simulado-stats", allEntries = true)
-    public SimuladoDetailDto gerarSimulado(SimuladoGenerationRequest request) {
+    public Long gerarSimulado(SimuladoGenerationRequest request) {
         log.info("Gerando simulado: {}", request.getNome());
         
         boolean atLeastOneSelection = (request.getDisciplinas() != null && !request.getDisciplinas().isEmpty()) ||
@@ -214,9 +212,7 @@ public class SimuladoService {
         simulado.setQuestoes(new ArrayList<>(questions));
 
         Simulado saved = simuladoRepository.save(simulado);
-        SimuladoDetailDto dto = simuladoMapper.toDetailDto(saved);
-        enrichSimuladoDto(saved, dto);
-        return dto;
+        return saved.getId();
     }
 
     @CacheEvict(value = "simulado-stats", allEntries = true)

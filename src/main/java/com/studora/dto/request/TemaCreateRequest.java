@@ -12,12 +12,12 @@ import jakarta.validation.constraints.Size;
 public class TemaCreateRequest {
 
     @NotNull(message = "ID da disciplina é obrigatório")
-    @Schema(description = "ID da disciplina à qual o tema pertence", example = "1", required = true)
+    @Schema(description = "ID da disciplina à qual o tema pertence", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long disciplinaId;
 
     @NotBlank(message = "Nome do tema é obrigatório")
     @Size(max = AppConstants.MAX_NAME_LENGTH, message = "Nome do tema deve ter no máximo " + AppConstants.MAX_NAME_LENGTH + " caracteres")
-    @Schema(description = "Nome do tema", example = "Álgebra", required = true)
+    @Schema(description = "Nome do tema", example = "Álgebra", requiredMode = Schema.RequiredMode.REQUIRED)
     private String nome;
 
     // Constructors

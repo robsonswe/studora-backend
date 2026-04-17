@@ -12,12 +12,12 @@ import jakarta.validation.constraints.Size;
 public class SubtemaUpdateRequest {
 
     @NotNull(message = "ID do tema é obrigatório")
-    @Schema(description = "ID do tema ao qual o subtema pertence", example = "1", required = true)
+    @Schema(description = "ID do tema ao qual o subtema pertence", example = "1", requiredMode = Schema.RequiredMode.REQUIRED)
     private Long temaId;
 
     @NotBlank(message = "Nome do subtema é obrigatório")
     @Size(max = AppConstants.MAX_NAME_LENGTH, message = "Nome do subtema deve ter no máximo " + AppConstants.MAX_NAME_LENGTH + " caracteres")
-    @Schema(description = "Nome do subtema", example = "Equações de primeiro grau", required = true)
+    @Schema(description = "Nome do subtema", example = "Equações de primeiro grau", requiredMode = Schema.RequiredMode.REQUIRED)
     private String nome;
 
     // Constructors

@@ -3,6 +3,7 @@ package com.studora.controller.v1;
 import com.studora.dto.MetricsLevel;
 import com.studora.dto.cargo.CargoSummaryDto;
 import com.studora.dto.cargo.CargoDetailDto;
+import com.studora.dto.PostResponseDto;
 import com.studora.dto.PageResponse;
 import com.studora.dto.request.CargoCreateRequest;
 import com.studora.dto.request.CargoUpdateRequest;
@@ -124,10 +125,8 @@ public class CargoController {
         summary = "Criar novo cargo",
         responses = {
             @ApiResponse(responseCode = "201", description = "Cargo criado com sucesso",
-                content = @Content(
-                    schema = @Schema(implementation = CargoDetailDto.class),
-                    examples = @ExampleObject(value = "{\"id\": 3, \"nome\": \"Delegado de Polícia\", \"nivel\": \"Superior\", \"area\": \"Policial\"}")
-                )),
+                content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = PostResponseDto.class))),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
@@ -143,9 +142,13 @@ public class CargoController {
         }
     )
     @PostMapping
-    public ResponseEntity<Void> createCargo(@Valid @RequestBody CargoCreateRequest request) {
-        cargoService.create(request);
-        return new ResponseEntity<>(HttpStatus.CREATED);
+    public ResponseEntity<PostResponseDto> createCargo(@Valid @RequestBody CargoCreateRequest request) {
+        Long id = cargoService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(PostResponseDto.builder()
+                        .id(id)
+                        .message("Cargo criado com sucesso")
+                        .build());
     }
 
     @Operation(

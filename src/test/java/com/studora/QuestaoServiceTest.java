@@ -140,8 +140,8 @@ class QuestaoServiceTest {
         when(questaoRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(savedQ));
         when(respostaRepository.findByQuestaoIdInWithDetails(anyList())).thenReturn(Collections.emptyList());
 
-        QuestaoDetailDto result = questaoService.create(req);
-        assertEquals(1L, result.getId());
+        Long result = questaoService.create(req);
+        assertEquals(1L, result);
         verify(entityManager).flush();
     }
 

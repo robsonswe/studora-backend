@@ -64,7 +64,7 @@ public class CargoService {
         return dto;
     }
 
-    public void create(CargoCreateRequest request) {
+    public Long create(CargoCreateRequest request) {
         log.info("Criando novo cargo: {} ({})", request.getNome(), request.getNivel());
         
         Optional<Cargo> existing = cargoRepository.findByNomeAndNivelAndArea(
@@ -76,7 +76,7 @@ public class CargoService {
         }
 
         Cargo cargo = cargoMapper.toEntity(request);
-        cargoRepository.save(cargo);
+        return cargoRepository.save(cargo).getId();
     }
 
     public void update(Long id, CargoUpdateRequest request) {

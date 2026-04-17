@@ -3,6 +3,7 @@ package com.studora.controller.v1;
 import com.studora.dto.MetricsLevel;
 import com.studora.dto.disciplina.DisciplinaSummaryDto;
 import com.studora.dto.disciplina.DisciplinaDetailDto;
+import com.studora.dto.PostResponseDto;
 import com.studora.dto.PageResponse;
 import com.studora.dto.request.DisciplinaCreateRequest;
 import com.studora.dto.request.DisciplinaUpdateRequest;
@@ -154,7 +155,9 @@ public class DisciplinaController {
     @Operation(
         summary = "Criar nova disciplina",
         responses = {
-            @ApiResponse(responseCode = "201", description = "Disciplina criada com sucesso"),
+            @ApiResponse(responseCode = "201", description = "Disciplina criada com sucesso",
+                content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = PostResponseDto.class))),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
@@ -170,9 +173,13 @@ public class DisciplinaController {
         }
     )
     @PostMapping
-    public ResponseEntity<Void> createDisciplina(@Valid @RequestBody DisciplinaCreateRequest request) {
-        disciplinaService.create(request);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<PostResponseDto> createDisciplina(@Valid @RequestBody DisciplinaCreateRequest request) {
+        Long id = disciplinaService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(PostResponseDto.builder()
+                        .id(id)
+                        .message("Disciplina criada com sucesso")
+                        .build());
     }
 
     @Operation(

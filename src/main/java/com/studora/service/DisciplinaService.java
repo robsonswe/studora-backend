@@ -108,7 +108,7 @@ public class DisciplinaService {
     }
 
     @CacheEvict(value = "disciplina-stats", allEntries = true)
-    public void create(DisciplinaCreateRequest request) {
+    public Long create(DisciplinaCreateRequest request) {
         log.info("Criando nova disciplina: {}", request.getNome());
 
         Optional<Disciplina> existing = disciplinaRepository.findByNomeIgnoreCase(request.getNome());
@@ -117,7 +117,7 @@ public class DisciplinaService {
         }
 
         Disciplina disciplina = disciplinaMapper.toEntity(request);
-        disciplinaRepository.save(disciplina);
+        return disciplinaRepository.save(disciplina).getId();
     }
 
     @CacheEvict(value = "disciplina-stats", allEntries = true)

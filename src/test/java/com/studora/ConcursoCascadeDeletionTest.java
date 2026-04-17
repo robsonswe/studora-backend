@@ -106,8 +106,8 @@ class ConcursoCascadeDeletionTest {
         
         qReq.setAlternativas(Arrays.asList(alt1, alt2));
         
-        QuestaoDetailDto savedQ = questaoService.create(qReq);
-        Long questaoId = savedQ.getId();
+        Long questaoId = questaoService.create(qReq);
+        QuestaoDetailDto savedQ = questaoService.getQuestaoDetailById(questaoId);
         Long alternativaId = savedQ.getAlternativas().get(0).getId();
 
         // 5. Create a Resposta

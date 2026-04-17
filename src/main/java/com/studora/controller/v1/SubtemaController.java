@@ -3,6 +3,7 @@ package com.studora.controller.v1;
 import com.studora.dto.MetricsLevel;
 import com.studora.dto.subtema.SubtemaSummaryDto;
 import com.studora.dto.subtema.SubtemaDetailDto;
+import com.studora.dto.PostResponseDto;
 import com.studora.dto.PageResponse;
 import com.studora.dto.request.SubtemaCreateRequest;
 import com.studora.dto.request.SubtemaUpdateRequest;
@@ -145,7 +146,9 @@ public class SubtemaController {
     @Operation(
         summary = "Criar novo subtema",
         responses = {
-            @ApiResponse(responseCode = "201", description = "Subtema criado com sucesso"),
+            @ApiResponse(responseCode = "201", description = "Subtema criado com sucesso",
+                content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = PostResponseDto.class))),
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
@@ -161,9 +164,13 @@ public class SubtemaController {
         }
     )
     @PostMapping
-    public ResponseEntity<Void> createSubtema(@Valid @RequestBody SubtemaCreateRequest request) {
-        subtemaService.create(request);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+    public ResponseEntity<PostResponseDto> createSubtema(@Valid @RequestBody SubtemaCreateRequest request) {
+        Long id = subtemaService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(PostResponseDto.builder()
+                        .id(id)
+                        .message("Subtema criado com sucesso")
+                        .build());
     }
 
     @Operation(
@@ -223,7 +230,9 @@ public class SubtemaController {
     @Operation(
         summary = "Adicionar uma sessão de estudo para o subtema",
         responses = {
-            @ApiResponse(responseCode = "201", description = "Sessão de estudo registrada com sucesso"),
+            @ApiResponse(responseCode = "201", description = "Sessão de estudo registrada com sucesso",
+                content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = PostResponseDto.class))),
             @ApiResponse(responseCode = "404", description = "Subtema não encontrado",
                 content = @Content(mediaType = "application/problem+json",
                     schema = @Schema(implementation = ProblemDetail.class),
@@ -233,8 +242,13 @@ public class SubtemaController {
         }
     )
     @PostMapping("/{id}/estudos")
-    public ResponseEntity<com.studora.dto.subtema.EstudoSubtemaDto> addEstudo(@PathVariable Long id) {
-        return new ResponseEntity<>(estudoSubtemaService.markAsStudied(id), HttpStatus.CREATED);
+    public ResponseEntity<PostResponseDto> addEstudo(@PathVariable Long id) {
+        Long studyId = estudoSubtemaService.markAsStudied(id);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(PostResponseDto.builder()
+                        .id(studyId)
+                        .message("Sessão de estudo registrada com sucesso")
+                        .build());
     }
 
     @Operation(

@@ -11,14 +11,14 @@ import jakarta.validation.constraints.NotNull;
 public class CargoCreateRequest {
 
     @NotBlank(message = "Nome do cargo é obrigatório")
-    @Schema(description = "Nome do cargo", example = "Analista de Sistemas", required = true)
+    @Schema(description = "Nome do cargo", example = "Analista de Sistemas", requiredMode = Schema.RequiredMode.REQUIRED)
     private String nome;
 
     @NotNull(message = "Nível do cargo é obrigatório")
-    @Schema(description = "Nível do cargo", example = "SUPERIOR", required = true, implementation = NivelCargo.class)
+    @Schema(description = "Nível do cargo", example = "SUPERIOR", requiredMode = Schema.RequiredMode.REQUIRED, implementation = NivelCargo.class)
     private NivelCargo nivel;
 
     @NotBlank(message = "Área do cargo é obrigatória")
-    @Schema(description = "Área do cargo", example = "Tecnologia da Informação", required = true)
+    @Schema(description = "Área do cargo", example = "Tecnologia da Informação", requiredMode = Schema.RequiredMode.REQUIRED)
     private String area;
 }

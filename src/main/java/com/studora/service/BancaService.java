@@ -67,7 +67,7 @@ public class BancaService {
     }
 
     @CacheEvict(value = "banca-stats", allEntries = true)
-    public void create(BancaCreateRequest request) {
+    public Long create(BancaCreateRequest request) {
         log.info("Criando nova banca: {}", request.getNome());
 
         Optional<Banca> existing = bancaRepository.findByNomeIgnoreCase(request.getNome());
@@ -76,7 +76,7 @@ public class BancaService {
         }
 
         Banca banca = bancaMapper.toEntity(request);
-        bancaRepository.save(banca);
+        return bancaRepository.save(banca).getId();
     }
 
     @CacheEvict(value = "banca-stats", allEntries = true)

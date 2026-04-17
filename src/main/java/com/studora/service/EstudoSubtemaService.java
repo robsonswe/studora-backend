@@ -25,7 +25,7 @@ public class EstudoSubtemaService {
     private final SubtemaRepository subtemaRepository;
 
     @CacheEvict(value = {"disciplina-stats", "tema-stats", "subtema-stats"}, allEntries = true)
-    public EstudoSubtemaDto markAsStudied(Long subtemaId) {
+    public Long markAsStudied(Long subtemaId) {
         log.info("Marcando subtema ID: {} como estudado", subtemaId);
         Subtema subtema = subtemaRepository.findById(subtemaId)
                 .orElseThrow(() -> new ResourceNotFoundException("Subtema", "ID", subtemaId));
@@ -33,7 +33,7 @@ public class EstudoSubtemaService {
         EstudoSubtema estudo = new EstudoSubtema(subtema);
         estudo = estudoSubtemaRepository.save(estudo);
         estudoSubtemaRepository.flush();
-        return toDto(estudo);
+        return estudo.getId();
     }
 
     @CacheEvict(value = {"disciplina-stats", "tema-stats", "subtema-stats"}, allEntries = true)
