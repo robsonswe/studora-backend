@@ -1,6 +1,8 @@
 package com.studora.repository;
 
 import com.studora.entity.Disciplina;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -11,5 +13,6 @@ public interface DisciplinaRepository extends JpaRepository<Disciplina, Long> {
     Optional<Disciplina> findByNome(String nome);
     Optional<Disciplina> findByNomeIgnoreCase(String nome);
     Optional<Disciplina> findByNomeIgnoreCaseAndIdNot(String nome, Long id);
-    org.springframework.data.domain.Page<Disciplina> findByNomeContainingIgnoreCase(String nome, org.springframework.data.domain.Pageable pageable);
+    Page<Disciplina> findByNomeContainingIgnoreCase(String nome, Pageable pageable);
+    Page<Disciplina> findByNomeNormalizedContaining(String nomeNormalized, Pageable pageable);
 }

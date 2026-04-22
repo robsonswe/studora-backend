@@ -1,5 +1,6 @@
 package com.studora.entity;
 
+import com.studora.util.StringUtils;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 
@@ -16,6 +17,17 @@ public class Disciplina extends BaseEntity {
     @Column(nullable = false, unique = true)
     @Schema(description = "Nome da disciplina", example = "Matemática")
     private String nome;
+
+    @Column(name = "nome_normalized")
+    @Schema(hidden = true)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private String nomeNormalized;
+
+    @PrePersist
+    @PreUpdate
+    public void normalize() {
+        this.nomeNormalized = StringUtils.normalizeForSearch(this.nome);
+    }
 
     // Constructors
     public Disciplina() {}
@@ -39,5 +51,13 @@ public class Disciplina extends BaseEntity {
 
     public void setNome(String nome) {
         this.nome = nome;
+    }
+
+    public String getNomeNormalized() {
+        return nomeNormalized;
+    }
+
+    public void setNomeNormalized(String nomeNormalized) {
+        this.nomeNormalized = nomeNormalized;
     }
 }

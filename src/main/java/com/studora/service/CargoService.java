@@ -38,7 +38,8 @@ public class CargoService {
     public Page<CargoSummaryDto> findAll(String nome, Pageable pageable, MetricsLevel metrics) {
         Page<Cargo> page;
         if (nome != null && !nome.isBlank()) {
-            page = cargoRepository.findByNomeContainingIgnoreCase(nome, pageable);
+            String normalized = com.studora.util.StringUtils.normalizeForSearch(nome);
+            page = cargoRepository.findByNomeNormalizedContaining(normalized, pageable);
         } else {
             page = cargoRepository.findAll(pageable);
         }
@@ -117,7 +118,8 @@ public class CargoService {
     @Transactional(readOnly = true)
     public List<String> findAllAreas(String query) {
         if (query != null && !query.isBlank()) {
-            return cargoRepository.findDistinctAreas(query);
+            String normalized = com.studora.util.StringUtils.normalizeForSearch(query);
+            return cargoRepository.findDistinctAreas(normalized);
         }
         return cargoRepository.findDistinctAreas();
     }

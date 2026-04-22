@@ -39,7 +39,8 @@ public class BancaService {
     public Page<BancaSummaryDto> findAll(String nome, Pageable pageable, MetricsLevel metrics) {
         Page<Banca> page;
         if (nome != null && !nome.isBlank()) {
-            page = bancaRepository.findByNomeContainingIgnoreCase(nome, pageable);
+            String normalized = com.studora.util.StringUtils.normalizeForSearch(nome);
+            page = bancaRepository.findByNomeNormalizedContaining(normalized, pageable);
         } else {
             page = bancaRepository.findAll(pageable);
         }

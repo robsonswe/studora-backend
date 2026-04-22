@@ -1,12 +1,12 @@
 package com.studora.entity;
 
+import com.studora.util.StringUtils;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import java.util.Objects;
 
 @Getter
 @Setter
@@ -22,12 +22,29 @@ public class Cargo extends BaseEntity {
     @Schema(description = "Nome do cargo", example = "Analista de Sistemas")
     private String nome;
 
+    @Column(name = "nome_normalized")
+    @Schema(hidden = true)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private String nomeNormalized;
+
+    @PrePersist
+    @PreUpdate
+    public void normalize() {
+        this.nomeNormalized = StringUtils.normalizeForSearch(this.nome);
+        this.areaNormalized = StringUtils.normalizeForSearch(this.area);
+    }
+
     @Enumerated(EnumType.STRING)
     @Schema(description = "Nível do cargo", example = "SUPERIOR")
     private NivelCargo nivel;
 
     @Schema(description = "Área do cargo", example = "Tecnologia da Informação")
     private String area;
+
+    @Column(name = "area_normalized")
+    @Schema(hidden = true)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private String areaNormalized;
 
     @Override
     public boolean equals(Object o) {

@@ -38,7 +38,8 @@ public class InstituicaoService {
     public Page<InstituicaoSummaryDto> findAll(String nome, Pageable pageable, MetricsLevel metrics) {
         Page<Instituicao> page;
         if (nome != null && !nome.isBlank()) {
-            page = instituicaoRepository.findByNomeContainingIgnoreCase(nome, pageable);
+            String normalized = com.studora.util.StringUtils.normalizeForSearch(nome);
+            page = instituicaoRepository.findByNomeNormalizedContaining(normalized, pageable);
         } else {
             page = instituicaoRepository.findAll(pageable);
         }
@@ -110,7 +111,8 @@ public class InstituicaoService {
     @Transactional(readOnly = true)
     public List<String> findAllAreas(String query) {
         if (query != null && !query.isBlank()) {
-            return instituicaoRepository.findDistinctAreas(query);
+            String normalized = com.studora.util.StringUtils.normalizeForSearch(query);
+            return instituicaoRepository.findDistinctAreas(normalized);
         }
         return instituicaoRepository.findDistinctAreas();
     }

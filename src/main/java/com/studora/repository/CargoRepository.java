@@ -18,9 +18,11 @@ public interface CargoRepository extends JpaRepository<Cargo, Long> {
 
     org.springframework.data.domain.Page<Cargo> findByNomeContainingIgnoreCase(String nome, org.springframework.data.domain.Pageable pageable);
 
+    org.springframework.data.domain.Page<Cargo> findByNomeNormalizedContaining(String nomeNormalized, org.springframework.data.domain.Pageable pageable);
+
     @Query("SELECT DISTINCT c.area FROM Cargo c WHERE c.area IS NOT NULL")
     List<String> findDistinctAreas();
 
-    @Query("SELECT DISTINCT c.area FROM Cargo c WHERE c.area IS NOT NULL AND LOWER(c.area) LIKE LOWER(CONCAT('%', :search, '%'))")
+    @Query("SELECT DISTINCT c.area FROM Cargo c WHERE c.area IS NOT NULL AND c.areaNormalized LIKE CONCAT('%', :search, '%')")
     List<String> findDistinctAreas(@Param("search") String search);
 }

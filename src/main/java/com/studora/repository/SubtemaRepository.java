@@ -35,9 +35,9 @@ public interface SubtemaRepository extends JpaRepository<Subtema, Long>, JpaSpec
            "WHERE s.id = :id")
     Optional<Subtema> findByIdWithDetails(@Param("id") Long id);
 
-    @Query(value = "SELECT s FROM Subtema s JOIN FETCH s.tema t JOIN FETCH t.disciplina WHERE UPPER(s.nome) LIKE UPPER(CONCAT('%', :nome, '%'))",
-           countQuery = "SELECT count(s) FROM Subtema s WHERE UPPER(s.nome) LIKE UPPER(CONCAT('%', :nome, '%'))")
-    Page<Subtema> findByNomeContainingIgnoreCase(@Param("nome") String nome, Pageable pageable);
+    @Query(value = "SELECT s FROM Subtema s JOIN FETCH s.tema t JOIN FETCH t.disciplina WHERE s.nomeNormalized LIKE CONCAT('%', :nome, '%')",
+           countQuery = "SELECT count(s) FROM Subtema s WHERE s.nomeNormalized LIKE CONCAT('%', :nome, '%')")
+    Page<Subtema> findByNomeNormalizedContaining(@Param("nome") String nome, Pageable pageable);
 
     // --- Batch queries ---
     @org.springframework.data.jpa.repository.Query("SELECT s.tema.id, COUNT(s) FROM Subtema s WHERE s.tema.id IN :temaIds GROUP BY s.tema.id")

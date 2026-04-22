@@ -55,7 +55,8 @@ public class DisciplinaService {
     public Page<DisciplinaSummaryDto> findAll(String nome, Pageable pageable, MetricsLevel metrics) {
         Page<Disciplina> page;
         if (nome != null && !nome.isBlank()) {
-            page = disciplinaRepository.findByNomeContainingIgnoreCase(nome, pageable);
+            String normalized = com.studora.util.StringUtils.normalizeForSearch(nome);
+            page = disciplinaRepository.findByNomeNormalizedContaining(normalized, pageable);
         } else {
             page = disciplinaRepository.findAll(pageable);
         }

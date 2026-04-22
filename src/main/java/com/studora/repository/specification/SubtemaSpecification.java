@@ -21,7 +21,8 @@ public class SubtemaSpecification {
             }
 
             if (nome != null && !nome.isBlank()) {
-                predicates.add(cb.like(cb.upper(root.get("nome")), "%" + nome.toUpperCase() + "%"));
+                String normalized = com.studora.util.StringUtils.normalizeForSearch(nome);
+                predicates.add(cb.like(root.get("nomeNormalized"), "%" + normalized + "%"));
             }
 
             List<Predicate> idPredicates = new ArrayList<>();

@@ -1,5 +1,6 @@
 package com.studora.entity;
 
+import com.studora.util.StringUtils;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import java.util.LinkedHashSet;
@@ -31,6 +32,17 @@ public class Tema extends BaseEntity {
     @Column(nullable = false)
     @Schema(description = "Nome do tema", example = "Álgebra")
     private String nome;
+
+    @Column(name = "nome_normalized")
+    @Schema(hidden = true)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private String nomeNormalized;
+
+    @PrePersist
+    @PreUpdate
+    public void normalize() {
+        this.nomeNormalized = StringUtils.normalizeForSearch(this.nome);
+    }
 
     @OneToMany(mappedBy = "tema", fetch = FetchType.LAZY)
     @Schema(description = "Subtemas associados ao tema")
@@ -67,6 +79,14 @@ public class Tema extends BaseEntity {
 
     public void setNome(String nome) {
         this.nome = nome;
+    }
+
+    public String getNomeNormalized() {
+        return nomeNormalized;
+    }
+
+    public void setNomeNormalized(String nomeNormalized) {
+        this.nomeNormalized = nomeNormalized;
     }
 
     public Set<Subtema> getSubtemas() {

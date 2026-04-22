@@ -34,9 +34,9 @@ public interface TemaRepository extends JpaRepository<Tema, Long>, JpaSpecificat
            "WHERE t.id = :id")
     Optional<Tema> findByIdWithDetails(@Param("id") Long id);
 
-    @Query(value = "SELECT t FROM Tema t JOIN FETCH t.disciplina WHERE UPPER(t.nome) LIKE UPPER(CONCAT('%', :nome, '%'))",
-           countQuery = "SELECT count(t) FROM Tema t WHERE UPPER(t.nome) LIKE UPPER(CONCAT('%', :nome, '%'))")
-    Page<Tema> findByNomeContainingIgnoreCase(@Param("nome") String nome, Pageable pageable);
+    @Query(value = "SELECT t FROM Tema t JOIN FETCH t.disciplina WHERE t.nomeNormalized LIKE CONCAT('%', :nome, '%')",
+           countQuery = "SELECT count(t) FROM Tema t WHERE t.nomeNormalized LIKE CONCAT('%', :nome, '%')")
+    Page<Tema> findByNomeNormalizedContaining(@Param("nome") String nome, Pageable pageable);
 
     // --- Batch queries ---
     @org.springframework.data.jpa.repository.Query("SELECT t.disciplina.id, COUNT(t) FROM Tema t WHERE t.disciplina.id IN :disciplinaIds GROUP BY t.disciplina.id")

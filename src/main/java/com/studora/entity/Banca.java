@@ -1,11 +1,11 @@
 package com.studora.entity;
 
+import com.studora.util.StringUtils;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import java.util.Objects;
 
 @Getter
 @Setter
@@ -22,6 +22,17 @@ public class Banca extends BaseEntity {
     @Column(nullable = false, unique = true)
     @Schema(description = "Nome da banca organizadora", example = "CESPE")
     private String nome;
+
+    @Column(name = "nome_normalized")
+    @Schema(hidden = true)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private String nomeNormalized;
+
+    @PrePersist
+    @PreUpdate
+    public void normalize() {
+        this.nomeNormalized = StringUtils.normalizeForSearch(this.nome);
+    }
 
     @Override
     public boolean equals(Object o) {
