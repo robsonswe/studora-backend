@@ -34,7 +34,13 @@ public class SubtemaSpecification {
             }
 
             if (!idPredicates.isEmpty()) {
-                predicates.add(cb.or(idPredicates.toArray(new Predicate[0])));
+                // If there's exactly one disciplina and one or more temas, intersect them (AND)
+                // Otherwise keep them independent (OR) to allow broad filtering
+                if (idPredicates.size() == 2 && disciplinaIds != null && disciplinaIds.size() == 1) {
+                    predicates.add(cb.and(idPredicates.toArray(new Predicate[0])));
+                } else {
+                    predicates.add(cb.or(idPredicates.toArray(new Predicate[0])));
+                }
             }
 
             return cb.and(predicates.toArray(new Predicate[0]));

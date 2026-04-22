@@ -206,45 +206,66 @@ class SubtemaControllerTest {
     }
 
     @Test
-    void testGetAllSubtemas_FilterByTemaAndDisciplinaIds() throws Exception {
+    void testGetAllSubtemas_FilterScenarios() throws Exception {
         Disciplina d1 = disciplinaRepository.save(new Disciplina("D1"));
         Disciplina d2 = disciplinaRepository.save(new Disciplina("D2"));
-        Tema t1 = temaRepository.save(new Tema(d1, "T1"));
-        Tema t2 = temaRepository.save(new Tema(d2, "T2"));
+        Tema t1a = temaRepository.save(new Tema(d1, "T1a"));
+        Tema t1b = temaRepository.save(new Tema(d1, "T1b"));
+        Tema t2a = temaRepository.save(new Tema(d2, "T2a"));
         
-        subtemaRepository.save(new Subtema(t1, "S1"));
-        subtemaRepository.save(new Subtema(t2, "S2"));
+        subtemaRepository.save(new Subtema(t1a, "S1a1"));
+        subtemaRepository.save(new Subtema(t1a, "S1a2"));
+        subtemaRepository.save(new Subtema(t1b, "S1b1"));
+        subtemaRepository.save(new Subtema(t2a, "S2a1"));
 
-        // Filter by Disciplina 1 -> returns S1
-        mockMvc
-            .perform(get("/api/v1/subtemas").param("disciplinaIds", d1.getId().toString()))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.content.length()").value(1))
-            .andExpect(jsonPath("$.content[0].nome").value("S1"));
-
-        // Filter by Tema 2 -> returns S2
-        mockMvc
-            .perform(get("/api/v1/subtemas").param("temaIds", t2.getId().toString()))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.content.length()").value(1))
-            .andExpect(jsonPath("$.content[0].nome").value("S2"));
-
-        // Inclusive filter: Disciplina 1 OR Tema 2 -> returns both S1 and S2
+        // 1. One Disciplina AND One Tema (matches)
         mockMvc
             .perform(get("/api/v1/subtemas")
                 .param("disciplinaIds", d1.getId().toString())
-                .param("temaIds", t2.getId().toString()))
+                .param("temaIds", t1a.getId().toString()))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.content.length()").value(2));
+            .andExpect(jsonPath("$.totalElements").value(2))
+            .andExpect(jsonPath("$.content[*].nome").value(org.hamcrest.Matchers.containsInAnyOrder("S1a1", "S1a2")));
 
-        // Name filter (exclusive)
+        // 2. One Disciplina AND Multiple Temas
         mockMvc
             .perform(get("/api/v1/subtemas")
                 .param("disciplinaIds", d1.getId().toString())
-                .param("temaIds", t2.getId().toString())
-                .param("nome", "S1"))
+                .param("temaIds", t1a.getId().toString() + "," + t1b.getId().toString()))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.content.length()").value(1))
-            .andExpect(jsonPath("$.content[0].nome").value("S1"));
+            .andExpect(jsonPath("$.totalElements").value(3))
+            .andExpect(jsonPath("$.content[*].nome").value(org.hamcrest.Matchers.containsInAnyOrder("S1a1", "S1a2", "S1b1")));
+
+        // 3. One Disciplina AND One Tema (mismatch) -> AND should result in empty
+        mockMvc
+            .perform(get("/api/v1/subtemas")
+                .param("disciplinaIds", d1.getId().toString())
+                .param("temaIds", t2a.getId().toString()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.totalElements").value(0));
+
+        // 4. Multiple Disciplinas OR Tema (Current OR behavior)
+        // D1, D2 OR T1a -> should return everything since T1a is inside D1
+        mockMvc
+            .perform(get("/api/v1/subtemas")
+                .param("disciplinaIds", d1.getId().toString() + "," + d2.getId().toString())
+                .param("temaIds", t1a.getId().toString()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.totalElements").value(4));
+
+        // 5. Only Disciplinas (OR)
+        mockMvc
+            .perform(get("/api/v1/subtemas")
+                .param("disciplinaIds", d1.getId().toString() + "," + d2.getId().toString()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.totalElements").value(4));
+
+        // 6. Only Temas (OR)
+        mockMvc
+            .perform(get("/api/v1/subtemas")
+                .param("temaIds", t1a.getId().toString() + "," + t2a.getId().toString()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.totalElements").value(3))
+            .andExpect(jsonPath("$.content[*].nome").value(org.hamcrest.Matchers.containsInAnyOrder("S1a1", "S1a2", "S2a1")));
     }
 }
