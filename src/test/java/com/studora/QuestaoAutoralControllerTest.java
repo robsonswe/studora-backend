@@ -116,10 +116,21 @@ class QuestaoAutoralControllerTest {
         request.setAlternativas(Arrays.asList(alt1, alt2));
         // No concursoId, no cargos — autoral doesn't need them
 
-        mockMvc.perform(post("/api/v1/questoes")
+        // POST returns PostResponseDto with id and message
+        String postResponse = mockMvc.perform(post("/api/v1/questoes")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtil.asJsonString(request)))
             .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.id").isNumber())
+            .andExpect(jsonPath("$.message").exists())
+            .andReturn().getResponse().getContentAsString();
+
+        Long createdId = new com.fasterxml.jackson.databind.ObjectMapper()
+                .readTree(postResponse).get("id").asLong();
+
+        // Verify autoral fields via GET (admin=true to see full detail)
+        mockMvc.perform(get("/api/v1/questoes/{id}", createdId).param("admin", "true"))
+            .andExpect(status().isOk())
             .andExpect(jsonPath("$.autoral").value(true))
             .andExpect(jsonPath("$.concurso").doesNotExist())
             .andExpect(jsonPath("$.cargos").isArray())

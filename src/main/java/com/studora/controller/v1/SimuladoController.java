@@ -56,7 +56,6 @@ public class SimuladoController {
 
     @PostMapping("/gerar")
     @ResponseStatus(HttpStatus.CREATED)
-    @JsonView(Views.Geracao.class)
     @Operation(
         summary = "Gerar um novo simulado",
         responses = {

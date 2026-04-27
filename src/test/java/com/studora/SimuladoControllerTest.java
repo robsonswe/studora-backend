@@ -62,6 +62,9 @@ class SimuladoControllerTest {
     @Autowired
     private CacheManager cacheManager;
 
+    private Banca savedBanca;
+    private Disciplina savedDisc;
+
     @BeforeEach
     void setUp() {
         // Clear simulado-stats cache to avoid stale data from previous tests
@@ -72,11 +75,11 @@ class SimuladoControllerTest {
             }
         }
         Instituicao inst = new Instituicao(); inst.setNome("Inst 1"); inst.setArea("A"); instituicaoRepository.save(inst);
-        Banca banca = new Banca(); banca.setNome("Banca 1"); bancaRepository.save(banca);
-        Concurso conc = new Concurso(inst, banca, 2023, 1); concursoRepository.save(conc);
+        savedBanca = new Banca(); savedBanca.setNome("Banca 1"); savedBanca = bancaRepository.save(savedBanca);
+        Concurso conc = new Concurso(inst, savedBanca, 2023, 1); concursoRepository.save(conc);
         
-        Disciplina disc = new Disciplina(); disc.setNome("Direito"); disc = disciplinaRepository.save(disc);
-        Tema tema = new Tema(); tema.setNome("Tema 1"); tema.setDisciplina(disc); tema = temaRepository.save(tema);
+        savedDisc = new Disciplina(); savedDisc.setNome("Direito"); savedDisc = disciplinaRepository.save(savedDisc);
+        Tema tema = new Tema(); tema.setNome("Tema 1"); tema.setDisciplina(savedDisc); tema = temaRepository.save(tema);
         Subtema sub = new Subtema(); sub.setNome("Sub 1"); sub.setTema(tema); sub = subtemaRepository.save(sub);
 
         for (int i = 1; i <= 20; i++) {
@@ -92,25 +95,35 @@ class SimuladoControllerTest {
     void testGerarSimulado() throws Exception {
         SimuladoGenerationRequest request = new SimuladoGenerationRequest();
         request.setNome("Simulado Teste");
-        request.setBancaId(1L);
+        request.setBancaId(savedBanca.getId());
         request.setIgnorarRespondidas(true);
         
         SimuladoGenerationRequest.ItemSelection item = new SimuladoGenerationRequest.ItemSelection();
-        item.setId(1L);
+        item.setId(savedDisc.getId());
         item.setQuantidade(20);
         request.setDisciplinas(List.of(item));
 
-        mockMvc.perform(post("/api/v1/simulados/gerar")
+        // POST returns PostResponseDto
+        String postResponse = mockMvc.perform(post("/api/v1/simulados/gerar")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtil.asJsonString(request)))
                 .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").isNumber())
+                .andExpect(jsonPath("$.message").value("Simulado gerado com sucesso"))
+                .andReturn().getResponse().getContentAsString();
+
+        Long simuladoId = new com.fasterxml.jackson.databind.ObjectMapper()
+                .readTree(postResponse).get("id").asLong();
+
+        // Verify simulado details via GET
+        mockMvc.perform(get("/api/v1/simulados/{id}", simuladoId))
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nome").value("Simulado Teste"))
-                .andExpect(jsonPath("$.banca.id").value(1))
+                .andExpect(jsonPath("$.banca.id").value(savedBanca.getId()))
                 .andExpect(jsonPath("$.ignorarRespondidas").value(true))
-                .andExpect(jsonPath("$.disciplinas").exists())
-                .andExpect(jsonPath("$.disciplinas[0].id").value(disciplinaRepository.findById(1L).get().getId()))
-                .andExpect(jsonPath("$.disciplinas[0].nome").value("Direito"))
-                .andExpect(jsonPath("$.questoes").doesNotExist());
+                .andExpect(jsonPath("$.disciplinas").isArray())
+                .andExpect(jsonPath("$.disciplinas[0].id").value(savedDisc.getId()))
+                .andExpect(jsonPath("$.disciplinas[0].nome").value("Direito"));
     }
 
     @Test

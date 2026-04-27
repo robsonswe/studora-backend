@@ -96,7 +96,6 @@ class QuestaoAutoralServiceTest {
             q.setId(1L);
             return q;
         });
-        when(questaoRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(new Questao()));
 
         questaoService.create(request);
 
