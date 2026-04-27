@@ -10,6 +10,7 @@ import com.studora.dto.request.RespostaCreateRequest;
 import com.studora.entity.Alternativa;
 import com.studora.entity.Questao;
 import com.studora.entity.Resposta;
+import com.studora.entity.Simulado;
 import com.studora.repository.AlternativaRepository;
 import com.studora.repository.QuestaoRepository;
 import com.studora.repository.RespostaRepository;
@@ -132,9 +133,107 @@ class RespostaServiceTest {
     }
 
     @Test
-    void testDelete() {
-        when(respostaRepository.existsById(1L)).thenReturn(true);
-        respostaService.delete(1L);
-        verify(respostaRepository).deleteById(1L);
+    void testCreateResposta_WrongAlternative_Fails() {
+        Questao q1 = new Questao(); q1.setId(1L); q1.setAnulada(false);
+        Questao q2 = new Questao(); q2.setId(2L);
+        // Alternative belongs to a different question (q2)
+        Alternativa alt = new Alternativa(); alt.setId(10L); alt.setQuestao(q2);
+
+        RespostaCreateRequest req = new RespostaCreateRequest();
+        req.setQuestaoId(1L);
+        req.setAlternativaId(10L);
+
+        when(questaoRepository.findById(1L)).thenReturn(Optional.of(q1));
+        when(alternativaRepository.findById(10L)).thenReturn(Optional.of(alt));
+
+        assertThrows(com.studora.exception.ValidationException.class, () -> respostaService.createResposta(req));
+    }
+
+    @Test
+    void testCreateResposta_QuestaoNotFound_Fails() {
+        when(questaoRepository.findById(99L)).thenReturn(Optional.empty());
+
+        RespostaCreateRequest req = new RespostaCreateRequest();
+        req.setQuestaoId(99L);
+
+        assertThrows(com.studora.exception.ResourceNotFoundException.class, () -> respostaService.createResposta(req));
+    }
+
+    @Test
+    void testCreateResposta_AlternativaNotFound_Fails() {
+        Questao q = new Questao(); q.setId(1L); q.setAnulada(false);
+        when(questaoRepository.findById(1L)).thenReturn(Optional.of(q));
+        when(alternativaRepository.findById(99L)).thenReturn(Optional.empty());
+
+        RespostaCreateRequest req = new RespostaCreateRequest();
+        req.setQuestaoId(1L);
+        req.setAlternativaId(99L);
+
+        assertThrows(com.studora.exception.ResourceNotFoundException.class, () -> respostaService.createResposta(req));
+    }
+
+    @Test
+    void testCreateResposta_WithSimulado_AssignedToSimulado() {
+        Questao q = new Questao(); q.setId(1L); q.setAnulada(false);
+        Alternativa alt = new Alternativa(); alt.setId(1L); alt.setQuestao(q); alt.setCorreta(false);
+        Simulado simulado = new Simulado(); simulado.setId(5L);
+
+        RespostaCreateRequest req = new RespostaCreateRequest();
+        req.setQuestaoId(1L);
+        req.setAlternativaId(1L);
+        req.setSimuladoId(5L);
+        req.setDificuldadeId(2);
+
+        when(questaoRepository.findById(1L)).thenReturn(Optional.of(q));
+        when(alternativaRepository.findById(1L)).thenReturn(Optional.of(alt));
+        when(simuladoRepository.findById(5L)).thenReturn(Optional.of(simulado));
+        when(respostaRepository.save(any(Resposta.class))).thenAnswer(i -> {
+            Resposta r = i.getArgument(0);
+            r.setId(7L);
+            return r;
+        });
+
+        RespostaDetailDto result = respostaService.createResposta(req);
+        assertNotNull(result);
+        assertFalse(result.getCorreta()); // alternative is wrong
+    }
+
+    @Test
+    void testCreateResposta_SimuladoNotFound_Fails() {
+        Questao q = new Questao(); q.setId(1L); q.setAnulada(false);
+        Alternativa alt = new Alternativa(); alt.setId(1L); alt.setQuestao(q); alt.setCorreta(true);
+
+        RespostaCreateRequest req = new RespostaCreateRequest();
+        req.setQuestaoId(1L);
+        req.setAlternativaId(1L);
+        req.setSimuladoId(999L);
+
+        when(questaoRepository.findById(1L)).thenReturn(Optional.of(q));
+        when(alternativaRepository.findById(1L)).thenReturn(Optional.of(alt));
+        when(simuladoRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThrows(com.studora.exception.ResourceNotFoundException.class, () -> respostaService.createResposta(req));
+    }
+
+    @Test
+    void testDelete_NotFound_ThrowsException() {
+        when(respostaRepository.existsById(99L)).thenReturn(false);
+
+        assertThrows(com.studora.exception.ResourceNotFoundException.class, () -> respostaService.delete(99L));
+        verify(respostaRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void testGetRespostasByQuestaoIds_ReturnsList() {
+        Resposta r = new Resposta(); r.setId(1L);
+        r.setQuestao(new Questao()); r.getQuestao().setId(10L);
+        r.setAlternativaEscolhida(new Alternativa()); r.getAlternativaEscolhida().setId(100L);
+
+        when(respostaRepository.findByQuestaoIdInWithDetails(java.util.List.of(10L, 11L)))
+                .thenReturn(java.util.List.of(r));
+
+        java.util.List<RespostaSummaryDto> result = respostaService.getRespostasByQuestaoIds(java.util.List.of(10L, 11L));
+        assertEquals(1, result.size());
+        assertEquals(1L, result.get(0).getId());
     }
 }
