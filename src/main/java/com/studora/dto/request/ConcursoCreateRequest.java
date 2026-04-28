@@ -30,8 +30,8 @@ public class ConcursoCreateRequest {
     @Schema(description = "Mês em que o concurso foi realizado", example = "6", requiredMode = Schema.RequiredMode.REQUIRED)
     private Integer mes;
 
-    @jakarta.validation.constraints.Size(min = 1, message = "Edital não pode ser uma string vazia")
-    @Schema(description = "Identificação do edital do concurso", example = "Edital 01/2023")
+    @jakarta.validation.constraints.Pattern(regexp = "^$|^(https?://.*|#[A-Za-z0-9]+)$", message = "Edital deve ser uma URL válida")
+    @Schema(description = "URL do edital do concurso", example = "https://exemplo.com/edital.pdf")
     private String edital;
 
     @Schema(description = "Data e hora da prova do concurso", example = "2024-06-15T08:00:00")

@@ -1104,7 +1104,7 @@ class ConcursoControllerTest {
         org.junit.jupiter.api.Assertions.assertTrue(updated.isFinalizado());
     }
 
-    @Test
+@Test
     void testGetAllConcursos_FilterByFinalizado() throws Exception {
         Instituicao inst = new Instituicao();
         inst.setNome("Inst Filter Finalizado");
@@ -1134,5 +1134,128 @@ class ConcursoControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content.length()").value(1))
             .andExpect(jsonPath("$.content[0].finalizado").value(false));
+    }
+
+@Test
+    void testCreateConcurso_EditalNull() throws Exception {
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Instituição Edital Null");
+        instituicao.setArea("Educação");
+        instituicao = instituicaoRepository.save(instituicao);
+
+        Banca banca = new Banca();
+        banca.setNome("Banca Edital Null");
+        banca = bancaRepository.save(banca);
+
+        ConcursoCreateRequest request = new ConcursoCreateRequest();
+        request.setInstituicaoId(instituicao.getId());
+        request.setBancaId(banca.getId());
+        request.setAno(2023);
+        request.setMes(5);
+        request.setEdital(null);
+        request.setCargos(List.of(cargo1.getId()));
+
+        mockMvc
+            .perform(
+                post("/api/v1/concursos")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(request))
+            )
+            .andExpect(status().isCreated());
+    }
+
+    @Test
+    void testCreateConcurso_EditalEmptyString() throws Exception {
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Instituição Edital Empty");
+        instituicao.setArea("Educação");
+        instituicao = instituicaoRepository.save(instituicao);
+
+        Banca banca = new Banca();
+        banca.setNome("Banca Edital Empty");
+        banca = bancaRepository.save(banca);
+
+        ConcursoCreateRequest request = new ConcursoCreateRequest();
+        request.setInstituicaoId(instituicao.getId());
+        request.setBancaId(banca.getId());
+        request.setAno(2023);
+        request.setMes(8);
+        request.setEdital("");
+        request.setCargos(List.of(cargo1.getId()));
+
+        mockMvc
+            .perform(
+                post("/api/v1/concursos")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(request))
+            )
+            .andExpect(status().isCreated());
+    }
+
+@Test
+    void testCreateConcurso_EditalValidUrl() throws Exception {
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Instituição Edital URL");
+        instituicao.setArea("Educação");
+        instituicao = instituicaoRepository.save(instituicao);
+
+        Banca banca = new Banca();
+        banca.setNome("Banca Edital URL");
+        banca = bancaRepository.save(banca);
+
+        ConcursoCreateRequest request = new ConcursoCreateRequest();
+        request.setInstituicaoId(instituicao.getId());
+        request.setBancaId(banca.getId());
+        request.setAno(2023);
+        request.setMes(6);
+        request.setEdital("https://exemplo.com/edital.pdf");
+        request.setCargos(List.of(cargo1.getId()));
+
+        String responseContent = mockMvc
+            .perform(
+                post("/api/v1/concursos")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(request))
+            )
+            .andExpect(status().isCreated())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+
+        Map<String, Object> response = TestUtil.fromJsonString(responseContent, Map.class);
+        Long concursoId = ((Number) response.get("id")).longValue();
+        mockMvc
+            .perform(get("/api/v1/concursos/" + concursoId))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.edital").value("https://exemplo.com/edital.pdf"));
+    }
+
+    @Test
+    void testCreateConcurso_EditalInvalidUrl() throws Exception {
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Instituição Edital Invalid");
+        instituicao.setArea("Educação");
+        instituicao = instituicaoRepository.save(instituicao);
+
+        Banca banca = new Banca();
+        banca.setNome("Banca Edital Invalid");
+        banca = bancaRepository.save(banca);
+
+        ConcursoCreateRequest request = new ConcursoCreateRequest();
+        request.setInstituicaoId(instituicao.getId());
+        request.setBancaId(banca.getId());
+        request.setAno(2023);
+        request.setMes(7);
+        request.setEdital("not-a-valid-url");
+        request.setCargos(List.of(cargo1.getId()));
+
+        mockMvc
+            .perform(
+                post("/api/v1/concursos")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(request))
+            )
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.errors.edital").value("Edital deve ser uma URL válida"));
     }
 }

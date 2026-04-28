@@ -142,6 +142,9 @@ public class ConcursoService {
                 .orElseThrow(() -> new ResourceNotFoundException("Banca", "ID", request.getBancaId()));
 
         Concurso concurso = concursoMapper.toEntity(request);
+        if (concurso.getEdital() != null && concurso.getEdital().isBlank()) {
+            concurso.setEdital(null);
+        }
         concurso.setInstituicao(instituicao);
         concurso.setBanca(banca);
         concurso.setDataProva(request.getDataProva());
@@ -238,6 +241,10 @@ public class ConcursoService {
         }
 
         concursoMapper.updateEntityFromDto(request, concurso);
+
+        if (concurso.getEdital() != null && concurso.getEdital().isBlank()) {
+            concurso.setEdital(null);
+        }
 
         if (request.getDataProva() != null) {
             concurso.setDataProva(request.getDataProva());
