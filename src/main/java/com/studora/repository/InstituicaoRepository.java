@@ -18,6 +18,7 @@ public interface InstituicaoRepository extends JpaRepository<Instituicao, Long> 
     Optional<Instituicao> findByNomeIgnoreCase(String nome);
     Page<Instituicao> findByNomeContainingIgnoreCase(String nome, Pageable pageable);
     Page<Instituicao> findByNomeNormalizedContaining(String nomeNormalized, Pageable pageable);
+    Page<Instituicao> findByNomeNormalizedContainingOrSiglaNormalizedContaining(String nomeNormalized, String siglaNormalized, Pageable pageable);
 
     @Query("SELECT DISTINCT i.area FROM Instituicao i WHERE i.area IS NOT NULL")
     List<String> findDistinctAreas();

@@ -13,4 +13,5 @@ public interface BancaRepository extends JpaRepository<Banca, Long> {
     Optional<Banca> findByNomeIgnoreCase(String nome);
     org.springframework.data.domain.Page<Banca> findByNomeContainingIgnoreCase(String nome, org.springframework.data.domain.Pageable pageable);
     org.springframework.data.domain.Page<Banca> findByNomeNormalizedContaining(String nomeNormalized, org.springframework.data.domain.Pageable pageable);
+    org.springframework.data.domain.Page<Banca> findByNomeNormalizedContainingOrSiglaNormalizedContaining(String nomeNormalized, String siglaNormalized, org.springframework.data.domain.Pageable pageable);
 }

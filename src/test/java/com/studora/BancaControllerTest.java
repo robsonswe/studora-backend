@@ -49,6 +49,20 @@ class BancaControllerTest {
     }
 
     @Test
+    void testGetAllBancas_WithSigla() throws Exception {
+        Banca banca = new Banca();
+        banca.setNome("Fundação Carlos Chagas");
+        banca.setSigla("FCC");
+        bancaRepository.save(banca);
+
+        mockMvc
+            .perform(get("/api/v1/bancas"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].nome").value("Fundação Carlos Chagas"))
+            .andExpect(jsonPath("$.content[0].sigla").value("FCC"));
+    }
+
+    @Test
     void testGetAllBancas_DefaultSorting() throws Exception {
         Banca b1 = new Banca(); b1.setNome("Banca B Test Unique"); bancaRepository.save(b1);
         Banca b2 = new Banca(); b2.setNome("Banca A Test Unique"); bancaRepository.save(b2);
@@ -85,6 +99,55 @@ class BancaControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.content[0].nome").value("Vunesp"))
             .andExpect(jsonPath("$.pageNumber").value(0));
+    }
+
+    @Test
+    void testGetAllBancas_SearchBySigla() throws Exception {
+        // Create banca with sigla
+        Banca banca1 = new Banca();
+        banca1.setNome("Centro Brasileiro de Pesquisa em Avaliação e Seleção e de Promoção de Eventos");
+        banca1.setSigla("CEBRASPE");
+        bancaRepository.save(banca1);
+
+        // Create banca without sigla
+        Banca banca2 = new Banca();
+        banca2.setNome("Fundação Getúlio Vargas");
+        bancaRepository.save(banca2);
+
+        // Search by sigla should find the first banca
+        mockMvc
+            .perform(get("/api/v1/bancas").param("nome", "CEBRASPE"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].sigla").value("CEBRASPE"));
+
+        // Search by partial sigla should also work
+        mockMvc
+            .perform(get("/api/v1/bancas").param("nome", "CEBR"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].sigla").value("CEBRASPE"));
+    }
+
+    @Test
+    void testGetAllBancas_SearchByNomeStillWorks() throws Exception {
+        // Create banca with sigla
+        Banca banca1 = new Banca();
+        banca1.setNome("Centro Brasileiro de Pesquisa");
+        banca1.setSigla("CEBRASPE");
+        bancaRepository.save(banca1);
+
+        // Create banca without sigla
+        Banca banca2 = new Banca();
+        banca2.setNome("Fundação Getúlio Vargas");
+        bancaRepository.save(banca2);
+
+        // Search by nome should still work
+        mockMvc
+            .perform(get("/api/v1/bancas").param("nome", "Getúlio"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].nome").value("Fundação Getúlio Vargas"));
     }
 
     @Test
@@ -144,6 +207,21 @@ class BancaControllerTest {
     }
 
     @Test
+    void testCreateBanca_WithSigla() throws Exception {
+        BancaCreateRequest request = new BancaCreateRequest();
+        request.setNome("Fundação Getúlio Vargas");
+        request.setSigla("FGV");
+
+        mockMvc
+            .perform(
+                post("/api/v1/bancas")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(request))
+            )
+            .andExpect(status().isCreated());
+    }
+
+    @Test
     void testUpdateBanca() throws Exception {
         Banca banca = new Banca();
         banca.setNome("OldName");
@@ -151,6 +229,25 @@ class BancaControllerTest {
 
         BancaUpdateRequest request = new BancaUpdateRequest();
         request.setNome("NewName");
+
+        mockMvc
+            .perform(
+                put("/api/v1/bancas/{id}", banca.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(request))
+            )
+            .andExpect(status().isOk());
+    }
+
+    @Test
+    void testUpdateBanca_WithSigla() throws Exception {
+        Banca banca = new Banca();
+        banca.setNome("Cespe");
+        banca = bancaRepository.save(banca);
+
+        BancaUpdateRequest request = new BancaUpdateRequest();
+        request.setNome("Cebraspe");
+        request.setSigla("CEBRASPE");
 
         mockMvc
             .perform(

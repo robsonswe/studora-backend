@@ -40,7 +40,7 @@ public class BancaService {
         Page<Banca> page;
         if (nome != null && !nome.isBlank()) {
             String normalized = com.studora.util.StringUtils.normalizeForSearch(nome);
-            page = bancaRepository.findByNomeNormalizedContaining(normalized, pageable);
+            page = bancaRepository.findByNomeNormalizedContainingOrSiglaNormalizedContaining(normalized, normalized, pageable);
         } else {
             page = bancaRepository.findAll(pageable);
         }

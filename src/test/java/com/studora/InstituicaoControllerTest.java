@@ -43,6 +43,22 @@ class InstituicaoControllerTest {
     }
 
     @Test
+    void testGetAllInstituicoes_WithSigla() throws Exception {
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Universidade Federal do Rio de Janeiro");
+        instituicao.setArea("Educação");
+        instituicao.setSigla("UFRJ");
+        instituicaoRepository.save(instituicao);
+
+        mockMvc
+            .perform(get("/api/v1/instituicoes"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content[0].nome").value("Universidade Federal do Rio de Janeiro"))
+            .andExpect(jsonPath("$.content[0].area").value("Educação"))
+            .andExpect(jsonPath("$.content[0].sigla").value("UFRJ"));
+    }
+
+    @Test
     void testGetInstituicaoById() throws Exception {
         Instituicao instituicao = new Instituicao();
         instituicao.setNome("Polícia Federal");
@@ -89,10 +105,79 @@ class InstituicaoControllerTest {
     }
 
     @Test
+    void testGetAllInstituicoes_SearchBySigla() throws Exception {
+        // Create instituicao with sigla
+        Instituicao inst1 = new Instituicao();
+        inst1.setNome("Universidade Federal do Rio de Janeiro");
+        inst1.setArea("Educação");
+        inst1.setSigla("UFRJ");
+        instituicaoRepository.save(inst1);
+
+        // Create instituicao without sigla
+        Instituicao inst2 = new Instituicao();
+        inst2.setNome("Polícia Federal");
+        inst2.setArea("Policial");
+        instituicaoRepository.save(inst2);
+
+        // Search by sigla should find the first instituicao
+        mockMvc
+            .perform(get("/api/v1/instituicoes").param("nome", "UFRJ"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].sigla").value("UFRJ"));
+
+        // Search by partial sigla should also work
+        mockMvc
+            .perform(get("/api/v1/instituicoes").param("nome", "UFR"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].sigla").value("UFRJ"));
+    }
+
+    @Test
+    void testGetAllInstituicoes_SearchByNomeStillWorks() throws Exception {
+        // Create instituicao with sigla
+        Instituicao inst1 = new Instituicao();
+        inst1.setNome("Universidade Federal do Rio de Janeiro");
+        inst1.setArea("Educação");
+        inst1.setSigla("UFRJ");
+        instituicaoRepository.save(inst1);
+
+        // Create instituicao without sigla
+        Instituicao inst2 = new Instituicao();
+        inst2.setNome("Polícia Federal");
+        inst2.setArea("Policial");
+        instituicaoRepository.save(inst2);
+
+        // Search by nome should still work
+        mockMvc
+            .perform(get("/api/v1/instituicoes").param("nome", "Polícia"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.content.length()").value(1))
+            .andExpect(jsonPath("$.content[0].nome").value("Polícia Federal"));
+    }
+
+    @Test
     void testCreateInstituicao() throws Exception {
         InstituicaoCreateRequest request = new InstituicaoCreateRequest();
         request.setNome("PF");
         request.setArea("Policial");
+
+        mockMvc
+            .perform(
+                post("/api/v1/instituicoes")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(request))
+            )
+            .andExpect(status().isCreated());
+    }
+
+    @Test
+    void testCreateInstituicao_WithSigla() throws Exception {
+        InstituicaoCreateRequest request = new InstituicaoCreateRequest();
+        request.setNome("Universidade Federal do Rio de Janeiro");
+        request.setArea("Educação");
+        request.setSigla("UFRJ");
 
         mockMvc
             .perform(
@@ -113,6 +198,27 @@ class InstituicaoControllerTest {
         com.studora.dto.request.InstituicaoUpdateRequest request = new com.studora.dto.request.InstituicaoUpdateRequest();
         request.setNome("NewName");
         request.setArea("NewArea");
+
+        mockMvc
+            .perform(
+                put("/api/v1/instituicoes/{id}", instituicao.getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(TestUtil.asJsonString(request))
+            )
+            .andExpect(status().isOk());
+    }
+
+    @Test
+    void testUpdateInstituicao_WithSigla() throws Exception {
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Universidade de São Paulo");
+        instituicao.setArea("Educação");
+        instituicao = instituicaoRepository.save(instituicao);
+
+        com.studora.dto.request.InstituicaoUpdateRequest request = new com.studora.dto.request.InstituicaoUpdateRequest();
+        request.setNome("USP");
+        request.setArea("Educação");
+        request.setSigla("USP");
 
         mockMvc
             .perform(

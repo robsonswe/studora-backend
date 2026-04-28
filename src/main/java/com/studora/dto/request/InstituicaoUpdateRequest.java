@@ -19,11 +19,20 @@ public class InstituicaoUpdateRequest {
     @Schema(description = "Área da instituição", example = "Educação", requiredMode = Schema.RequiredMode.REQUIRED)
     private String area;
 
+    @Schema(description = "Sigla da instituição", example = "UFRJ")
+    private String sigla;
+
     // Constructors
     public InstituicaoUpdateRequest() {}
 
     public InstituicaoUpdateRequest(String nome, String area) {
         this.nome = nome;
         this.area = area;
+    }
+
+    public InstituicaoUpdateRequest(String nome, String area, String sigla) {
+        this.nome = nome;
+        this.area = area;
+        this.sigla = sigla;
     }
 }

@@ -19,6 +19,10 @@ public class BancaSummaryDto {
     @JsonView(Views.Summary.class)
     private String nome;
 
+    @Schema(description = "Sigla da banca organizadora", example = "CESPE")
+    @JsonView(Views.Summary.class)
+    private String sigla;
+
     @Schema(description = "Estatísticas de questões da banca")
     private QuestaoStatsDto questaoStats;
 }

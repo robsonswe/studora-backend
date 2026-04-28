@@ -11,4 +11,7 @@ public class BancaUpdateRequest {
     @NotBlank(message = "Nome da banca é obrigatório")
     @Schema(description = "Nome da banca organizadora", example = "CESPE", requiredMode = Schema.RequiredMode.REQUIRED)
     private String nome;
+
+    @Schema(description = "Sigla da banca organizadora", example = "CESPE")
+    private String sigla;
 }

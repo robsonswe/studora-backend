@@ -28,10 +28,22 @@ public class Banca extends BaseEntity {
     @com.fasterxml.jackson.annotation.JsonIgnore
     private String nomeNormalized;
 
+    @Column(nullable = true)
+    @Schema(description = "Sigla da banca organizadora", example = "CESPE")
+    private String sigla;
+
+    @Column(name = "sigla_normalized")
+    @Schema(hidden = true)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private String siglaNormalized;
+
     @PrePersist
     @PreUpdate
     public void normalize() {
         this.nomeNormalized = StringUtils.normalizeForSearch(this.nome);
+        if (this.sigla != null) {
+            this.siglaNormalized = StringUtils.normalizeForSearch(this.sigla);
+        }
     }
 
     @Override

@@ -11,6 +11,7 @@ import lombok.Data;
 public class BancaDetailDto {
     private Long id;
     private String nome;
+    private String sigla;
 
     @Schema(description = "Estatísticas de questões da banca")
     private QuestaoStatsDto questaoStats;

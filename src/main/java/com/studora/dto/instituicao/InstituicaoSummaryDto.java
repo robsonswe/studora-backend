@@ -18,6 +18,9 @@ public class InstituicaoSummaryDto {
     @Schema(description = "Área de atuação da instituição", example = "Judiciária")
     private String area;
 
+    @Schema(description = "Sigla da instituição", example = "TJSP")
+    private String sigla;
+
     @Schema(description = "Estatísticas de questões da instituição")
     private QuestaoStatsDto questaoStats;
 }

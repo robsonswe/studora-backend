@@ -39,7 +39,7 @@ public class InstituicaoService {
         Page<Instituicao> page;
         if (nome != null && !nome.isBlank()) {
             String normalized = com.studora.util.StringUtils.normalizeForSearch(nome);
-            page = instituicaoRepository.findByNomeNormalizedContaining(normalized, pageable);
+            page = instituicaoRepository.findByNomeNormalizedContainingOrSiglaNormalizedContaining(normalized, normalized, pageable);
         } else {
             page = instituicaoRepository.findAll(pageable);
         }

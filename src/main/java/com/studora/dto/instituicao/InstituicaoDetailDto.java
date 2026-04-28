@@ -12,6 +12,7 @@ public class InstituicaoDetailDto {
     private Long id;
     private String nome;
     private String area;
+    private String sigla;
 
     @Schema(description = "Estatísticas de questões da instituição")
     private QuestaoStatsDto questaoStats;

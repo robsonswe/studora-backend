@@ -28,11 +28,23 @@ public class Instituicao extends BaseEntity {
     @com.fasterxml.jackson.annotation.JsonIgnore
     private String nomeNormalized;
 
+    @Column(nullable = true)
+    @Schema(description = "Sigla da instituição", example = "UFRJ")
+    private String sigla;
+
+    @Column(name = "sigla_normalized")
+    @Schema(hidden = true)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private String siglaNormalized;
+
     @PrePersist
     @PreUpdate
     public void normalize() {
         this.nomeNormalized = StringUtils.normalizeForSearch(this.nome);
         this.areaNormalized = StringUtils.normalizeForSearch(this.area);
+        if (this.sigla != null) {
+            this.siglaNormalized = StringUtils.normalizeForSearch(this.sigla);
+        }
     }
 
     @Column(nullable = false)
