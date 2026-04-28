@@ -66,7 +66,7 @@ public class Questao extends BaseEntity {
     @Schema(description = "Respostas associadas à questão")
     private Set<Resposta> respostas = new LinkedHashSet<>();
 
-    @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
     @JoinTable(
         name = "questao_subtema",
         joinColumns = @JoinColumn(name = "questao_id"),

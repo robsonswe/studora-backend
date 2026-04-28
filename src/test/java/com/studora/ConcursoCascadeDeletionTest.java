@@ -15,6 +15,7 @@ import com.studora.entity.NivelCargo;
 import com.studora.entity.Disciplina;
 import com.studora.entity.Tema;
 import com.studora.entity.Subtema;
+import com.studora.entity.Questao;
 import com.studora.repository.*;
 import com.studora.service.ConcursoService;
 import com.studora.service.QuestaoService;
@@ -139,5 +140,58 @@ class ConcursoCascadeDeletionTest {
         assertTrue(alternativaRepository.findByQuestaoIdOrderByOrdemAsc(questaoId).isEmpty(), "Alternativas should be deleted");
         assertTrue(respostaRepository.findFirstByQuestaoIdOrderByCreatedAtDesc(questaoId).isEmpty(), "Resposta should be deleted");
         assertTrue(questaoCargoRepository.findByQuestaoId(questaoId).isEmpty(), "QuestaoCargo associations should be deleted");
+    }
+
+    @Test
+    void testDeleteQuestaoShouldNotDeleteSubtema() {
+        // 1. Setup Hierarchy
+        Instituicao inst = new Instituicao();
+        inst.setNome("PF");
+        inst.setArea("Policial");
+        inst = instituicaoRepository.save(inst);
+
+        Banca banca = new Banca();
+        banca.setNome("Cebraspe");
+        banca = bancaRepository.save(banca);
+
+        Concurso concurso = concursoRepository.save(new Concurso(inst, banca, 2024, 1));
+        
+        Cargo cargo = new Cargo();
+        cargo.setNome("Agente");
+        cargo.setNivel(NivelCargo.SUPERIOR);
+        cargo.setArea("Policial");
+        cargo = cargoRepository.save(cargo);
+        
+        ConcursoCargo cc = new ConcursoCargo();
+        cc.setConcurso(concurso);
+        cc.setCargo(cargo);
+        cc = concursoCargoRepository.save(cc);
+
+        Disciplina disc = new Disciplina("Direito");
+        disc = disciplinaRepository.save(disc);
+        Tema tema = new Tema(disc, "Administrativo");
+        tema = temaRepository.save(tema);
+        Subtema subtema = new Subtema(tema, "Atos");
+        subtema = subtemaRepository.save(subtema);
+        Long subtemaId = subtema.getId();
+
+        // 2. Create Questao
+        Questao questao = new Questao(concurso, "Questao de teste");
+        questao.getSubtemas().add(subtema);
+        questao = questaoRepository.save(questao);
+        Long questaoId = questao.getId();
+
+        // Verify setup
+        assertTrue(questaoRepository.existsById(questaoId));
+        assertTrue(subtemaRepository.existsById(subtemaId));
+
+        // 3. Delete Questao
+        questaoRepository.deleteById(questaoId);
+        entityManager.flush();
+        entityManager.clear();
+
+        // 4. Check results
+        assertFalse(questaoRepository.existsById(questaoId), "Questao should be deleted");
+        assertTrue(subtemaRepository.existsById(subtemaId), "Subtema should NOT be deleted when Questao is deleted!");
     }
 }
