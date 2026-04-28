@@ -78,7 +78,8 @@ class SubtemaStudyControllerTest {
         mockMvc
             .perform(post("/api/v1/subtemas/{id}/estudos", subtema.getId()))
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.subtemaId").value(subtema.getId()));
+            .andExpect(jsonPath("$.id").isNumber())
+            .andExpect(jsonPath("$.message").exists());
 
         // Add another study session
         mockMvc

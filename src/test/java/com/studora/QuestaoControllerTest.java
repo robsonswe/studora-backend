@@ -140,16 +140,25 @@ class QuestaoControllerTest {
         Tema tema = subtema.getTema();
         Disciplina disciplina = tema.getDisciplina();
 
-        mockMvc
+        // POST returns PostResponseDto with id and message
+        String postResponse = mockMvc
             .perform(
                 post("/api/v1/questoes")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(questaoCreateRequest))
             )
             .andExpect(status().isCreated())
-            .andExpect(
-                jsonPath("$.enunciado").value("Qual a capital do Brasil?")
-            )
+            .andExpect(jsonPath("$.id").isNumber())
+            .andExpect(jsonPath("$.message").exists())
+            .andReturn().getResponse().getContentAsString();
+
+        Long createdId = new com.fasterxml.jackson.databind.ObjectMapper()
+                .readTree(postResponse).get("id").asLong();
+
+        // Verify entity details via GET (admin=true to expose full detail)
+        mockMvc.perform(get("/api/v1/questoes/{id}", createdId).param("admin", "true"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.enunciado").value("Qual a capital do Brasil?"))
             .andExpect(jsonPath("$.cargos[0].id").value(cargo.getId()))
             .andExpect(jsonPath("$.subtemas[0].id").value(subtema.getId()))
             .andExpect(jsonPath("$.subtemas[0].nome").value(subtema.getNome()))
