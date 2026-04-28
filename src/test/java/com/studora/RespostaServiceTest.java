@@ -207,6 +207,8 @@ class RespostaServiceTest {
         req.setQuestaoId(1L);
         req.setAlternativaId(1L);
         req.setSimuladoId(999L);
+        req.setDificuldadeId(1);
+        req.setJustificativa("test");
 
         when(questaoRepository.findById(1L)).thenReturn(Optional.of(q));
         when(alternativaRepository.findById(1L)).thenReturn(Optional.of(alt));
