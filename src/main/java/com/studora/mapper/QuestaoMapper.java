@@ -57,8 +57,10 @@ public interface QuestaoMapper {
 
     @Mapping(target = "bancaId", source = "banca.id")
     @Mapping(target = "bancaNome", source = "banca.nome")
+    @Mapping(target = "bancaSigla", source = "banca.sigla")
     @Mapping(target = "instituicaoId", source = "instituicao.id")
     @Mapping(target = "instituicaoNome", source = "instituicao.nome")
+    @Mapping(target = "instituicaoSigla", source = "instituicao.sigla")
     @Mapping(target = "instituicaoArea", source = "instituicao.area")
     ConcursoQuestaoDto toConcursoQuestaoDto(com.studora.entity.Concurso concurso);
 

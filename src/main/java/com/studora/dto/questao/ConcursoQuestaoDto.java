@@ -24,6 +24,10 @@ public class ConcursoQuestaoDto {
     @JsonView(Views.Summary.class)
     private String bancaNome;
 
+    @Schema(description = "Sigla da banca", example = "CESPE")
+    @JsonView(Views.Summary.class)
+    private String bancaSigla;
+
     @Schema(description = "ID da instituição", example = "3")
     @JsonView(Views.Summary.class)
     private Long instituicaoId;
@@ -31,6 +35,10 @@ public class ConcursoQuestaoDto {
     @Schema(description = "Nome da instituição", example = "Policia Federal")
     @JsonView(Views.Summary.class)
     private String instituicaoNome;
+
+    @Schema(description = "Sigla da instituição", example = "PF")
+    @JsonView(Views.Summary.class)
+    private String instituicaoSigla;
 
     @Schema(description = "Área da instituição", example = "Segurança")
     @JsonView(Views.Summary.class)
