@@ -7,7 +7,7 @@ import com.studora.dto.concurso.ConcursoFilter;
 import com.studora.dto.concurso.ConcursoDetailDto;
 import com.studora.dto.concurso.ConcursoSummaryDto;
 import com.studora.dto.concurso.ConcursoCargoSummaryDto;
-import com.studora.dto.concurso.ConcursoCargoSubtemaDto;
+
 import com.studora.dto.request.ConcursoCreateRequest;
 import com.studora.dto.request.ConcursoUpdateRequest;
 import com.studora.dto.subtema.SubtemaSummaryDto;
@@ -15,7 +15,7 @@ import com.studora.entity.Banca;
 import com.studora.entity.Cargo;
 import com.studora.entity.Concurso;
 import com.studora.entity.ConcursoCargo;
-import com.studora.entity.ConcursoCargoSubtema;
+
 import com.studora.entity.Dificuldade;
 import com.studora.entity.Instituicao;
 import com.studora.entity.Resposta;
@@ -53,42 +53,33 @@ public class ConcursoService {
     private final BancaRepository bancaRepository;
     private final CargoRepository cargoRepository;
     private final ConcursoCargoRepository concursoCargoRepository;
-    private final QuestaoCargoRepository questaoCargoRepository;
-    private final EstudoSubtemaRepository estudoSubtemaRepository;
     private final SubtemaRepository subtemaRepository;
-    private final QuestaoRepository questaoRepository;
-    private final RespostaRepository respostaRepository;
-    private final ConcursoCargoSubtemaRepository concursoCargoSubtemaRepository;
     private final ConcursoMapper concursoMapper;
+    private final jakarta.persistence.EntityManager entityManager;
 
     private final StatsAssembler statsAssembler;
+    private final EstudoSubtemaRepository estudoSubtemaRepository;
 
     public ConcursoService(ConcursoRepository concursoRepository,
                            InstituicaoRepository instituicaoRepository,
                            BancaRepository bancaRepository,
                            CargoRepository cargoRepository,
                            ConcursoCargoRepository concursoCargoRepository,
-                           QuestaoCargoRepository questaoCargoRepository,
-                           EstudoSubtemaRepository estudoSubtemaRepository,
                            SubtemaRepository subtemaRepository,
-                           QuestaoRepository questaoRepository,
-                           RespostaRepository respostaRepository,
-                           ConcursoCargoSubtemaRepository concursoCargoSubtemaRepository,
+                           EstudoSubtemaRepository estudoSubtemaRepository,
                            ConcursoMapper concursoMapper,
-                           StatsAssembler statsAssembler) {
+                           StatsAssembler statsAssembler,
+                           jakarta.persistence.EntityManager entityManager) {
         this.concursoRepository = concursoRepository;
         this.instituicaoRepository = instituicaoRepository;
         this.bancaRepository = bancaRepository;
         this.cargoRepository = cargoRepository;
         this.concursoCargoRepository = concursoCargoRepository;
-        this.questaoCargoRepository = questaoCargoRepository;
-        this.estudoSubtemaRepository = estudoSubtemaRepository;
         this.subtemaRepository = subtemaRepository;
-        this.questaoRepository = questaoRepository;
-        this.respostaRepository = respostaRepository;
-        this.concursoCargoSubtemaRepository = concursoCargoSubtemaRepository;
+        this.estudoSubtemaRepository = estudoSubtemaRepository;
         this.concursoMapper = concursoMapper;
         this.statsAssembler = statsAssembler;
+        this.entityManager = entityManager;
     }
 
     @Cacheable(value = "concurso-stats", key = "T(java.util.Objects).hash(#filter, #pageable.pageNumber, #pageable.pageSize, #pageable.sort.toString())")
@@ -109,10 +100,6 @@ public class ConcursoService {
                 .collect(java.util.stream.Collectors.toMap(Concurso::getId, c -> c));
         
         Page<ConcursoSummaryDto> result = page.map(c -> concursoMapper.toSummaryDto(detailsMap.getOrDefault(c.getId(), c)));
-        enrichTopicos(result.getContent().stream()
-                .filter(d -> d.getCargos() != null)
-                .flatMap(d -> d.getCargos().stream())
-                .collect(Collectors.toList()), null); // getAll returns full topicos (backwards compat)
         return result;
     }
 
@@ -121,7 +108,37 @@ public class ConcursoService {
         Concurso concurso = concursoRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Concurso", "ID", id));
         ConcursoDetailDto dto = concursoMapper.toDetailDto(concurso);
-        enrichTopicos(dto.getCargos() != null ? dto.getCargos() : java.util.List.of(), metrics);
+
+        if (metrics != null && dto.getCargos() != null) {
+            for (ConcursoCargoSummaryDto cargoDto : dto.getCargos()) {
+                List<com.studora.dto.concurso.ConcursoCargoSubtemaDto> topicos = cargoDto.getTopicos();
+                if (topicos == null || topicos.isEmpty()) continue;
+
+                List<Long> subtemaIds = topicos.stream()
+                        .map(com.studora.dto.concurso.ConcursoCargoSubtemaDto::getId)
+                        .collect(Collectors.toList());
+
+                // Batch-fetch questoesConcursoCargo stats for all subtemas of this cargo
+                Map<Long, StatSliceDto> ccStats = statsAssembler.buildBatchConcursoCargoStats(
+                        cargoDto.getId(), subtemaIds, metrics);
+
+                for (com.studora.dto.concurso.ConcursoCargoSubtemaDto topico : topicos) {
+                    Long subId = topico.getId();
+
+                    // totalEstudos is always present when metrics != null
+                    topico.setTotalEstudos(estudoSubtemaRepository.countBySubtemaId(subId));
+
+                    // questoesConcursoCargo: available for SUMMARY and FULL
+                    topico.setQuestoesConcursoCargo(ccStats.get(subId));
+
+                    // questaoStats: only for FULL
+                    if (metrics == MetricsLevel.FULL) {
+                        topico.setQuestaoStats(statsAssembler.buildStats(subId, "SUBTEMA", metrics));
+                    }
+                }
+            }
+        }
+
         return dto;
     }
 
@@ -159,9 +176,60 @@ public class ConcursoService {
             concurso.addConcursoCargo(cc);
         }
 
-        // Process Topicos
-        if (request.getTopicos() != null && !request.getTopicos().isEmpty()) {
-            processTopicos(request.getTopicos(), concurso, cargoIds);
+        // Process Provas (Nested Creation)
+        if (request.getProvas() != null) {
+            for (com.studora.dto.request.ProvaCreateRequest pReq : request.getProvas()) {
+                com.studora.entity.Prova prova = new com.studora.entity.Prova();
+                prova.setConcurso(concurso);
+                prova.setNome(pReq.getNome());
+                concurso.getProvas().add(prova);
+
+                // Link Prova-Cargo
+                if (pReq.getCargoIds() != null) {
+                    Set<com.studora.entity.ConcursoCargo> cargos = concurso.getConcursoCargos().stream()
+                            .filter(cc -> pReq.getCargoIds().contains(cc.getCargo().getId()))
+                            .collect(Collectors.toSet());
+                    prova.setCargos(cargos);
+                }
+
+                // Process Secoes
+                if (pReq.getSecoes() != null) {
+                    for (com.studora.dto.request.ProvaSecaoCreateRequest sReq : pReq.getSecoes()) {
+                        com.studora.entity.ProvaSecao secao = new com.studora.entity.ProvaSecao();
+                        secao.setProva(prova);
+                        secao.setNome(sReq.getNome());
+                        secao.setOrdem(sReq.getOrdem());
+                        secao.setNumQuestoes(sReq.getNumQuestoes());
+                        prova.getSecoes().add(secao);
+
+                        // Link Subtemas
+                        if (sReq.getSubtemaIds() != null) {
+                            List<Subtema> subtemas = subtemaRepository.findAllById(sReq.getSubtemaIds());
+                            secao.setSubtemas(new HashSet<>(subtemas));
+                        }
+
+                        // Process Pesos
+                        if (sReq.getPesos() != null) {
+                            for (com.studora.dto.request.ProvaSecaoPesoCreateRequest wReq : sReq.getPesos()) {
+                                com.studora.entity.ProvaSecaoPeso peso = new com.studora.entity.ProvaSecaoPeso();
+                                secao.addPeso(peso);
+                                
+                                if (wReq.getCargoId() != null) {
+                                    final Long targetCargoId = wReq.getCargoId();
+                                    ConcursoCargo targetCc = concurso.getConcursoCargos().stream()
+                                            .filter(cc -> cc.getCargo().getId().equals(targetCargoId))
+                                            .findFirst()
+                                            .orElseThrow(() -> new ResourceNotFoundException("ConcursoCargo", "Cargo ID", targetCargoId));
+                                    peso.setConcursoCargo(targetCc);
+                                }
+                                
+                                peso.setPeso(wReq.getPeso());
+                                peso.setNotaMinima(wReq.getNotaMinima());
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         return concursoRepository.save(concurso).getId();
@@ -211,9 +279,14 @@ public class ConcursoService {
                 .collect(Collectors.toList());
 
         for (ConcursoCargo cc : toRemove) {
-            if (!questaoCargoRepository.findByConcursoCargoId(cc.getId()).isEmpty()) {
-                throw new ValidationException("Não é possível remover o cargo ID " + cc.getCargo().getId() + " pois existem questões associadas a ele neste concurso.");
+            // Check if this cargo is used in any Prova of this concurso
+            boolean isUsedInProva = concurso.getProvas().stream()
+                    .anyMatch(p -> p.getCargos().contains(cc));
+            
+            if (isUsedInProva) {
+                throw new ValidationException("O cargo " + cc.getCargo().getNome() + " não pode ser removido pois está associado a uma prova.");
             }
+
             concurso.getConcursoCargos().remove(cc);
             cc.setConcurso(null);
         }
@@ -235,11 +308,6 @@ public class ConcursoService {
             concurso.addConcursoCargo(cc);
         }
 
-        // Process Topicos (diff-based)
-        if (request.getTopicos() != null) {
-            processTopicosUpdate(request.getTopicos(), concurso, newCargoIds);
-        }
-
         concursoMapper.updateEntityFromDto(request, concurso);
 
         if (concurso.getEdital() != null && concurso.getEdital().isBlank()) {
@@ -250,7 +318,151 @@ public class ConcursoService {
             concurso.setDataProva(request.getDataProva());
         }
 
+        if (request.getProvas() != null) {
+            synchronizeProvas(concurso, request.getProvas());
+        }
+
         concursoRepository.save(concurso);
+    }
+
+    private void synchronizeProvas(Concurso concurso, List<com.studora.dto.request.ProvaUpdateRequest> requests) {
+        Map<Long, com.studora.entity.Prova> existingMap = concurso.getProvas().stream()
+                .filter(p -> p.getId() != null)
+                .collect(Collectors.toMap(com.studora.entity.Prova::getId, p -> p));
+
+        Set<Long> idsToKeep = requests.stream()
+                .map(com.studora.dto.request.ProvaUpdateRequest::getId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        // 1. Remove orphans
+        concurso.getProvas().removeIf(p -> p.getId() != null && !idsToKeep.contains(p.getId()));
+
+        // 2. Update or Create
+        for (com.studora.dto.request.ProvaUpdateRequest pReq : requests) {
+            com.studora.entity.Prova prova;
+            if (pReq.getId() != null) {
+                prova = existingMap.get(pReq.getId());
+                if (prova == null) throw new ResourceNotFoundException("Prova", "ID", pReq.getId());
+            } else {
+                prova = new com.studora.entity.Prova();
+                prova.setConcurso(concurso);
+                concurso.getProvas().add(prova);
+            }
+            prova.setNome(pReq.getNome());
+
+            // Sync Prova-Cargo (ManyToMany)
+            if (pReq.getCargoIds() != null) {
+                Set<com.studora.entity.ConcursoCargo> cargos = concurso.getConcursoCargos().stream()
+                        .filter(cc -> pReq.getCargoIds().contains(cc.getCargo().getId()))
+                        .collect(Collectors.toSet());
+                prova.setCargos(cargos);
+            }
+
+            if (pReq.getSecoes() != null) {
+                synchronizeSecoes(prova, pReq.getSecoes());
+            }
+        }
+    }
+
+    private void synchronizeSecoes(com.studora.entity.Prova prova, List<com.studora.dto.request.ProvaSecaoUpdateRequest> requests) {
+        Map<Long, com.studora.entity.ProvaSecao> existingMap = prova.getSecoes().stream()
+                .filter(ps -> ps.getId() != null)
+                .collect(Collectors.toMap(com.studora.entity.ProvaSecao::getId, ps -> ps));
+
+        Set<Long> idsToKeep = requests.stream()
+                .map(com.studora.dto.request.ProvaSecaoUpdateRequest::getId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        // 1. Remove orphans
+        prova.getSecoes().removeIf(ps -> ps.getId() != null && !idsToKeep.contains(ps.getId()));
+
+        // 2. Temporary shift to avoid UNIQUE constraint violations during reordering
+        for (com.studora.entity.ProvaSecao ps : prova.getSecoes()) {
+            if (ps.getId() != null) {
+                ps.setOrdem(-1 * ps.getId().intValue());
+            }
+        }
+        entityManager.flush();
+
+        // 3. Update or Create
+        for (com.studora.dto.request.ProvaSecaoUpdateRequest sReq : requests) {
+            com.studora.entity.ProvaSecao secao;
+            if (sReq.getId() != null) {
+                secao = existingMap.get(sReq.getId());
+                if (secao == null) throw new ResourceNotFoundException("ProvaSecao", "ID", sReq.getId());
+            } else {
+                secao = new com.studora.entity.ProvaSecao();
+                secao.setProva(prova);
+                prova.getSecoes().add(secao);
+            }
+            secao.setNome(sReq.getNome());
+            secao.setOrdem(sReq.getOrdem());
+            secao.setNumQuestoes(sReq.getNumQuestoes());
+
+            // Sync Subtemas
+            if (sReq.getSubtemaIds() != null) {
+                List<Subtema> subtemas = subtemaRepository.findAllById(sReq.getSubtemaIds());
+                secao.setSubtemas(new HashSet<>(subtemas));
+            }
+
+            if (sReq.getPesos() != null) {
+                synchronizePesos(secao, sReq.getPesos());
+            }
+        }
+
+        // Validate: A subtema cannot be in more than one section per prova
+        Map<Long, String> subtemaToSecaoMap = new java.util.HashMap<>();
+        for (com.studora.entity.ProvaSecao s : prova.getSecoes()) {
+            for (Subtema st : s.getSubtemas()) {
+                if (subtemaToSecaoMap.containsKey(st.getId())) {
+                    throw new com.studora.exception.ValidationException(
+                        "O subtema '" + st.getNome() + "' está vinculado a múltiplas seções na mesma prova: '" + 
+                        subtemaToSecaoMap.get(st.getId()) + "' e '" + s.getNome() + "'."
+                    );
+                }
+                subtemaToSecaoMap.put(st.getId(), s.getNome());
+            }
+        }
+    }
+
+    private void synchronizePesos(com.studora.entity.ProvaSecao secao, List<com.studora.dto.request.ProvaSecaoPesoUpdateRequest> requests) {
+        Map<Long, com.studora.entity.ProvaSecaoPeso> existingMap = secao.getPesos().stream()
+                .filter(p -> p.getId() != null)
+                .collect(Collectors.toMap(com.studora.entity.ProvaSecaoPeso::getId, p -> p));
+
+        Set<Long> idsToKeep = requests.stream()
+                .map(com.studora.dto.request.ProvaSecaoPesoUpdateRequest::getId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        // 1. Remove orphans
+        secao.getPesos().removeIf(p -> p.getId() != null && !idsToKeep.contains(p.getId()));
+
+        // 2. Update or Create
+        for (com.studora.dto.request.ProvaSecaoPesoUpdateRequest wReq : requests) {
+            com.studora.entity.ProvaSecaoPeso peso;
+            if (wReq.getId() != null) {
+                peso = existingMap.get(wReq.getId());
+                if (peso == null) throw new ResourceNotFoundException("ProvaSecaoPeso", "ID", wReq.getId());
+            } else {
+                peso = new com.studora.entity.ProvaSecaoPeso();
+                secao.addPeso(peso);
+            }
+            
+            if (wReq.getCargoId() != null) {
+                final Long targetCargoId = wReq.getCargoId();
+                ConcursoCargo targetCc = secao.getProva().getConcurso().getConcursoCargos().stream()
+                        .filter(cc -> cc.getCargo().getId().equals(targetCargoId))
+                        .findFirst()
+                        .orElseThrow(() -> new ResourceNotFoundException("ConcursoCargo", "Cargo ID", targetCargoId));
+                peso.setConcursoCargo(targetCc);
+            }
+            
+            peso.setPeso(wReq.getPeso());
+            peso.setNotaMinima(wReq.getNotaMinima());
+        }
     }
 
     @CacheEvict(value = "concurso-stats", allEntries = true)
@@ -288,157 +500,6 @@ public class ConcursoService {
         concursoRepository.save(concurso);
     }
 
-    private void processTopicos(Map<Long, List<Long>> topicosRequest, Concurso concurso, List<Long> validCargoIds) {
-        // Build cargoId -> ConcursoCargo map from the concurso
-        Map<Long, ConcursoCargo> cargoMap = concurso.getConcursoCargos().stream()
-                .collect(Collectors.toMap(cc -> cc.getCargo().getId(), cc -> cc));
-
-        for (Map.Entry<Long, List<Long>> entry : topicosRequest.entrySet()) {
-            Long subtemaId = entry.getKey();
-            List<Long> cargoIds = entry.getValue();
-
-            // Validate subtema has at least 1 cargo
-            if (cargoIds == null || cargoIds.isEmpty()) {
-                throw new ValidationException("O subtema ID " + subtemaId + " deve estar associado a pelo menos 1 cargo.");
-            }
-
-            // Validate subtema exists
-            subtemaRepository.findById(subtemaId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Subtema", "ID", subtemaId));
-
-            // Deduplicate cargo IDs
-            Set<Long> uniqueCargoIds = new HashSet<>(cargoIds);
-
-            for (Long cargoId : uniqueCargoIds) {
-                // Validate cargo exists in this concurso
-                if (!validCargoIds.contains(cargoId)) {
-                    throw new ValidationException("O cargo ID " + cargoId + " não está associado a este concurso.");
-                }
-
-                ConcursoCargo cc = cargoMap.get(cargoId);
-                ConcursoCargoSubtema ccs = new ConcursoCargoSubtema();
-                ccs.setSubtema(subtemaRepository.getReferenceById(subtemaId));
-                cc.addConcursoCargoSubtema(ccs);
-            }
-        }
-    }
-
-    private void processTopicosUpdate(Map<Long, List<Long>> topicosRequest, Concurso concurso, List<Long> validCargoIds) {
-        // Build cargoId -> ConcursoCargo map
-        Map<Long, ConcursoCargo> cargoMap = concurso.getConcursoCargos().stream()
-                .collect(Collectors.toMap(cc -> cc.getCargo().getId(), cc -> cc));
-
-        // Build existing pairs: Set of "concursoCargoId:subtemaId"
-        Set<String> existingPairs = new HashSet<>();
-        for (ConcursoCargo cc : concurso.getConcursoCargos()) {
-            for (ConcursoCargoSubtema ccs : cc.getConcursoCargoSubtemas()) {
-                existingPairs.add(cc.getId() + ":" + ccs.getSubtema().getId());
-            }
-        }
-
-        // Build requested pairs from the request (and validate)
-        Set<String> requestedPairs = new HashSet<>();
-        for (Map.Entry<Long, List<Long>> entry : topicosRequest.entrySet()) {
-            Long subtemaId = entry.getKey();
-            List<Long> cargoIds = entry.getValue();
-
-            // Validate subtema has at least 1 cargo
-            if (cargoIds == null || cargoIds.isEmpty()) {
-                throw new ValidationException("O subtema ID " + subtemaId + " deve estar associado a pelo menos 1 cargo.");
-            }
-
-            // Validate subtema exists
-            subtemaRepository.findById(subtemaId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Subtema", "ID", subtemaId));
-
-            // Deduplicate cargo IDs
-            Set<Long> uniqueCargoIds = new HashSet<>(cargoIds);
-
-            for (Long cargoId : uniqueCargoIds) {
-                if (!validCargoIds.contains(cargoId)) {
-                    throw new ValidationException("O cargo ID " + cargoId + " não está associado a este concurso.");
-                }
-                ConcursoCargo cc = cargoMap.get(cargoId);
-                requestedPairs.add(cc.getId() + ":" + subtemaId);
-            }
-        }
-
-        // Remove pairs that exist but are not in request
-        for (ConcursoCargo cc : concurso.getConcursoCargos()) {
-            Set<ConcursoCargoSubtema> toRemove = cc.getConcursoCargoSubtemas().stream()
-                    .filter(ccs -> !requestedPairs.contains(cc.getId() + ":" + ccs.getSubtema().getId()))
-                    .collect(Collectors.toSet());
-            for (ConcursoCargoSubtema ccs : toRemove) {
-                cc.getConcursoCargoSubtemas().remove(ccs);
-            }
-        }
-
-        // Add pairs that are in request but don't exist
-        for (Map.Entry<Long, List<Long>> entry : topicosRequest.entrySet()) {
-            Long subtemaId = entry.getKey();
-            Set<Long> uniqueCargoIds = new HashSet<>(entry.getValue());
-
-            for (Long cargoId : uniqueCargoIds) {
-                ConcursoCargo cc = cargoMap.get(cargoId);
-                String pairKey = cc.getId() + ":" + subtemaId;
-                if (!existingPairs.contains(pairKey)) {
-                    ConcursoCargoSubtema ccs = new ConcursoCargoSubtema();
-                    ccs.setSubtema(subtemaRepository.getReferenceById(subtemaId));
-                    cc.addConcursoCargoSubtema(ccs);
-                }
-            }
-        }
-    }
-
-    private void enrichTopicos(java.util.List<ConcursoCargoSummaryDto> cargos, MetricsLevel metrics) {
-        List<Long> allSubtemaIds = cargos.stream()
-                .filter(c -> c.getTopicos() != null)
-                .flatMap(c -> c.getTopicos().stream())
-                .map(ConcursoCargoSubtemaDto::getId)
-                .filter(id -> id != null)
-                .distinct()
-                .collect(Collectors.toList());
-
-        if (allSubtemaIds.isEmpty()) {
-            return;
-        }
-
-        // Global Study sessions
-        Map<Long, Long> counts = toCountMap(estudoSubtemaRepository.countBySubtemaIds(allSubtemaIds));
-        Map<Long, LocalDateTime> dates = toDateMap(estudoSubtemaRepository.findLatestStudyDatesBySubtemaIds(allSubtemaIds));
-
-        for (ConcursoCargoSummaryDto cargo : cargos) {
-            if (cargo.getTopicos() == null || cargo.getTopicos().isEmpty()) continue;
-
-            List<Long> cargoSubtemaIds = cargo.getTopicos().stream()
-                    .map(ConcursoCargoSubtemaDto::getId)
-                    .collect(Collectors.toList());
-
-            // Fetch specific stats for this Cargo context
-            Map<Long, StatSliceDto> cargoStats = Map.of();
-            if (metrics != null) {
-                cargoStats = statsAssembler.buildBatchConcursoCargoStats(cargo.getId(), cargoSubtemaIds, metrics);
-            }
-
-            for (ConcursoCargoSubtemaDto topico : cargo.getTopicos()) {
-                Long topId = topico.getId();
-                if (metrics != null) {
-                    // Specific Cargo context stats: SUMMARY or FULL
-                    topico.setQuestoesConcursoCargo(cargoStats.get(topId));
-                    
-                    // User progress on this subtema: SUMMARY or FULL
-                    topico.setTotalEstudos(counts.getOrDefault(topId, 0L));
-                    topico.setUltimoEstudo(dates.get(topId));
-
-                    // Global questaoStats: ONLY FULL
-                    if (metrics == MetricsLevel.FULL) {
-                        topico.setQuestaoStats(statsAssembler.buildStats(topId, "SUBTEMA", metrics));
-                    }
-                }
-            }
-        }
-    }
-
     private Map<Long, Long> toCountMap(List<Object[]> rows) {
         return rows.stream().collect(Collectors.toMap(
                 row -> ((Number) row[0]).longValue(),
@@ -456,5 +517,4 @@ public class ConcursoService {
         if (val instanceof String) return LocalDateTime.parse((String) val, java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         return null;
     }
-
 }

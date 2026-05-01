@@ -16,6 +16,8 @@ import com.studora.entity.Disciplina;
 import com.studora.entity.Tema;
 import com.studora.entity.Subtema;
 import com.studora.entity.Questao;
+import com.studora.entity.Prova;
+import com.studora.entity.ProvaSecao;
 import com.studora.repository.*;
 import com.studora.service.ConcursoService;
 import com.studora.service.QuestaoService;
@@ -49,7 +51,8 @@ class ConcursoCascadeDeletionTest {
     @Autowired private QuestaoRepository questaoRepository;
     @Autowired private AlternativaRepository alternativaRepository;
     @Autowired private RespostaRepository respostaRepository;
-    @Autowired private QuestaoCargoRepository questaoCargoRepository;
+    @Autowired private ProvaRepository provaRepository;
+    @Autowired private ProvaSecaoRepository provaSecaoRepository;
     @Autowired private EntityManager entityManager;
 
     @Test
@@ -87,12 +90,27 @@ class ConcursoCascadeDeletionTest {
         cc = concursoCargoRepository.save(cc);
         Long concursoCargoId = cc.getId();
 
-        // 4. Create a Questao with Alternativas and Cargo
+        // Create Prova and Secao
+        Prova prova = new Prova();
+        prova.setConcurso(concurso);
+        prova.setNome("Prova Cascade");
+        // O prova.setTipo("OBJETIVA"); foi REMOVIDO aqui
+        prova.addCargo(cc);
+        prova = provaRepository.save(prova);
+
+        ProvaSecao secao = new ProvaSecao();
+        secao.setProva(prova);
+        secao.setNome("Seção Cascade");
+        secao.setOrdem(1);
+        // O secao.setTipo("GERAL"); já estava removido, mantido assim
+        secao = provaSecaoRepository.save(secao);
+        Long secaoId = secao.getId();
+
+        // 4. Create a Questao with Alternativas and Secao
         QuestaoCreateRequest qReq = new QuestaoCreateRequest();
-        qReq.setConcursoId(concursoId);
+        qReq.setSecoesIds(List.of(secaoId));
         qReq.setEnunciado("Enunciado Test");
         qReq.setAnulada(false);
-        qReq.setCargos(List.of(cargo.getId()));
         qReq.setSubtemaIds(List.of(subtema.getId()));
         
         AlternativaCreateRequest alt1 = new AlternativaCreateRequest();
@@ -127,19 +145,15 @@ class ConcursoCascadeDeletionTest {
         assertTrue(respostaRepository.findFirstByQuestaoIdOrderByCreatedAtDesc(questaoId).isPresent());
 
         // 6. ACTION: Delete the Concurso
+        entityManager.clear();
         concursoService.delete(concursoId);
         entityManager.flush();
         entityManager.clear();
 
         // 7. VERIFY CASCADE
         assertFalse(concursoRepository.existsById(concursoId), "Concurso should be deleted");
-        assertFalse(questaoRepository.existsByConcursoId(concursoId), "Questao should be deleted via cascade");
+        assertTrue(provaRepository.findByConcursoId(concursoId).isEmpty(), "Prova should be deleted via cascade");
         assertFalse(concursoCargoRepository.existsByConcursoId(concursoId), "ConcursoCargo should be deleted via cascade");
-        
-        // Verify Questao components are also gone (cascade from Questao)
-        assertTrue(alternativaRepository.findByQuestaoIdOrderByOrdemAsc(questaoId).isEmpty(), "Alternativas should be deleted");
-        assertTrue(respostaRepository.findFirstByQuestaoIdOrderByCreatedAtDesc(questaoId).isEmpty(), "Resposta should be deleted");
-        assertTrue(questaoCargoRepository.findByQuestaoId(questaoId).isEmpty(), "QuestaoCargo associations should be deleted");
     }
 
     @Test
@@ -176,7 +190,9 @@ class ConcursoCascadeDeletionTest {
         Long subtemaId = subtema.getId();
 
         // 2. Create Questao
-        Questao questao = new Questao(concurso, "Questao de teste");
+        Questao questao = new Questao();
+        questao.setEnunciado("Questao de teste");
+        questao.setAutoral(true);
         questao.getSubtemas().add(subtema);
         questao = questaoRepository.save(questao);
         Long questaoId = questao.getId();

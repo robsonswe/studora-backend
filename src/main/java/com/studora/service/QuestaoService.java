@@ -1,28 +1,41 @@
 package com.studora.service;
 
-import com.studora.dto.questao.QuestaoDetailDto;
-import com.studora.dto.questao.QuestaoFilter;
-import com.studora.dto.questao.QuestaoSummaryDto;
-import com.studora.dto.request.QuestaoCreateRequest;
-import com.studora.dto.request.QuestaoUpdateRequest;
-import com.studora.entity.*;
-import com.studora.exception.ResourceNotFoundException;
-import com.studora.mapper.QuestaoMapper;
-import com.studora.repository.*;
-import com.studora.repository.specification.QuestaoSpecification;
-import jakarta.persistence.EntityManager;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
+import com.studora.dto.questao.QuestaoDetailDto;
+import com.studora.dto.questao.QuestaoFilter;
+import com.studora.dto.questao.QuestaoSummaryDto;
+import com.studora.dto.request.QuestaoCreateRequest;
+import com.studora.dto.request.QuestaoUpdateRequest;
+import com.studora.entity.Alternativa;
+import com.studora.entity.ProvaSecao;
+import com.studora.entity.Questao;
+import com.studora.entity.QuestaoProvaSecao;
+import com.studora.entity.Subtema;
+import com.studora.exception.ResourceNotFoundException;
+import com.studora.mapper.QuestaoMapper;
+import com.studora.repository.AlternativaRepository;
+import com.studora.repository.ConcursoCargoRepository;
+import com.studora.repository.ConcursoRepository;
+import com.studora.repository.ProvaSecaoRepository;
+import com.studora.repository.QuestaoRepository;
+import com.studora.repository.RespostaRepository;
+import com.studora.repository.SubtemaRepository;
+import com.studora.repository.specification.QuestaoSpecification;
+
+import jakarta.persistence.EntityManager;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
@@ -38,6 +51,7 @@ public class QuestaoService {
     private final AlternativaRepository alternativaRepository;
     private final QuestaoMapper questaoMapper;
     private final EntityManager entityManager;
+    private final ProvaSecaoRepository provaSecaoRepository;
 
     @Transactional(readOnly = true)
     public Page<QuestaoSummaryDto> findAll(QuestaoFilter filter, Pageable pageable) {
@@ -116,18 +130,13 @@ public class QuestaoService {
     }
 
     public Long create(QuestaoCreateRequest request) {
-        log.info("Criando nova questão para o concurso ID: {}", request.getConcursoId());
+        log.info("Criando nova questão");
 
         boolean isAutoral = Boolean.TRUE.equals(request.getAutoral());
-        validateQuestaoBusinessRules(request.getAlternativas(), request.getAnulada(), request.getCargos(), request.getConcursoId(), isAutoral, request.getSubtemaIds());
+        validateQuestaoBusinessRules(request.getAlternativas(), request.getAnulada(), request.getSecoesIds(), isAutoral, request.getSubtemaIds());
 
         Questao questao = questaoMapper.toEntity(request);
 
-        if (!isAutoral) {
-            Concurso concurso = concursoRepository.findById(request.getConcursoId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Concurso", "ID", request.getConcursoId()));
-            questao.setConcurso(concurso);
-        }
 
         if (request.getSubtemaIds() != null && !request.getSubtemaIds().isEmpty()) {
             List<Subtema> subtemas = subtemaRepository.findAllById(request.getSubtemaIds());
@@ -146,16 +155,8 @@ public class QuestaoService {
             });
         }
 
-        if (!isAutoral && request.getCargos() != null && !request.getCargos().isEmpty()) {
-            for (Long cargoId : request.getCargos()) {
-                ConcursoCargo cc = concursoCargoRepository.findByConcursoIdAndCargoId(request.getConcursoId(), cargoId)
-                        .stream().findFirst()
-                        .orElseThrow(() -> new com.studora.exception.ValidationException("O cargo ID " + cargoId + " não pertence ao concurso ID " + request.getConcursoId()));
-
-                QuestaoCargo qc = new QuestaoCargo();
-                qc.setConcursoCargo(cc);
-                questao.addQuestaoCargo(qc);
-            }
+        if (!isAutoral) {
+            synchronizeSecoes(questao, request.getSecoesIds());
         }
 
         normalizeAlternativaOrders(questao);
@@ -177,7 +178,7 @@ public class QuestaoService {
         }
 
         boolean isAutoral = Boolean.TRUE.equals(questao.getAutoral());
-        validateQuestaoBusinessRules(request.getAlternativas(), request.getAnulada(), request.getCargos(), request.getConcursoId(), isAutoral, request.getSubtemaIds());
+        validateQuestaoBusinessRules(request.getAlternativas(), request.getAnulada(), request.getSecoesIds(), isAutoral, request.getSubtemaIds());
 
         boolean contentChanged = hasContentChanged(questao, request, isAutoral);
         if (contentChanged) {
@@ -185,11 +186,6 @@ public class QuestaoService {
             respostaRepository.deleteByQuestaoId(id);
         }
 
-        if (!isAutoral && request.getConcursoId() != null) {
-            Concurso concurso = concursoRepository.findById(request.getConcursoId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Concurso", "ID", request.getConcursoId()));
-            questao.setConcurso(concurso);
-        }
 
         if (request.getSubtemaIds() != null) {
             List<Subtema> subtemas = subtemaRepository.findAllById(request.getSubtemaIds());
@@ -246,8 +242,8 @@ public class QuestaoService {
             }
         }
 
-        if (!isAutoral && request.getCargos() != null) {
-            synchronizeCargos(questao, request.getCargos(), request.getConcursoId());
+        if (!isAutoral && request.getSecoesIds() != null) {
+            synchronizeSecoes(questao, request.getSecoesIds());
         }
 
         normalizeAlternativaOrders(questao);
@@ -270,7 +266,7 @@ public class QuestaoService {
     }
 
     private void validateQuestaoBusinessRules(List<? extends com.studora.dto.request.AlternativaBaseRequest> alternativas,
-                                            Boolean anulada, List<Long> cargoIds, Long concursoId, boolean autoral,
+                                            Boolean anulada, List<Long> secoesIds, boolean autoral,
                                             List<Long> subtemaIds) {
         if (alternativas == null || alternativas.size() < com.studora.common.constants.AppConstants.MIN_ALTERNATIVAS) {
             throw new com.studora.exception.ValidationException("A questão deve ter pelo menos " + com.studora.common.constants.AppConstants.MIN_ALTERNATIVAS + " alternativas");
@@ -289,16 +285,8 @@ public class QuestaoService {
 
         // Only enforced for standard (non-autoral) questions
         if (!autoral) {
-            if (concursoId == null) {
-                throw new com.studora.exception.ValidationException("Uma questão de concurso deve estar associada a um concurso");
-            }
-            if (cargoIds == null || cargoIds.isEmpty()) {
-                throw new com.studora.exception.ValidationException("Uma questão de concurso deve estar associada a pelo menos um cargo");
-            }
-            for (Long cargoId : cargoIds) {
-                if (!concursoCargoRepository.existsByConcursoIdAndCargoId(concursoId, cargoId)) {
-                    throw new com.studora.exception.ValidationException("O cargo ID " + cargoId + " não pertence ao concurso ID " + concursoId);
-                }
+            if (secoesIds == null || secoesIds.isEmpty()) {
+                throw new com.studora.exception.ValidationException("Uma questão de concurso deve estar associada a pelo menos uma seção de prova");
             }
         }
     }
@@ -307,13 +295,12 @@ public class QuestaoService {
         if (!request.getEnunciado().equals(questao.getEnunciado())) return true;
         if (!request.getAnulada().equals(questao.getAnulada())) return true;
 
-        // Check cargos change (only for non-autoral questions)
-        if (request.getCargos() != null && !isAutoral) {
-            Set<Long> currentCargoIds = questao.getQuestaoCargos().stream()
-                    .map(qc -> qc.getConcursoCargo().getCargo().getId())
+        if (request.getSecoesIds() != null && !isAutoral) {
+            Set<Long> currentSecoesIds = questao.getSecoes().stream()
+                    .map(qs -> qs.getProvaSecao().getId())
                     .collect(Collectors.toSet());
-            Set<Long> newCargoIds = new HashSet<>(request.getCargos());
-            if (!currentCargoIds.equals(newCargoIds)) return true;
+            Set<Long> newSecoesIds = new HashSet<>(request.getSecoesIds());
+            if (!currentSecoesIds.equals(newSecoesIds)) return true;
         }
 
         if (request.getAlternativas().size() != questao.getAlternativas().size()) return true;
@@ -337,25 +324,48 @@ public class QuestaoService {
         return false;
     }
 
-    private void synchronizeCargos(Questao questao, List<Long> cargoIds, Long concursoId) {
-        java.util.Map<Long, QuestaoCargo> currentMap = questao.getQuestaoCargos().stream()
-                .collect(Collectors.toMap(qc -> qc.getConcursoCargo().getCargo().getId(), qc -> qc));
+    private void synchronizeSecoes(Questao questao, List<Long> secoesIds) {
+        if (secoesIds == null || secoesIds.isEmpty()) {
+            questao.getSecoes().clear();
+            return;
+        }
 
-        Set<Long> idsToKeep = new HashSet<>(cargoIds);
+        // Validate: One section per prova per questao
+        Map<Long, String> provaToSecaoMap = new java.util.HashMap<>();
+        for (Long secaoId : secoesIds) {
+            ProvaSecao ps = provaSecaoRepository.findById(secaoId)
+                    .orElseThrow(() -> new ResourceNotFoundException("ProvaSecao", "ID", secaoId));
+            String secaoNome = ps.getNome() != null ? ps.getNome() : "Sem nome";
+            if (ps.getProva() == null) {
+                throw new com.studora.exception.ValidationException("A seção '" + secaoNome + "' (ID: " + secaoId + ") não está vinculada a nenhuma prova.");
+            }
+            Long provaId = ps.getProva().getId();
+            if (provaToSecaoMap.containsKey(provaId)) {
+                throw new com.studora.exception.ValidationException(
+                    "A questão já está vinculada à seção '" + provaToSecaoMap.get(provaId) + 
+                    "' desta prova. Não pode ser vinculada à seção '" + secaoNome + "'."
+                );
+            }
+            provaToSecaoMap.put(provaId, secaoNome);
+        }
+
+        java.util.Map<Long, QuestaoProvaSecao> currentMap = questao.getSecoes().stream()
+                .collect(Collectors.toMap(qs -> qs.getProvaSecao().getId(), qs -> qs));
+
+        Set<Long> idsToKeep = new HashSet<>(secoesIds);
 
         // 1. Remove orphans - leveraging orphanRemoval = true
-        questao.getQuestaoCargos().removeIf(qc -> !idsToKeep.contains(qc.getConcursoCargo().getCargo().getId()));
+        questao.getSecoes().removeIf(qs -> !idsToKeep.contains(qs.getProvaSecao().getId()));
 
         // 2. Add new
-        for (Long cargoId : cargoIds) {
-            if (!currentMap.containsKey(cargoId)) {
-                ConcursoCargo cc = concursoCargoRepository.findByConcursoIdAndCargoId(concursoId, cargoId)
-                        .stream().findFirst()
-                        .orElseThrow(() -> new com.studora.exception.ValidationException("O cargo ID " + cargoId + " não pertence ao concurso ID " + concursoId));
+        for (Long secaoId : secoesIds) {
+            if (!currentMap.containsKey(secaoId)) {
+                ProvaSecao ps = provaSecaoRepository.findById(secaoId)
+                        .orElseThrow(() -> new ResourceNotFoundException("ProvaSecao", "ID", secaoId));
                 
-                QuestaoCargo qc = new QuestaoCargo();
-                qc.setConcursoCargo(cc);
-                questao.addQuestaoCargo(qc);
+                QuestaoProvaSecao qps = new QuestaoProvaSecao();
+                qps.setProvaSecao(ps);
+                questao.addSecao(qps);
             }
         }
     }

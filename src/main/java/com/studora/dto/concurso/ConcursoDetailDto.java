@@ -2,6 +2,7 @@ package com.studora.dto.concurso;
 
 import com.studora.dto.instituicao.InstituicaoSummaryDto;
 import com.studora.dto.banca.BancaSummaryDto;
+import com.studora.dto.prova.ProvaDetailDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import java.util.List;
@@ -18,4 +19,5 @@ public class ConcursoDetailDto {
     private java.time.LocalDateTime dataProva;
     private boolean finalizado;
     private List<ConcursoCargoSummaryDto> cargos;
+    private List<ProvaDetailDto> provas;
 }

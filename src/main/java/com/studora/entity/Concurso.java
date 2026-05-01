@@ -1,12 +1,26 @@
 package com.studora.entity;
 
-import io.swagger.v3.oas.annotations.media.Schema;
-import com.studora.common.constants.AppConstants;
-import jakarta.persistence.*;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import java.util.LinkedHashSet;
 import java.util.Set;
+
+import com.studora.common.constants.AppConstants;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 
 @Entity
 @Table(
@@ -74,8 +88,8 @@ public class Concurso extends BaseEntity {
         orphanRemoval = true,
         fetch = FetchType.LAZY
     )
-    @Schema(description = "Questões associadas ao concurso")
-    private Set<Questao> questoes = new LinkedHashSet<>();
+    @Schema(description = "Associações entre o concurso e cargos")
+    private Set<ConcursoCargo> concursoCargos = new LinkedHashSet<>();
 
     @OneToMany(
         mappedBy = "concurso",
@@ -83,8 +97,8 @@ public class Concurso extends BaseEntity {
         orphanRemoval = true,
         fetch = FetchType.LAZY
     )
-    @Schema(description = "Associações entre o concurso e cargos")
-    private Set<ConcursoCargo> concursoCargos = new LinkedHashSet<>();
+    @Schema(description = "Provas associadas ao concurso")
+    private Set<Prova> provas = new LinkedHashSet<>();
 
     public Concurso() {}
 
@@ -160,13 +174,6 @@ public class Concurso extends BaseEntity {
         this.finalizado = finalizado;
     }
 
-    public Set<Questao> getQuestoes() {
-        return questoes;
-    }
-
-    public void setQuestoes(Set<Questao> questoes) {
-        this.questoes = questoes;
-    }
 
     public Set<ConcursoCargo> getConcursoCargos() {
         return concursoCargos;
@@ -176,13 +183,22 @@ public class Concurso extends BaseEntity {
         this.concursoCargos = concursoCargos;
     }
 
-    public void addQuestao(Questao questao) {
-        this.questoes.add(questao);
-        questao.setConcurso(this);
-    }
 
     public void addConcursoCargo(ConcursoCargo concursoCargo) {
         this.concursoCargos.add(concursoCargo);
         concursoCargo.setConcurso(this);
     }
+
+        public Set<Prova> getProvas() {
+        return provas;
+    }
+    public void setProvas(Set<Prova> provas) {
+        this.provas = provas;
+    }
+    public void addProva(Prova prova) {
+        this.provas.add(prova);
+        prova.setConcurso(this);
+    }
+
+
 }

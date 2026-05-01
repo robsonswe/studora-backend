@@ -1,5 +1,10 @@
 package com.studora.mapper;
 
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
+import org.mapstruct.NullValueMappingStrategy;
+
 import com.studora.dto.questao.ConcursoQuestaoDto;
 import com.studora.dto.questao.QuestaoDetailDto;
 import com.studora.dto.questao.QuestaoSummaryDto;
@@ -7,16 +12,11 @@ import com.studora.dto.questao.SubtemaQuestaoDto;
 import com.studora.dto.request.QuestaoCreateRequest;
 import com.studora.dto.request.QuestaoUpdateRequest;
 import com.studora.entity.Questao;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
-import org.mapstruct.NullValueMappingStrategy;
 
 @Mapper(componentModel = "spring", uses = {AlternativaMapper.class, SubtemaMapper.class, RespostaMapper.class, CargoMapper.class, ConcursoMapper.class}, nullValueMappingStrategy = NullValueMappingStrategy.RETURN_NULL)
 public interface QuestaoMapper {
 
-    @Mapping(target = "concurso", source = "concurso")
-    @Mapping(target = "cargos", source = "questaoCargos")
+    @Mapping(target = "concurso", expression = "java(mapConcursoFromSecoes(questao.getSecoes()))")
     @Mapping(target = "alternativas", source = "alternativas")
     @Mapping(target = "respostas", source = "respostas")
     @Mapping(target = "subtemas", source = "subtemas")
@@ -24,20 +24,18 @@ public interface QuestaoMapper {
     @Mapping(target = "autoral", source = "autoral")
     QuestaoSummaryDto toSummaryDto(Questao questao);
 
-    @Mapping(target = "concurso", source = "concurso")
+    @Mapping(target = "concurso", expression = "java(mapConcursoFromSecoes(questao.getSecoes()))")
     @Mapping(target = "alternativas", source = "alternativas")
     @Mapping(target = "subtemas", source = "subtemas")
-    @Mapping(target = "cargos", source = "questaoCargos")
     @Mapping(target = "respostas", source = "respostas")
     @Mapping(target = "respondida", expression = "java(questao.getRespostas() != null && !questao.getRespostas().isEmpty())")
     @Mapping(target = "autoral", source = "autoral")
     QuestaoDetailDto toDetailDto(Questao questao);
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "concurso", ignore = true)
     @Mapping(target = "alternativas", ignore = true)
     @Mapping(target = "subtemas", ignore = true)
-    @Mapping(target = "questaoCargos", ignore = true)
+    @Mapping(target = "secoes", ignore = true)
     @Mapping(target = "respostas", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
@@ -45,10 +43,9 @@ public interface QuestaoMapper {
     Questao toEntity(QuestaoCreateRequest request);
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "concurso", ignore = true)
     @Mapping(target = "alternativas", ignore = true)
     @Mapping(target = "subtemas", ignore = true)
-    @Mapping(target = "questaoCargos", ignore = true)
+    @Mapping(target = "secoes", ignore = true)
     @Mapping(target = "respostas", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
@@ -68,21 +65,54 @@ public interface QuestaoMapper {
     @Mapping(target = "disciplina", source = "tema.disciplina")
     SubtemaQuestaoDto toSubtemaQuestaoDto(com.studora.entity.Subtema subtema);
 
-    default java.util.List<com.studora.dto.cargo.CargoSummaryDto> mapCargos(java.util.Set<com.studora.entity.QuestaoCargo> questaoCargos) {
-        if (questaoCargos == null) {
-            return java.util.Collections.emptyList();
+    
+    default ConcursoQuestaoDto mapConcursoFromSecoes(java.util.Set<com.studora.entity.QuestaoProvaSecao> qpSecoes) {
+        if (qpSecoes == null || qpSecoes.isEmpty()) return null;
+        
+        com.studora.entity.QuestaoProvaSecao firstQps = qpSecoes.iterator().next();
+        if (firstQps.getProvaSecao() != null && firstQps.getProvaSecao().getProva() != null) {
+            com.studora.entity.Concurso concurso = firstQps.getProvaSecao().getProva().getConcurso();
+            if (concurso != null) {
+                ConcursoQuestaoDto dto = toConcursoQuestaoDto(concurso);
+                
+                // Map to group cargos and their secoes
+                java.util.Map<Long, com.studora.dto.questao.CargoQuestaoDto> cargoMap = new java.util.LinkedHashMap<>();
+                
+                for (com.studora.entity.QuestaoProvaSecao qps : qpSecoes) {
+                    com.studora.entity.ProvaSecao ps = qps.getProvaSecao();
+                    if (ps == null || ps.getProva() == null) continue;
+                    
+                    com.studora.dto.questao.SecaoQuestaoDto sDto = new com.studora.dto.questao.SecaoQuestaoDto();
+                    sDto.setId(ps.getId());
+                    sDto.setNome(ps.getNome());
+                    sDto.setProvaNome(ps.getProva().getNome());
+                    sDto.setProvaId(ps.getProva().getId());
+                    
+                    for (com.studora.entity.ConcursoCargo cc : ps.getProva().getCargos()) {
+                        com.studora.entity.Cargo cargo = cc.getCargo();
+                        com.studora.dto.questao.CargoQuestaoDto cDto = cargoMap.computeIfAbsent(cargo.getId(), id -> {
+                            com.studora.dto.questao.CargoQuestaoDto newCDto = new com.studora.dto.questao.CargoQuestaoDto();
+                            newCDto.setId(cargo.getId());
+                            newCDto.setNome(cargo.getNome());
+                            newCDto.setNivel(cargo.getNivel());
+                            newCDto.setArea(cargo.getArea());
+                            newCDto.setSecoes(new java.util.ArrayList<>());
+                            return newCDto;
+                        });
+                        
+                        // Avoid duplicates if a question is somehow linked twice to the same section
+                        if (cDto.getSecoes().stream().noneMatch(existing -> existing.getId().equals(sDto.getId()))) {
+                            cDto.getSecoes().add(sDto);
+                        }
+                    }
+                }
+                
+                dto.setCargos(new java.util.ArrayList<>(cargoMap.values()));
+                return dto;
+            }
         }
-        return questaoCargos.stream()
-                .map(qc -> {
-                    com.studora.entity.Cargo cargo = qc.getConcursoCargo().getCargo();
-                    com.studora.dto.cargo.CargoSummaryDto dto = new com.studora.dto.cargo.CargoSummaryDto();
-                    dto.setId(cargo.getId());
-                    dto.setNome(cargo.getNome());
-                    dto.setNivel(cargo.getNivel());
-                    dto.setArea(cargo.getArea());
-                    return dto;
-                })
-                .sorted(java.util.Comparator.comparing(com.studora.dto.cargo.CargoSummaryDto::getNome))
-                .collect(java.util.stream.Collectors.toList());
+        return null;
     }
+
+
 }

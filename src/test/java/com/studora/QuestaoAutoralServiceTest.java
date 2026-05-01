@@ -1,29 +1,47 @@
 package com.studora;
 
-import com.studora.dto.questao.QuestaoDetailDto;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import org.mockito.Spy;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import com.studora.dto.request.AlternativaCreateRequest;
 import com.studora.dto.request.AlternativaUpdateRequest;
 import com.studora.dto.request.QuestaoCreateRequest;
 import com.studora.dto.request.QuestaoUpdateRequest;
-import com.studora.entity.*;
+import com.studora.entity.Alternativa;
+import com.studora.entity.Cargo;
+import com.studora.entity.Concurso;
+import com.studora.entity.ConcursoCargo;
+import com.studora.entity.Disciplina;
+import com.studora.entity.NivelCargo;
+import com.studora.entity.Questao;
+import com.studora.entity.Subtema;
+import com.studora.entity.Tema;
 import com.studora.exception.ValidationException;
 import com.studora.mapper.QuestaoMapper;
-import com.studora.repository.*;
+import com.studora.repository.AlternativaRepository;
+import com.studora.repository.ConcursoCargoRepository;
+import com.studora.repository.ConcursoRepository;
+import com.studora.repository.ProvaRepository;
+import com.studora.repository.ProvaSecaoRepository;
+import com.studora.repository.QuestaoRepository;
+import com.studora.repository.RespostaRepository;
+import com.studora.repository.SubtemaRepository;
 import com.studora.service.QuestaoService;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Spy;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
-
-import java.util.*;
-
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for autoral question logic in QuestaoService (Phase 7.2).
@@ -51,6 +69,12 @@ class QuestaoAutoralServiceTest {
 
     @Mock
     private AlternativaRepository alternativaRepository;
+
+    @Mock
+    private ProvaRepository provaRepository;
+
+    @Mock
+    private ProvaSecaoRepository provaSecaoRepository;
 
     @Spy
     private QuestaoMapper questaoMapper = org.mapstruct.factory.Mappers.getMapper(QuestaoMapper.class);
@@ -109,14 +133,13 @@ class QuestaoAutoralServiceTest {
         QuestaoCreateRequest request = new QuestaoCreateRequest();
         request.setEnunciado("Standard without concurso");
         request.setAutoral(false);
-        request.setConcursoId(null);
+        request.setSecoesIds(null); // instead of concursoId(null)
         request.setSubtemaIds(List.of(subtema.getId()));
-        request.setCargos(List.of(cargo.getId()));
         request.setAlternativas(buildAlternativasCreate());
 
         assertThatThrownBy(() -> questaoService.create(request))
             .isInstanceOf(ValidationException.class)
-            .hasMessageContaining("deve estar associada a um concurso");
+            .hasMessageContaining("Uma questão de concurso deve estar associada a pelo menos uma seção de prova");
     }
 
     @Test
@@ -127,7 +150,6 @@ class QuestaoAutoralServiceTest {
         existing.setEnunciado("Autoral original");
         existing.setAnulada(false);
         existing.setAlternativas(new LinkedHashSet<>());
-        existing.setQuestaoCargos(new LinkedHashSet<>());
 
         Alternativa alt = new Alternativa();
         alt.setId(1L);
@@ -160,7 +182,6 @@ class QuestaoAutoralServiceTest {
         existing.setEnunciado("Autoral original");
         existing.setAnulada(false);
         existing.setAlternativas(new LinkedHashSet<>());
-        existing.setQuestaoCargos(new LinkedHashSet<>());
 
         Alternativa alt = new Alternativa();
         alt.setId(1L);

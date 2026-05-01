@@ -1,27 +1,22 @@
 package com.studora.entity;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
-
-import java.util.LinkedHashSet;
-import java.util.Set;
 
 @Getter
 @Setter
@@ -62,36 +57,6 @@ public class ConcursoCargo extends BaseEntity {
     @Column(nullable = false)
     @Schema(description = "Indica se o usuário está inscrito para este cargo neste concurso", example = "false")
     private boolean inscrito = false;
-
-    @OneToMany(
-        mappedBy = "concursoCargo",
-        cascade = CascadeType.ALL,
-        orphanRemoval = true,
-        fetch = FetchType.LAZY
-    )
-    @Schema(description = "Associações entre este concurso-cargo e questões")
-    @ToString.Exclude
-    private Set<QuestaoCargo> questaoCargos = new LinkedHashSet<>();
-
-    public void addQuestaoCargo(QuestaoCargo questaoCargo) {
-        this.questaoCargos.add(questaoCargo);
-        questaoCargo.setConcursoCargo(this);
-    }
-
-    @OneToMany(
-        mappedBy = "concursoCargo",
-        cascade = CascadeType.ALL,
-        orphanRemoval = true,
-        fetch = FetchType.LAZY
-    )
-    @Schema(description = "Subtemas associados a este concurso-cargo")
-    @ToString.Exclude
-    private Set<ConcursoCargoSubtema> concursoCargoSubtemas = new LinkedHashSet<>();
-
-    public void addConcursoCargoSubtema(ConcursoCargoSubtema concursoCargoSubtema) {
-        this.concursoCargoSubtemas.add(concursoCargoSubtema);
-        concursoCargoSubtema.setConcursoCargo(this);
-    }
 
     @Override
     public boolean equals(Object o) {

@@ -25,7 +25,8 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Integration tests for autoral questions (Phase 7.1 of IMPLEMENTATION_PLAN_AUTORAL.md).
+ * Integration tests for autoral questions (Phase 7.1 of
+ * IMPLEMENTATION_PLAN_AUTORAL.md).
  * Tests creation, type immutability, filtering, and random endpoint behavior.
  */
 @SpringBootTest
@@ -65,12 +66,19 @@ class QuestaoAutoralControllerTest {
     private ConcursoCargoRepository concursoCargoRepository;
 
     @Autowired
+    private ProvaRepository provaRepository;
+
+    @Autowired
+    private ProvaSecaoRepository provaSecaoRepository;
+
+    @Autowired
     private jakarta.persistence.EntityManager entityManager;
 
     private Subtema subtema;
     private Concurso concurso;
     private Cargo cargo;
     private ConcursoCargo concursoCargo;
+    private ProvaSecao savedSecao;
 
     @BeforeEach
     void setUp() {
@@ -99,7 +107,19 @@ class QuestaoAutoralControllerTest {
         concursoCargo.setConcurso(concurso);
         concursoCargo.setCargo(cargo);
         concursoCargoRepository.save(concursoCargo);
-        concurso.addConcursoCargo(concursoCargo);
+
+        // Create Prova and Secao
+        Prova prova = new Prova();
+        prova.setConcurso(concurso);
+        prova.setNome("Prova Autoral Test");
+        prova.addCargo(concursoCargo);
+        prova = provaRepository.save(prova);
+
+        savedSecao = new ProvaSecao();
+        savedSecao.setProva(prova);
+        savedSecao.setNome("Seção Autoral Test");
+        savedSecao.setOrdem(1);
+        savedSecao = provaSecaoRepository.save(savedSecao);
     }
 
     // ========== POST /questoes — autoral creation ==========
@@ -114,27 +134,25 @@ class QuestaoAutoralControllerTest {
         request.setAutoral(true);
         request.setSubtemaIds(Collections.singletonList(subtema.getId()));
         request.setAlternativas(Arrays.asList(alt1, alt2));
-        // No concursoId, no cargos — autoral doesn't need them
+        // No secoesIds — autoral doesn't need them
 
         // POST returns PostResponseDto with id and message
         String postResponse = mockMvc.perform(post("/api/v1/questoes")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtil.asJsonString(request)))
-            .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.id").isNumber())
-            .andExpect(jsonPath("$.message").exists())
-            .andReturn().getResponse().getContentAsString();
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").isNumber())
+                .andExpect(jsonPath("$.message").exists())
+                .andReturn().getResponse().getContentAsString();
 
         Long createdId = new com.fasterxml.jackson.databind.ObjectMapper()
                 .readTree(postResponse).get("id").asLong();
 
         // Verify autoral fields via GET (admin=true to see full detail)
         mockMvc.perform(get("/api/v1/questoes/{id}", createdId).param("admin", "true"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.autoral").value(true))
-            .andExpect(jsonPath("$.concurso").doesNotExist())
-            .andExpect(jsonPath("$.cargos").isArray())
-            .andExpect(jsonPath("$.cargos").isEmpty());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.autoral").value(true))
+                .andExpect(jsonPath("$.concurso").doesNotExist());
     }
 
     @Test
@@ -147,12 +165,12 @@ class QuestaoAutoralControllerTest {
         request.setAutoral(false); // default
         request.setSubtemaIds(Collections.singletonList(subtema.getId()));
         request.setAlternativas(Arrays.asList(alt1, alt2));
-        // No concursoId, no cargos
+        // No secoesIds
 
         mockMvc.perform(post("/api/v1/questoes")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtil.asJsonString(request)))
-            .andExpect(status().isUnprocessableEntity());
+                .andExpect(status().isUnprocessableEntity());
     }
 
     @Test
@@ -165,11 +183,12 @@ class QuestaoAutoralControllerTest {
         request.setSubtemaIds(Collections.singletonList(subtema.getId()));
         request.setAlternativas(Collections.singletonList(alt1));
 
-        // @Size triggers Bean Validation → 400 (not service-level ValidationException → 422)
+        // @Size triggers Bean Validation → 400 (not service-level ValidationException →
+        // 422)
         mockMvc.perform(post("/api/v1/questoes")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtil.asJsonString(request)))
-            .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -186,8 +205,8 @@ class QuestaoAutoralControllerTest {
         mockMvc.perform(post("/api/v1/questoes")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtil.asJsonString(request)))
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("pelo menos um subtema")));
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("pelo menos um subtema")));
     }
 
     @Test
@@ -198,16 +217,15 @@ class QuestaoAutoralControllerTest {
         QuestaoCreateRequest request = new QuestaoCreateRequest();
         request.setEnunciado("Questão padrão sem subtema");
         request.setAutoral(false);
-        request.setConcursoId(concurso.getId());
+        request.setSecoesIds(Collections.singletonList(savedSecao.getId()));
         request.setSubtemaIds(null); // no subtemas
-        request.setCargos(Collections.singletonList(cargo.getId()));
         request.setAlternativas(Arrays.asList(alt1, alt2));
 
         mockMvc.perform(post("/api/v1/questoes")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtil.asJsonString(request)))
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("pelo menos um subtema")));
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("pelo menos um subtema")));
     }
 
     @Test
@@ -225,7 +243,7 @@ class QuestaoAutoralControllerTest {
         mockMvc.perform(post("/api/v1/questoes")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtil.asJsonString(request)))
-            .andExpect(status().isUnprocessableEntity());
+                .andExpect(status().isUnprocessableEntity());
     }
 
     // ========== PUT /questoes/{id} — type immutability ==========
@@ -247,8 +265,8 @@ class QuestaoAutoralControllerTest {
         mockMvc.perform(put("/api/v1/questoes/{id}", autoral.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtil.asJsonString(request)))
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("não pode ser alterado")));
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("não pode ser alterado")));
     }
 
     @Test
@@ -268,8 +286,8 @@ class QuestaoAutoralControllerTest {
         mockMvc.perform(put("/api/v1/questoes/{id}", standard.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtil.asJsonString(request)))
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("não pode ser alterado")));
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("não pode ser alterado")));
     }
 
     @Test
@@ -289,7 +307,7 @@ class QuestaoAutoralControllerTest {
         mockMvc.perform(put("/api/v1/questoes/{id}", autoral.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtil.asJsonString(request)))
-            .andExpect(status().isOk());
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -309,7 +327,7 @@ class QuestaoAutoralControllerTest {
         mockMvc.perform(put("/api/v1/questoes/{id}", autoral.getId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtil.asJsonString(request)))
-            .andExpect(status().isOk());
+                .andExpect(status().isOk());
     }
 
     // ========== GET /questoes — filtering ==========
@@ -322,9 +340,10 @@ class QuestaoAutoralControllerTest {
 
         mockMvc.perform(get("/api/v1/questoes")
                 .param("autoral", "true"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.content.length()").value(2))
-            .andExpect(jsonPath("$.content[*].autoral").value(org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.is(true))));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[*].autoral")
+                        .value(org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.is(true))));
     }
 
     @Test
@@ -335,9 +354,10 @@ class QuestaoAutoralControllerTest {
 
         mockMvc.perform(get("/api/v1/questoes")
                 .param("autoral", "false"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.content.length()").value(2))
-            .andExpect(jsonPath("$.content[*].autoral").value(org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.is(false))));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[*].autoral")
+                        .value(org.hamcrest.Matchers.everyItem(org.hamcrest.Matchers.is(false))));
     }
 
     @Test
@@ -346,8 +366,8 @@ class QuestaoAutoralControllerTest {
         createStandardQuestao("Standard 1");
 
         mockMvc.perform(get("/api/v1/questoes"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.content.length()").value(2));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(2));
     }
 
     // ========== GET /questoes/random ==========
@@ -358,7 +378,7 @@ class QuestaoAutoralControllerTest {
 
         mockMvc.perform(get("/api/v1/questoes/random")
                 .param("subtemaId", subtema.getId().toString()))
-            .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -368,8 +388,8 @@ class QuestaoAutoralControllerTest {
         mockMvc.perform(get("/api/v1/questoes/random")
                 .param("subtemaId", subtema.getId().toString())
                 .param("includeAutoral", "true"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.autoral").value(true));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.autoral").value(true));
     }
 
     // ========== Helper methods ==========
@@ -397,9 +417,9 @@ class QuestaoAutoralControllerTest {
         entityManager.refresh(withDetails);
         // Force load alternatives through a query
         List<Alternativa> alts = entityManager.createQuery(
-            "SELECT a FROM Alternativa a WHERE a.questao.id = :qid ORDER BY a.ordem", Alternativa.class)
-            .setParameter("qid", questao.getId())
-            .getResultList();
+                "SELECT a FROM Alternativa a WHERE a.questao.id = :qid ORDER BY a.ordem", Alternativa.class)
+                .setParameter("qid", questao.getId())
+                .getResultList();
         return alts.isEmpty() ? null : alts.get(0).getId();
     }
 
@@ -417,8 +437,8 @@ class QuestaoAutoralControllerTest {
             String response = mockMvc.perform(post("/api/v1/questoes")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(request)))
-                .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
+                    .andExpect(status().isCreated())
+                    .andReturn().getResponse().getContentAsString();
 
             Long id = new com.fasterxml.jackson.databind.ObjectMapper().readTree(response).get("id").asLong();
             return entityManager.find(Questao.class, id);
@@ -434,17 +454,16 @@ class QuestaoAutoralControllerTest {
         QuestaoCreateRequest request = new QuestaoCreateRequest();
         request.setEnunciado(enunciado);
         request.setAutoral(false);
-        request.setConcursoId(concurso.getId());
+        request.setSecoesIds(Collections.singletonList(savedSecao.getId()));
         request.setSubtemaIds(Collections.singletonList(subtema.getId()));
-        request.setCargos(Collections.singletonList(cargo.getId()));
         request.setAlternativas(Arrays.asList(alt1, alt2));
 
         try {
             String response = mockMvc.perform(post("/api/v1/questoes")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(TestUtil.asJsonString(request)))
-                .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
+                    .andExpect(status().isCreated())
+                    .andReturn().getResponse().getContentAsString();
 
             Long id = new com.fasterxml.jackson.databind.ObjectMapper().readTree(response).get("id").asLong();
             return entityManager.find(Questao.class, id);

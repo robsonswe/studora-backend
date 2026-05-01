@@ -1,11 +1,12 @@
 package com.studora.dto.questao;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonView;
 import com.studora.dto.Views;
-import io.swagger.v3.oas.annotations.media.Content;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-import java.util.List;
 
 /**
  * Minimal representation for question listings.
@@ -49,9 +50,6 @@ public class QuestaoSummaryDto {
     @JsonView(Views.Summary.class)
     private List<SubtemaQuestaoDto> subtemas;
 
-    @Schema(description = "Cargos associados à questão")
-    @JsonView(Views.Summary.class)
-    private List<com.studora.dto.cargo.CargoSummaryDto> cargos;
 
     @Schema(description = "Alternativas da questão")
     @JsonView(Views.Summary.class)

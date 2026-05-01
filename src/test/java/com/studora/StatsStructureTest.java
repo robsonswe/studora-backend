@@ -30,29 +30,47 @@ import java.util.Iterator;
 @Transactional
 class StatsStructureTest {
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private ObjectMapper objectMapper;
-    @Autowired private CacheManager cacheManager;
+    @Autowired
+    private MockMvc mockMvc;
+    @Autowired
+    private ObjectMapper objectMapper;
+    @Autowired
+    private CacheManager cacheManager;
 
-    @Autowired private BancaRepository bancaRepository;
-    @Autowired private InstituicaoRepository instituicaoRepository;
-    @Autowired private CargoRepository cargoRepository;
-    @Autowired private ConcursoRepository concursoRepository;
-    @Autowired private ConcursoCargoRepository concursoCargoRepository;
-    @Autowired private DisciplinaRepository disciplinaRepository;
-    @Autowired private TemaRepository temaRepository;
-    @Autowired private SubtemaRepository subtemaRepository;
-    @Autowired private QuestaoRepository questaoRepository;
-    @Autowired private AlternativaRepository alternativaRepository;
-    @Autowired private RespostaRepository respostaRepository;
-    @Autowired private QuestaoCargoRepository questaoCargoRepository;
+    @Autowired
+    private BancaRepository bancaRepository;
+    @Autowired
+    private InstituicaoRepository instituicaoRepository;
+    @Autowired
+    private CargoRepository cargoRepository;
+    @Autowired
+    private ConcursoRepository concursoRepository;
+    @Autowired
+    private ConcursoCargoRepository concursoCargoRepository;
+    @Autowired
+    private DisciplinaRepository disciplinaRepository;
+    @Autowired
+    private TemaRepository temaRepository;
+    @Autowired
+    private SubtemaRepository subtemaRepository;
+    @Autowired
+    private QuestaoRepository questaoRepository;
+    @Autowired
+    private AlternativaRepository alternativaRepository;
+    @Autowired
+    private RespostaRepository respostaRepository;
+    @Autowired
+    private ProvaRepository provaRepository;
+    @Autowired
+    private ProvaSecaoRepository provaSecaoRepository;
 
     @BeforeEach
     void clearCaches() {
         if (cacheManager != null) {
             cacheManager.getCacheNames().forEach(name -> {
                 var cache = cacheManager.getCache(name);
-                if (cache != null) cache.clear();
+                if (cache != null)
+                    cache.clear();
             });
         }
     }
@@ -104,23 +122,34 @@ class StatsStructureTest {
         subtema.setTema(tema);
         data.subtema = subtemaRepository.save(subtema);
 
+        // Create Prova and Secao
+        Prova prova = new Prova();
+        prova.setConcurso(data.concurso);
+        prova.setNome("Prova Agente");
+        prova.addCargo(concursoCargo);
+        prova = provaRepository.save(prova);
+
+        ProvaSecao secao = new ProvaSecao();
+        secao.setProva(prova);
+        secao.setNome("Conhecimentos Gerais");
+        secao.setOrdem(1);
+        secao = provaSecaoRepository.save(secao);
+
         // Create questions with alternatives
         for (int i = 0; i < 5; i++) {
             Questao questao = new Questao();
-            questao.setConcurso(data.concurso);
             questao.setEnunciado("Questão " + i);
             questao.setAnulada(false);
-            questao = questaoRepository.save(questao);
 
-            // Link questao to cargo
-            QuestaoCargo qc = new QuestaoCargo();
-            qc.setQuestao(questao);
-            qc.setConcursoCargo(concursoCargo);
-            questaoCargoRepository.save(qc);
+            // Link questao to secao
+            QuestaoProvaSecao qps = new QuestaoProvaSecao();
+            qps.setProvaSecao(secao);
+            questao.addSecao(qps);
 
             // Link questao to subtema
             questao.getSubtemas().add(subtema);
-            questaoRepository.save(questao);
+
+            questao = questaoRepository.save(questao);
 
             // Create alternatives (first one is correct)
             Alternativa altCorreta = new Alternativa();
@@ -165,13 +194,15 @@ class StatsStructureTest {
     // ==================== ASSERTION HELPERS ====================
 
     private void assertDificuldadeHasStringKeys(JsonNode dificuldadeNode, String endpoint) {
-        if (dificuldadeNode == null || dificuldadeNode.isMissingNode()) return;
-        
+        if (dificuldadeNode == null || dificuldadeNode.isMissingNode())
+            return;
+
         Iterator<String> fieldNames = dificuldadeNode.fieldNames();
         while (fieldNames.hasNext()) {
             String key = fieldNames.next();
             if (key.matches("\\d+")) {
-                throw new AssertionError(endpoint + " - dificuldade key should be string (FACIL/MEDIA/DIFICIL/CHUTE) but got numeric: " + key);
+                throw new AssertionError(endpoint
+                        + " - dificuldade key should be string (FACIL/MEDIA/DIFICIL/CHUTE) but got numeric: " + key);
             }
             if (!key.equals("FACIL") && !key.equals("MEDIA") && !key.equals("DIFICIL") && !key.equals("CHUTE")) {
                 throw new AssertionError(endpoint + " - dificuldade key has unexpected value: " + key);
@@ -186,9 +217,11 @@ class StatsStructureTest {
     }
 
     private void assertPorStatsPopulated(JsonNode porNode, String porName, String endpoint) {
-        if (porNode == null || porNode.isMissingNode()) return;
-        if (!porNode.isObject()) return;
-        
+        if (porNode == null || porNode.isMissingNode())
+            return;
+        if (!porNode.isObject())
+            return;
+
         if (porNode.size() == 0) {
             // Empty is OK if no data exists for that breakdown
             return;
@@ -198,30 +231,35 @@ class StatsStructureTest {
         while (keys.hasNext()) {
             String key = keys.next();
             JsonNode slice = porNode.get(key);
-            
-            // For Long-keyed maps (porBanca, porInstituicao, porCargo), nome should be entity name not ID
+
+            // For Long-keyed maps (porBanca, porInstituicao, porCargo), nome should be
+            // entity name not ID
             if (slice.has("nome")) {
                 String nome = slice.get("nome").asText();
                 // nome should NOT be just a number - it should be the actual entity name
                 if (nome.matches("\\d+")) {
                     // This is a bug - nome is showing ID instead of actual name
                     // We'll fail the test for this
-                    throw new AssertionError(endpoint + "." + porName + "[" + key + "].nome shows ID '" + nome + "' instead of entity name");
+                    throw new AssertionError(endpoint + "." + porName + "[" + key + "].nome shows ID '" + nome
+                            + "' instead of entity name");
                 }
             }
-            
+
             // Should have id field for entity-keyed maps
             if (key.matches("\\d+") && slice.has("id")) {
                 long idFromField = slice.get("id").asLong();
                 if (idFromField != Long.parseLong(key)) {
-                    throw new AssertionError(endpoint + "." + porName + "[" + key + "].id (" + idFromField + ") doesn't match map key");
+                    throw new AssertionError(
+                            endpoint + "." + porName + "[" + key + "].id (" + idFromField + ") doesn't match map key");
                 }
             }
         }
     }
 
-    private void validateQuestaoStatsStructure(JsonNode statsNode, String endpoint, boolean expectBreakdowns) throws Exception {
-        if (statsNode == null || statsNode.isMissingNode()) return;
+    private void validateQuestaoStatsStructure(JsonNode statsNode, String endpoint, boolean expectBreakdowns)
+            throws Exception {
+        if (statsNode == null || statsNode.isMissingNode())
+            return;
 
         // Validate total exists and has structure
         JsonNode total = statsNode.get("total");
@@ -237,7 +275,8 @@ class StatsStructureTest {
 
         if (expectBreakdowns) {
             // Validate all por stats if they exist
-            String[] porFields = {"porNivel", "porBanca", "porInstituicao", "porAreaInstituicao", "porCargo", "porAreaCargo"};
+            String[] porFields = { "porNivel", "porBanca", "porInstituicao", "porAreaInstituicao", "porCargo",
+                    "porAreaCargo" };
             for (String field : porFields) {
                 if (statsNode.has(field) && !statsNode.get(field).isMissingNode()) {
                     assertPorStatsPopulated(statsNode.get(field), field, endpoint);
@@ -283,7 +322,8 @@ class StatsStructureTest {
         void testBancaListWithFullMetrics() throws Exception {
             createTestData();
 
-            mockMvc.perform(get("/api/v1/bancas").param("metrics", "full").param("sort", "nome").param("direction", "ASC"))
+            mockMvc.perform(
+                    get("/api/v1/bancas").param("metrics", "full").param("sort", "nome").param("direction", "ASC"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content").isArray());
         }
@@ -308,8 +348,8 @@ class StatsStructureTest {
 
             JsonNode stats = root.get("questaoStats");
             // porNivel is redundant for Cargo (a cargo has a single nivel)
-            assert !stats.has("porNivel") || stats.path("porNivel").isMissingNode() :
-                "porNivel should not exist for Cargo endpoint";
+            assert !stats.has("porNivel") || stats.path("porNivel").isMissingNode()
+                    : "porNivel should not exist for Cargo endpoint";
             assert stats.has("porBanca") : "porBanca should exist";
             assert stats.has("porAreaCargo") : "porAreaCargo should exist";
             assert stats.has("porAreaInstituicao") : "porAreaInstituicao should exist";
@@ -322,7 +362,8 @@ class StatsStructureTest {
         void testCargoListWithFullMetrics() throws Exception {
             createTestData();
 
-            mockMvc.perform(get("/api/v1/cargos").param("metrics", "full").param("sort", "nome").param("direction", "ASC"))
+            mockMvc.perform(
+                    get("/api/v1/cargos").param("metrics", "full").param("sort", "nome").param("direction", "ASC"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content").isArray());
         }
@@ -352,7 +393,8 @@ class StatsStructureTest {
         void testInstituicaoListWithFullMetrics() throws Exception {
             createTestData();
 
-            mockMvc.perform(get("/api/v1/instituicoes").param("metrics", "full").param("sort", "nome").param("direction", "ASC"))
+            mockMvc.perform(get("/api/v1/instituicoes").param("metrics", "full").param("sort", "nome")
+                    .param("direction", "ASC"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content").isArray());
         }
@@ -377,7 +419,8 @@ class StatsStructureTest {
             assert !stats.isMissingNode() : "questaoStats should exist";
 
             // Validate all 6 por fields exist
-            String[] porFields = {"porNivel", "porBanca", "porInstituicao", "porAreaInstituicao", "porCargo", "porAreaCargo"};
+            String[] porFields = { "porNivel", "porBanca", "porInstituicao", "porAreaInstituicao", "porCargo",
+                    "porAreaCargo" };
             for (String field : porFields) {
                 assert stats.has(field) : field + " should exist in disciplina stats";
                 // Validate each has proper structure
@@ -396,7 +439,8 @@ class StatsStructureTest {
         void testDisciplinaCompleto() throws Exception {
             TestData data = createTestData();
 
-            MvcResult result = performGetWithMetrics("/api/v1/disciplinas/" + data.disciplina.getId() + "/completo", "full");
+            MvcResult result = performGetWithMetrics("/api/v1/disciplinas/" + data.disciplina.getId() + "/completo",
+                    "full");
             String json = result.getResponse().getContentAsString();
             JsonNode root = objectMapper.readTree(json);
 
@@ -440,8 +484,8 @@ class StatsStructureTest {
             // Validate nested disciplina doesn't have questaoStats (lean rule)
             JsonNode disciplina = root.path("disciplina");
             if (!disciplina.isMissingNode()) {
-                assert !disciplina.has("questaoStats") || disciplina.path("questaoStats").isNull() : 
-                    "nested disciplina should not have questaoStats";
+                assert !disciplina.has("questaoStats") || disciplina.path("questaoStats").isNull()
+                        : "nested disciplina should not have questaoStats";
             }
         }
     }
@@ -470,8 +514,8 @@ class StatsStructureTest {
                 assert tema.has("id") : "tema should have id";
                 assert tema.has("nome") : "tema should have nome";
                 // Should NOT have subtemas, disciplina, stats, etc
-                assert !tema.has("subtemas") || tema.path("subtemas").isNull() : 
-                    "lean tema should not have subtemas list";
+                assert !tema.has("subtemas") || tema.path("subtemas").isNull()
+                        : "lean tema should not have subtemas list";
                 assert !tema.has("questaoStats") : "lean tema should not have questaoStats";
             }
 
@@ -497,13 +541,15 @@ class StatsStructureTest {
         void testSubtemaListWithFullMetrics() throws Exception {
             createTestData();
 
-            mockMvc.perform(get("/api/v1/subtemas").param("metrics", "full").param("sort", "nome").param("direction", "ASC"))
+            mockMvc.perform(
+                    get("/api/v1/subtemas").param("metrics", "full").param("sort", "nome").param("direction", "ASC"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content").isArray());
         }
     }
 
-    // ==================== CONCORSO TESTS (baseline - should already work) ====================
+    // ==================== CONCORSO TESTS (baseline - should already work)
+    // ====================
 
     @Nested
     @DisplayName("Concurso Stats Structure (baseline)")

@@ -1,15 +1,27 @@
 package com.studora.entity;
 
-import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.*;
 import java.util.LinkedHashSet;
 import java.util.Set;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(
     name = "questao",
     indexes = {
-        @Index(name = "idx_questao_concurso", columnList = "concurso_id"),
         @Index(name = "idx_questao_anulada", columnList = "anulada"),
         @Index(name = "idx_questao_autoral", columnList = "autoral"),
     }
@@ -21,12 +33,6 @@ public class Questao extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Schema(description = "ID único da questão", example = "1")
     private Long id;
-
-    @ManyToOne(fetch = FetchType.LAZY, optional = true)
-    @JoinColumn(name = "concurso_id", nullable = true)
-    @org.hibernate.annotations.OnDelete(action = org.hibernate.annotations.OnDeleteAction.CASCADE)
-    @Schema(description = "Concurso ao qual a questão pertence (nulo para questões autorais)")
-    private Concurso concurso;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     @Schema(description = "Texto do enunciado da questão", example = "Qual é a capital do Brasil?")
@@ -88,14 +94,13 @@ public class Questao extends BaseEntity {
         orphanRemoval = true,
         fetch = FetchType.LAZY
     )
-    @Schema(description = "Associações entre a questão e cargos do concurso")
-    private Set<QuestaoCargo> questaoCargos = new LinkedHashSet<>();
+    @Schema(description = "Seções de prova às quais a questão pertence")
+    private Set<QuestaoProvaSecao> secoes = new LinkedHashSet<>();
 
     // Constructors
     public Questao() {}
 
-    public Questao(Concurso concurso, String enunciado) {
-        this.concurso = concurso;
+    public Questao(String enunciado) {
         this.enunciado = enunciado;
     }
 
@@ -106,14 +111,6 @@ public class Questao extends BaseEntity {
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public Concurso getConcurso() {
-        return concurso;
-    }
-
-    public void setConcurso(Concurso concurso) {
-        this.concurso = concurso;
     }
 
     public String getEnunciado() {
@@ -180,16 +177,16 @@ public class Questao extends BaseEntity {
         this.imageUrl = (imageUrl != null && !imageUrl.trim().isEmpty()) ? imageUrl : null;
     }
 
-    public Set<QuestaoCargo> getQuestaoCargos() {
-        return questaoCargos;
+    public Set<QuestaoProvaSecao> getSecoes() {
+        return secoes;
     }
 
-    public void setQuestaoCargos(Set<QuestaoCargo> questaoCargos) {
-        this.questaoCargos = questaoCargos;
+    public void setSecoes(Set<QuestaoProvaSecao> secoes) {
+        this.secoes = secoes;
     }
 
-    public void addQuestaoCargo(QuestaoCargo questaoCargo) {
-        this.questaoCargos.add(questaoCargo);
-        questaoCargo.setQuestao(this);
+    public void addSecao(QuestaoProvaSecao questaoProvaSecao) {
+        this.secoes.add(questaoProvaSecao);
+        questaoProvaSecao.setQuestao(this);
     }
 }

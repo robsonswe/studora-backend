@@ -1,17 +1,18 @@
 package com.studora.repository;
 
-import com.studora.dto.request.SimuladoGenerationRequest;
-import com.studora.entity.NivelCargo;
 import java.time.LocalDateTime;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-import jakarta.persistence.Query;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Repository;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Repository;
+
+import com.studora.dto.request.SimuladoGenerationRequest;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.Query;
 
 @Repository
 public class QuestaoRepositoryImpl implements QuestaoRepositoryCustom {
@@ -74,7 +75,7 @@ public class QuestaoRepositoryImpl implements QuestaoRepositoryCustom {
                                    List<Long> avoidTemaIds, List<Long> avoidSubtemaIdsForDisc) {
         
         StringBuilder hql = new StringBuilder("SELECT DISTINCT q.id FROM Questao q ");
-        hql.append("LEFT JOIN q.concurso c LEFT JOIN c.banca b LEFT JOIN c.instituicao i ");
+        hql.append("LEFT JOIN q.secoes qs LEFT JOIN qs.provaSecao ps LEFT JOIN ps.prova prova LEFT JOIN prova.concurso c LEFT JOIN c.banca b LEFT JOIN c.instituicao i ");
         hql.append(scopeJoin).append(" ");
 
         // WHERE Clauses
@@ -110,7 +111,7 @@ public class QuestaoRepositoryImpl implements QuestaoRepositoryCustom {
                 case FUNDAMENTAL -> "'FUNDAMENTAL'";
             };
             String nivelFilter =
-                "(q.autoral = true OR EXISTS (SELECT 1 FROM q.questaoCargos qc JOIN qc.concursoCargo cc JOIN cc.cargo cargo WHERE cargo.nivel IN (" + nivelLevels + ")))";
+                "(q.autoral = true OR EXISTS (SELECT 1 FROM q.secoes qsNivel JOIN qsNivel.provaSecao psNivel JOIN psNivel.prova provaNivel JOIN provaNivel.cargos ccNivel JOIN ccNivel.cargo cargoNivel WHERE cargoNivel.nivel IN (" + nivelLevels + ")))";
             whereClauses.add(nivelFilter);
         }
 
@@ -126,16 +127,12 @@ public class QuestaoRepositoryImpl implements QuestaoRepositoryCustom {
 
         // Cargo Preference
         if (req.getCargoId() != null) {
-            orderBy.append(" + CASE WHEN EXISTS (SELECT 1 FROM q.questaoCargos qc2 JOIN qc2.concursoCargo cc2 WHERE cc2.cargo.id = :cargoId) THEN 500 ELSE 0 END");
+            orderBy.append(" + CASE WHEN EXISTS (SELECT 1 FROM q.secoes qsCargo JOIN qsCargo.provaSecao psCargo JOIN psCargo.prova provaCargo JOIN provaCargo.cargos ccCargo WHERE ccCargo.cargo.id = :cargoId) THEN 500 ELSE 0 END");
         }
 
         // Area Preference
         if (req.getAreas() != null && !req.getAreas().isEmpty()) {
-            // Case-insensitive check? DB dependent. HQL 'lower()'
-            // Construct OR clauses for areas
-            // (lower(i.area) IN :areas OR EXISTS (... lower(cargo.area) IN :areas))
-            // :areas param should be lowercased list.
-            orderBy.append(" + CASE WHEN (lower(i.area) IN :areasLower OR EXISTS (SELECT 1 FROM q.questaoCargos qc3 JOIN qc3.concursoCargo cc3 JOIN cc3.cargo cargo3 WHERE lower(cargo3.area) IN :areasLower)) THEN 100 ELSE 0 END");
+            orderBy.append(" + CASE WHEN (lower(i.area) IN :areasLower OR EXISTS (SELECT 1 FROM q.secoes qsArea JOIN qsArea.provaSecao psArea JOIN psArea.prova provaArea JOIN provaArea.cargos ccArea JOIN ccArea.cargo cargoArea WHERE lower(cargoArea.area) IN :areasLower)) THEN 100 ELSE 0 END");
         }
 
         // Nivel Priority
@@ -148,9 +145,9 @@ public class QuestaoRepositoryImpl implements QuestaoRepositoryCustom {
         // Query: check if it has Superior, else if Medio...
         // "COALESCE((SELECT MAX(CASE WHEN c4.nivel='SUPERIOR' THEN 30 WHEN c4.nivel='MEDIO' THEN 20 ELSE 10 END) FROM ...), 0)"
         // Simplified: Just add points if it HAS that level.
-        orderBy.append(" + CASE WHEN EXISTS (SELECT 1 FROM q.questaoCargos qc4 JOIN qc4.concursoCargo cc4 JOIN cc4.cargo c4 WHERE c4.nivel = 'SUPERIOR') THEN 30 ELSE 0 END");
-        orderBy.append(" + CASE WHEN EXISTS (SELECT 1 FROM q.questaoCargos qc5 JOIN qc5.concursoCargo cc5 JOIN cc5.cargo c5 WHERE c5.nivel = 'MEDIO') THEN 20 ELSE 0 END");
-        orderBy.append(" + CASE WHEN EXISTS (SELECT 1 FROM q.questaoCargos qc6 JOIN qc6.concursoCargo cc6 JOIN cc6.cargo c6 WHERE c6.nivel = 'FUNDAMENTAL') THEN 10 ELSE 0 END");
+        orderBy.append(" + CASE WHEN EXISTS (SELECT 1 FROM q.secoes qsSup JOIN qsSup.provaSecao psSup JOIN psSup.prova provaSup JOIN provaSup.cargos ccSup JOIN ccSup.cargo cSup WHERE cSup.nivel = 'SUPERIOR') THEN 30 ELSE 0 END");
+        orderBy.append(" + CASE WHEN EXISTS (SELECT 1 FROM q.secoes qsMed JOIN qsMed.provaSecao psMed JOIN psMed.prova provaMed JOIN provaMed.cargos ccMed JOIN ccMed.cargo cMed WHERE cMed.nivel = 'MEDIO') THEN 20 ELSE 0 END");
+        orderBy.append(" + CASE WHEN EXISTS (SELECT 1 FROM q.secoes qsFun JOIN qsFun.provaSecao psFun JOIN psFun.prova provaFun JOIN provaFun.cargos ccFun JOIN ccFun.cargo cFun WHERE cFun.nivel = 'FUNDAMENTAL') THEN 10 ELSE 0 END");
 
         orderBy.append(") DESC, RANDOM()");
 
@@ -192,3 +189,4 @@ public class QuestaoRepositoryImpl implements QuestaoRepositoryCustom {
         return query.getResultList();
     }
 }
+

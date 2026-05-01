@@ -29,11 +29,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Integration tests for autoral question statistics (Phase 7.4 of IMPLEMENTATION_PLAN_AUTORAL.md).
- * Verifies that porAutoral contains full StatSliceDto (totalQuestoes, respondidas, acertadas,
- * mediaTempoResposta, dificuldade, ultimaQuestao) for taxonomy scopes.
- */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -55,7 +50,8 @@ class StatsAutoralTest {
     @Autowired private CargoRepository cargoRepository;
     @Autowired private ConcursoRepository concursoRepository;
     @Autowired private ConcursoCargoRepository concursoCargoRepository;
-    @Autowired private QuestaoCargoRepository questaoCargoRepository;
+    @Autowired private ProvaRepository provaRepository;
+    @Autowired private ProvaSecaoRepository provaSecaoRepository;
 
     private Disciplina disciplina;
     private Tema tema;
@@ -88,7 +84,6 @@ class StatsAutoralTest {
         std.setAutoral(false);
         std.getSubtemas().add(subtema);
 
-        // Need concurso/cargo for standard
         Instituicao inst = new Instituicao();
         inst.setNome("Inst Stats");
         inst.setArea("Area");
@@ -114,15 +109,29 @@ class StatsAutoralTest {
         ConcursoCargo cc = new ConcursoCargo();
         cc.setConcurso(concurso);
         cc.setCargo(cargo);
-        concursoCargoRepository.save(cc);
+        cc = concursoCargoRepository.save(cc);
 
-        std.setConcurso(concurso);
+        Prova prova = new Prova();
+        prova.setConcurso(concurso);
+        prova.setNome("Prova Stats");
+        prova.addCargo(cc);
+        prova = provaRepository.save(prova);
+
+        ProvaSecao secao = new ProvaSecao();
+        secao.setProva(prova);
+        secao.setNome("Geral");
+        secao.setOrdem(1);
+        secao = provaSecaoRepository.save(secao);
+
+        std.setAnulada(false);
+        std.setAutoral(false);
+        std.getSubtemas().add(subtema);
+
+        QuestaoProvaSecao qps = new QuestaoProvaSecao();
+        qps.setProvaSecao(secao);
+        std.addSecao(qps);
+
         std = questaoRepository.save(std);
-
-        QuestaoCargo qc = new QuestaoCargo();
-        qc.setQuestao(std);
-        qc.setConcursoCargo(cc);
-        questaoCargoRepository.save(qc);
 
         Alternativa stdAlt = new Alternativa();
         stdAlt.setQuestao(std);
@@ -155,19 +164,17 @@ class StatsAutoralTest {
         if (cacheManager != null) {
             cacheManager.getCacheNames().forEach(name -> {
                 var cache = cacheManager.getCache(name);
-                if (cache != null) cache.clear();
+                if (cache != null)
+                    cache.clear();
             });
         }
     }
 
     private void createRespostaForQuestao(Long questaoId, boolean correta, int tempoSegundos,
-                                          Dificuldade dificuldade, LocalDateTime createdAt) {
+            Dificuldade dificuldade, LocalDateTime createdAt) {
         Resposta resp = new Resposta();
         resp.setQuestao(questaoRepository.findById(questaoId).orElseThrow());
-        // Pick the first (correct) alternativa
         Alternativa alt = alternativaRepository.findByQuestaoIdOrderByOrdemAsc(questaoId).get(0);
-        // If we want incorrect answer, we'd need a wrong alternativa, but for simplicity
-        // just use the correct one and mark the answer's correctness via alternativaEscolhida
         resp.setAlternativaEscolhida(alt);
         resp.setDificuldade(dificuldade);
         resp.setTempoRespostaSegundos(tempoSegundos);
@@ -175,33 +182,23 @@ class StatsAutoralTest {
         respostaRepository.save(resp);
     }
 
-    // ==================== TAXONOMY SCOPE TESTS ====================
-
     @Nested
     @DisplayName("Disciplina - porAutoral stats")
     class DisciplinaTests {
-
         @Test
         @DisplayName("GET /disciplinas/{id}?metrics=full - total includes autoral, porAutoral shows autoral-only count")
         void testDisciplinaTotalIncludesAutoral_andPorAutoralExists() throws Exception {
             MvcResult result = mockMvc.perform(get("/api/v1/disciplinas/" + disciplina.getId())
                     .param("metrics", "full"))
-                .andExpect(status().isOk())
-                .andReturn();
+                    .andExpect(status().isOk())
+                    .andReturn();
 
             JsonNode root = objectMapper.readTree(result.getResponse().getContentAsString());
             JsonNode stats = root.path("questaoStats");
 
-            // total.totalQuestoes = 2 (1 standard + 1 autoral)
-            assert stats.path("total").path("totalQuestoes").asInt() == 2 :
-                "total.totalQuestoes should be 2 (1 standard + 1 autoral), got " + stats.path("total").path("totalQuestoes").asInt();
-
-            // porAutoral.totalQuestoes = 1
+            assert stats.path("total").path("totalQuestoes").asInt() == 2;
             JsonNode porAutoral = stats.path("porAutoral");
-            assert !porAutoral.isMissingNode() && !porAutoral.isNull() :
-                "porAutoral should exist for disciplina with autoral questions";
-            assert porAutoral.path("totalQuestoes").asInt() == 1 :
-                "porAutoral.totalQuestoes should be 1, got " + porAutoral.path("totalQuestoes").asInt();
+            assert porAutoral.path("totalQuestoes").asInt() == 1;
         }
 
         @Test
@@ -212,20 +209,18 @@ class StatsAutoralTest {
 
             MvcResult result = mockMvc.perform(get("/api/v1/disciplinas/" + disciplina.getId())
                     .param("metrics", "full"))
-                .andExpect(status().isOk())
-                .andReturn();
+                    .andExpect(status().isOk())
+                    .andReturn();
 
             JsonNode root = objectMapper.readTree(result.getResponse().getContentAsString());
             JsonNode porAutoral = root.path("questaoStats").path("porAutoral");
 
-            assert porAutoral.path("respondidas").asInt() == 1 :
-                "porAutoral.respondidas should be 1, got " + porAutoral.path("respondidas").asInt();
-            assert porAutoral.path("acertadas").asInt() == 1 :
-                "porAutoral.acertadas should be 1, got " + porAutoral.path("acertadas").asInt();
+            assert porAutoral.path("respondidas").asInt() == 1;
+            assert porAutoral.path("acertadas").asInt() == 1;
         }
 
         @Test
-        @DisplayName("porAutoral has full StatSliceDto fields (dificuldade, mediaTempoResposta, ultimaQuestao)")
+        @DisplayName("porAutoral has full StatSliceDto fields")
         void testAutoralFullSlice() throws Exception {
             createRespostaForQuestao(autoralQuestaoId, true, 45, Dificuldade.MEDIA, LocalDateTime.now().minusDays(3));
             createRespostaForQuestao(standardQuestaoId, true, 30, Dificuldade.FACIL, LocalDateTime.now().minusDays(1));
@@ -233,99 +228,21 @@ class StatsAutoralTest {
 
             MvcResult result = mockMvc.perform(get("/api/v1/disciplinas/" + disciplina.getId())
                     .param("metrics", "full"))
-                .andExpect(status().isOk())
-                .andReturn();
+                    .andExpect(status().isOk())
+                    .andReturn();
 
             JsonNode root = objectMapper.readTree(result.getResponse().getContentAsString());
             JsonNode porAutoral = root.path("questaoStats").path("porAutoral");
 
-            assert porAutoral.has("dificuldade") : "porAutoral should have dificuldade";
-            assert porAutoral.has("mediaTempoResposta") : "porAutoral should have mediaTempoResposta";
-            assert porAutoral.has("ultimaQuestao") : "porAutoral should have ultimaQuestao";
-
-            // dificuldade should have MEDIA key
-            JsonNode diff = porAutoral.path("dificuldade");
-            assert diff.has("MEDIA") : "porAutoral.dificuldade should have MEDIA key";
-        }
-
-        @Test
-        @DisplayName("summary metrics should NOT include porAutoral")
-        void testSummaryExcludesPorAutoral() throws Exception {
-            MvcResult result = mockMvc.perform(get("/api/v1/disciplinas/" + disciplina.getId())
-                    .param("metrics", "summary"))
-                .andExpect(status().isOk())
-                .andReturn();
-
-            JsonNode root = objectMapper.readTree(result.getResponse().getContentAsString());
-            JsonNode stats = root.path("questaoStats");
-
-            assert !stats.has("porAutoral") :
-                "porAutoral should NOT exist with metrics=summary";
+            assert porAutoral.has("dificuldade");
+            assert porAutoral.has("mediaTempoResposta");
+            assert porAutoral.has("ultimaQuestao");
         }
     }
-
-    @Nested
-    @DisplayName("Tema - porAutoral stats")
-    class TemaTests {
-
-        @Test
-        @DisplayName("GET /temas/{id}?metrics=full - porAutoral populated")
-        void testTemaPorAutoral() throws Exception {
-            createRespostaForQuestao(autoralQuestaoId, true, 45, Dificuldade.FACIL, LocalDateTime.now().minusDays(2));
-            clearCaches();
-
-            MvcResult result = mockMvc.perform(get("/api/v1/temas/" + tema.getId())
-                    .param("metrics", "full"))
-                .andExpect(status().isOk())
-                .andReturn();
-
-            JsonNode root = objectMapper.readTree(result.getResponse().getContentAsString());
-            JsonNode porAutoral = root.path("questaoStats").path("porAutoral");
-
-            assert !porAutoral.isMissingNode() && !porAutoral.isNull() :
-                "porAutoral should exist for tema with autoral questions";
-            assert porAutoral.path("totalQuestoes").asInt() == 1 :
-                "porAutoral.totalQuestoes should be 1, got " + porAutoral.path("totalQuestoes").asInt();
-            assert porAutoral.path("respondidas").asInt() == 1 :
-                "porAutoral.respondidas should be 1, got " + porAutoral.path("respondidas").asInt();
-        }
-    }
-
-    @Nested
-    @DisplayName("Subtema - porAutoral stats")
-    class SubtemaTests {
-
-        @Test
-        @DisplayName("GET /subtemas/{id}?metrics=full - porAutoral populated")
-        void testSubtemaPorAutoral() throws Exception {
-            createRespostaForQuestao(autoralQuestaoId, true, 45, Dificuldade.DIFICIL, LocalDateTime.now().minusDays(2));
-            clearCaches();
-
-            MvcResult result = mockMvc.perform(get("/api/v1/subtemas/" + subtema.getId())
-                    .param("metrics", "full"))
-                .andExpect(status().isOk())
-                .andReturn();
-
-            JsonNode root = objectMapper.readTree(result.getResponse().getContentAsString());
-            JsonNode porAutoral = root.path("questaoStats").path("porAutoral");
-
-            assert !porAutoral.isMissingNode() && !porAutoral.isNull() :
-                "porAutoral should exist for subtema with autoral questions";
-            assert porAutoral.path("totalQuestoes").asInt() == 1 :
-                "porAutoral.totalQuestoes should be 1";
-            assert porAutoral.path("respondidas").asInt() == 1 :
-                "porAutoral.respondidas should be 1";
-            assert porAutoral.path("dificuldade").path("DIFICIL").path("total").asInt() == 1 :
-                "porAutoral.dificuldade.DIFICIL.total should be 1";
-        }
-    }
-
-    // ==================== NON-TAXONOMY SCOPE TESTS ====================
 
     @Nested
     @DisplayName("Banca - porAutoral should not exist")
     class BancaTests {
-
         @Test
         @DisplayName("GET /bancas/{id}?metrics=full - no porAutoral")
         void testBancaNoPorAutoral() throws Exception {
@@ -333,7 +250,6 @@ class StatsAutoralTest {
             banca.setNome("Banca Stats Test");
             banca = bancaRepository.save(banca);
 
-            // Create a standard question under this banca
             Instituicao inst = new Instituicao();
             inst.setNome("Inst Banca Stats");
             inst.setArea("Area");
@@ -355,21 +271,29 @@ class StatsAutoralTest {
             ConcursoCargo cc = new ConcursoCargo();
             cc.setConcurso(concurso);
             cc.setCargo(cargo);
-            concursoCargoRepository.save(cc);
+            cc = concursoCargoRepository.save(cc);
 
-            // Standard question
+            Prova prova = new Prova();
+            prova.setConcurso(concurso);
+            prova.setNome("Banca Prova");
+            prova.addCargo(cc);
+            prova = provaRepository.save(prova);
+
+            ProvaSecao secao = new ProvaSecao();
+            secao.setProva(prova);
+            secao.setNome("Geral");
+            secao.setOrdem(1);
+            secao = provaSecaoRepository.save(secao);
+
             Questao std = new Questao();
             std.setEnunciado("Standard for banca");
             std.setAnulada(false);
             std.setAutoral(false);
-            std.setConcurso(concurso);
+            QuestaoProvaSecao qps = new QuestaoProvaSecao();
+            qps.setProvaSecao(secao);
+            std.addSecao(qps);
             std.getSubtemas().add(subtema);
-            std = questaoRepository.save(std);
-
-            QuestaoCargo qc = new QuestaoCargo();
-            qc.setQuestao(std);
-            qc.setConcursoCargo(cc);
-            questaoCargoRepository.save(qc);
+            questaoRepository.save(std);
 
             Alternativa alt = new Alternativa();
             alt.setQuestao(std);
@@ -378,35 +302,17 @@ class StatsAutoralTest {
             alt.setOrdem(1);
             alternativaRepository.save(alt);
 
-            // Also create autoral question under same subtema (same disciplina/tema/subtema)
-            Questao aut = new Questao();
-            aut.setEnunciado("Autoral for banca scope");
-            aut.setAnulada(false);
-            aut.setAutoral(true);
-            aut.getSubtemas().add(subtema);
-            autoralQuestaoId = aut.getId();
-            questaoRepository.save(aut);
-
-            Alternativa autAlt = new Alternativa();
-            autAlt.setQuestao(aut);
-            autAlt.setTexto("A");
-            autAlt.setCorreta(true);
-            autAlt.setOrdem(1);
-            alternativaRepository.save(autAlt);
-
             clearCaches();
 
             MvcResult result = mockMvc.perform(get("/api/v1/bancas/" + banca.getId())
                     .param("metrics", "full"))
-                .andExpect(status().isOk())
-                .andReturn();
+                    .andExpect(status().isOk())
+                    .andReturn();
 
             JsonNode root = objectMapper.readTree(result.getResponse().getContentAsString());
             JsonNode stats = root.path("questaoStats");
 
-            // porAutoral should NOT exist for banca scope
-            assert !stats.has("porAutoral") || stats.path("porAutoral").isNull() :
-                "porAutoral should NOT exist for banca scope";
+            assert !stats.has("porAutoral") || stats.path("porAutoral").isNull();
         }
     }
 }

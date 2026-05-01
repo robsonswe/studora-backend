@@ -1,23 +1,43 @@
 package com.studora;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 
-import com.studora.dto.analytics.*;
-import com.studora.entity.*;
-import com.studora.repository.*;
-import com.studora.service.AnalyticsService;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Set;
+import com.studora.dto.analytics.ConsistencyDto;
+import com.studora.dto.analytics.LearningRateDto;
+import com.studora.dto.analytics.TopicMasteryDto;
+import com.studora.entity.Alternativa;
+import com.studora.entity.Banca;
+import com.studora.entity.Concurso;
+import com.studora.entity.Dificuldade;
+import com.studora.entity.Disciplina;
+import com.studora.entity.Instituicao;
+import com.studora.entity.Questao;
+import com.studora.entity.Resposta;
+import com.studora.entity.Subtema;
+import com.studora.entity.Tema;
+import com.studora.repository.AlternativaRepository;
+import com.studora.repository.BancaRepository;
+import com.studora.repository.ConcursoRepository;
+import com.studora.repository.DisciplinaRepository;
+import com.studora.repository.InstituicaoRepository;
+import com.studora.repository.QuestaoRepository;
+import com.studora.repository.RespostaRepository;
+import com.studora.repository.SubtemaRepository;
+import com.studora.repository.TemaRepository;
+import com.studora.service.AnalyticsService;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -60,7 +80,9 @@ class AnalyticsServiceIT {
         Tema t1 = temaRepository.save(new Tema(d1, "Constitucional"));
         s1 = subtemaRepository.save(new Subtema(t1, "Direitos Fundamentais"));
 
-        q1 = new Questao(concurso, "Questao 1");
+        q1 = new Questao();
+        q1.setEnunciado("Questao 1");
+        q1.setAutoral(true);
         q1.setSubtemas(new java.util.HashSet<>(java.util.List.of(s1)));
         q1 = questaoRepository.save(q1);
 
@@ -165,7 +187,9 @@ class AnalyticsServiceIT {
         Disciplina d2 = disciplinaRepository.save(new Disciplina("Português"));
         Tema t2 = temaRepository.save(new Tema(d2, "Gramática"));
         Subtema s2 = subtemaRepository.save(new Subtema(t2, "Sintaxe"));
-        Questao q2 = new Questao(q1.getConcurso(), "Questao 2");
+        Questao q2 = new Questao();
+        q2.setEnunciado("Questao 2");
+        q2.setAutoral(true);
         q2.setSubtemas(new java.util.HashSet<>(java.util.List.of(s2)));
         q2 = questaoRepository.save(q2);
         Alternativa q2Wrong = new Alternativa();

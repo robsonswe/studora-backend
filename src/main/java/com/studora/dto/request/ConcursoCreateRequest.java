@@ -1,10 +1,10 @@
 package com.studora.dto.request;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import com.studora.common.constants.AppConstants;
-import lombok.Data;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
+import lombok.Data;
 
 @Schema(description = "Request DTO para criação de um concurso")
 @Data
@@ -44,12 +44,10 @@ public class ConcursoCreateRequest {
     @jakarta.validation.constraints.NotEmpty(message = "O concurso deve ter pelo menos um cargo")
     @Schema(description = "Lista de IDs dos cargos associados ao concurso", example = "[1, 2]", requiredMode = Schema.RequiredMode.REQUIRED)
     private java.util.List<Long> cargos;
+   
+    @Schema(description = "Lista de provas do concurso")
+    private java.util.List<ProvaCreateRequest> provas;
 
-    @Schema(
-        description = "Mapa de subtemas para cargos. Chave: subtemaId, Valor: lista de cargoIds associados a este subtema neste concurso. Cada subtema deve ter pelo menos 1 cargo.",
-        example = "{\"12\": [1, 2], \"5\": [1]}"
-    )
-    private java.util.Map<Long, java.util.List<Long>> topicos;
 
     // Constructors
     public ConcursoCreateRequest() {}

@@ -1,17 +1,15 @@
 package com.studora.dto.request;
 
+import java.util.List;
+
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Data;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import java.util.List;
+import lombok.Data;
 
 @Schema(description = "Request DTO para criação de uma questão")
 @Data
 public class QuestaoCreateRequest {
-
-    @Schema(description = "ID do concurso ao qual a questão pertence (ignorada se autoral=true)", example = "1")
-    private Long concursoId;
 
     @NotBlank(message = "Enunciado da questão é obrigatório")
     @Schema(description = "Texto do enunciado da questão", example = "Qual é a capital do Brasil?", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -40,9 +38,8 @@ public class QuestaoCreateRequest {
     @Schema(description = "IDs dos subtemas associados à questão")
     private List<Long> subtemaIds; // IDs of associated subtemas
 
-    @jakarta.validation.constraints.Size(min = com.studora.common.constants.AppConstants.MIN_CARGO_ASSOCIATIONS, message = "A questão deve estar associada a pelo menos {min} cargo")
-    @Schema(description = "IDs dos cargos associados à questão (ignorado se autoral=true)")
-    private List<Long> cargos; // IDs of associated Cargo records
+    @Schema(description = "IDs das seções da prova às quais a questão pertence (ignorado se autoral=true)")
+    private List<Long> secoesIds;
 
     @NotNull(message = "Alternativas são obrigatórias")
     @jakarta.validation.constraints.Size(min = com.studora.common.constants.AppConstants.MIN_ALTERNATIVAS, message = "A questão deve ter pelo menos {min} alternativas")
@@ -53,10 +50,6 @@ public class QuestaoCreateRequest {
     // Constructors
     public QuestaoCreateRequest() {}
 
-    public QuestaoCreateRequest(Long concursoId, String enunciado) {
-        this.concursoId = concursoId;
-        this.enunciado = enunciado;
-    }
 
     public List<AlternativaCreateRequest> getAlternativas() {
         return alternativas;

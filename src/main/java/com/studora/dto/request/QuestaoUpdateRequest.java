@@ -1,19 +1,18 @@
 package com.studora.dto.request;
 
-import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Data;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 import java.util.List;
+
 import com.studora.common.constants.AppConstants;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.Data;
 
 @Schema(description = "Request DTO para atualização de uma questão")
 @Data
 public class QuestaoUpdateRequest {
 
-    @Schema(description = "ID do concurso ao qual a questão pertence (ignorado se autoral=true)", example = "1")
-    private Long concursoId;
 
     @NotBlank(message = "Enunciado da questão é obrigatório")
     @Schema(description = "Texto do enunciado da questão", example = "Qual é a capital do Brasil?", requiredMode = Schema.RequiredMode.REQUIRED)
@@ -35,8 +34,8 @@ public class QuestaoUpdateRequest {
     @com.fasterxml.jackson.annotation.JsonProperty("subtemas")
     private List<Long> subtemaIds;
 
-    @Schema(description = "IDs dos cargos associados à questão (ignorado se autoral=true)")
-    private List<Long> cargos;
+    @Schema(description = "IDs das seções da prova às quais a questão pertence (ignorado se autoral=true)")
+    private List<Long> secoesIds;
 
     @Schema(description = "Alternativas da questão")
     @Size(min = AppConstants.MIN_ALTERNATIVAS, message = "A questão deve ter pelo menos {min} alternativas")
@@ -45,8 +44,7 @@ public class QuestaoUpdateRequest {
 
     public QuestaoUpdateRequest() {}
 
-    public QuestaoUpdateRequest(Long concursoId, String enunciado) {
-        this.concursoId = concursoId;
+    public QuestaoUpdateRequest(String enunciado) {
         this.enunciado = enunciado;
     }
 }

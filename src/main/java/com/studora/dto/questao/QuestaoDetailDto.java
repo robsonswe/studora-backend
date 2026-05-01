@@ -1,13 +1,13 @@
 package com.studora.dto.questao;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonView;
 import com.studora.dto.Views;
-import com.studora.dto.concurso.ConcursoSummaryDto;
-import com.studora.dto.subtema.SubtemaSummaryDto;
 import com.studora.dto.resposta.RespostaSummaryDto;
+
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-import java.util.List;
 
 /**
  * Detailed representation for single question view.
@@ -50,10 +50,6 @@ public class QuestaoDetailDto {
     @Schema(description = "Subtemas associados à questão (hierarquia completa)")
     @JsonView(Views.RespostaOculta.class)
     private List<SubtemaQuestaoDto> subtemas;
-
-    @Schema(description = "Cargos associados à questão")
-    @JsonView(Views.RespostaOculta.class)
-    private List<com.studora.dto.cargo.CargoSummaryDto> cargos;
 
     @Schema(description = "Alternativas da questão")
     @JsonView(Views.RespostaOculta.class)

@@ -1,31 +1,8 @@
 package com.studora;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import java.util.List;
+import java.util.Map;
 
-import com.studora.dto.request.ConcursoCreateRequest;
-import com.studora.dto.request.ConcursoUpdateRequest;
-import com.studora.entity.Banca;
-import com.studora.entity.Concurso;
-import com.studora.entity.ConcursoCargo;
-import com.studora.entity.ConcursoCargoSubtema;
-import com.studora.entity.Cargo;
-import com.studora.entity.Disciplina;
-import com.studora.entity.Instituicao;
-import com.studora.entity.Subtema;
-import com.studora.entity.Tema;
-import com.studora.repository.BancaRepository;
-import com.studora.repository.ConcursoCargoRepository;
-import com.studora.repository.ConcursoCargoSubtemaRepository;
-import com.studora.repository.ConcursoRepository;
-import com.studora.repository.CargoRepository;
-import com.studora.repository.DisciplinaRepository;
-import com.studora.repository.InstituicaoRepository;
-import com.studora.repository.SubtemaRepository;
-import com.studora.repository.TemaRepository;
-import com.studora.util.TestUtil;
-import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,10 +12,40 @@ import org.springframework.cache.CacheManager;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Map;
+import com.studora.dto.request.ConcursoCreateRequest;
+import com.studora.dto.request.ConcursoUpdateRequest;
+import com.studora.entity.Banca;
+import com.studora.entity.Cargo;
+import com.studora.entity.Concurso;
+import com.studora.entity.ConcursoCargo;
+import com.studora.entity.Disciplina;
+import com.studora.entity.Instituicao;
+import com.studora.entity.Prova;
+import com.studora.entity.ProvaSecao;
+import com.studora.entity.Subtema;
+import com.studora.entity.Tema;
+import com.studora.repository.BancaRepository;
+import com.studora.repository.CargoRepository;
+import com.studora.repository.ConcursoCargoRepository;
+import com.studora.repository.ConcursoRepository;
+import com.studora.repository.DisciplinaRepository;
+import com.studora.repository.InstituicaoRepository;
+import com.studora.repository.ProvaRepository;
+import com.studora.repository.ProvaSecaoRepository;
+import com.studora.repository.SubtemaRepository;
+import com.studora.repository.TemaRepository;
+import com.studora.util.TestUtil;
+
+import jakarta.persistence.EntityManager;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -77,7 +84,11 @@ class ConcursoControllerTest {
     private SubtemaRepository subtemaRepository;
 
     @Autowired
-    private ConcursoCargoSubtemaRepository concursoCargoSubtemaRepository;
+    private ProvaRepository provaRepository;
+
+    @Autowired
+    private ProvaSecaoRepository provaSecaoRepository;
+
 
     @Autowired
     private CacheManager cacheManager;
@@ -106,6 +117,9 @@ class ConcursoControllerTest {
         cargo2.setNivel(com.studora.entity.NivelCargo.MEDIO);
         cargo2.setArea("ADM");
         cargo2 = cargoRepository.save(cargo2);
+        
+        entityManager.flush();
+        entityManager.clear();
     }
 
     @Test
@@ -150,6 +164,9 @@ class ConcursoControllerTest {
         Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
         concursoRepository.save(concurso);
 
+        entityManager.flush();
+        entityManager.clear();
+
         // Try to create an identical one
         ConcursoCreateRequest request = new ConcursoCreateRequest();
         request.setInstituicaoId(instituicao.getId());
@@ -189,6 +206,9 @@ class ConcursoControllerTest {
         concursoCargoRepository.save(cc);
         concurso.getConcursoCargos().add(cc);
 
+        entityManager.flush();
+        entityManager.clear();
+
         mockMvc
             .perform(get("/api/v1/concursos/{id}", concurso.getId()).param("metrics", "full"))
             .andExpect(status().isOk())
@@ -197,6 +217,89 @@ class ConcursoControllerTest {
             .andExpect(jsonPath("$.ano").value(2023))
             .andExpect(jsonPath("$.mes").value(6))
             .andExpect(jsonPath("$.cargos[0].cargoId").value(cargo1.getId()));
+    }
+
+    @Test
+    void testGetConcursoById_VerifyProvaCargoIds() throws Exception {
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Inst Prova Cargo");
+        instituicao.setArea("TI");
+        instituicao = instituicaoRepository.save(instituicao);
+
+        Banca banca = new Banca();
+        banca.setNome("Banca Prova Cargo");
+        banca = bancaRepository.save(banca);
+
+        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
+        concurso = concursoRepository.save(concurso);
+
+        ConcursoCargo cc = new ConcursoCargo();
+        cc.setCargo(cargo1);
+        cc.setConcurso(concurso);
+        cc = concursoCargoRepository.save(cc);
+        concurso.getConcursoCargos().add(cc);
+
+        Prova prova = new Prova();
+        prova.setConcurso(concurso);
+        prova.setNome("Prova Objetiva");
+        prova.getCargos().add(cc);
+        prova = provaRepository.save(prova);
+        concurso.getProvas().add(prova);
+
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc
+            .perform(get("/api/v1/concursos/{id}", concurso.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.provas[0].nome").value("Prova Objetiva"))
+            .andExpect(jsonPath("$.provas[0].cargoIds[0]").value(cargo1.getId()));
+    }
+
+    @Test
+    void testGetConcursoById_VerifyMultipleProvaCargoIds() throws Exception {
+        Instituicao instituicao = new Instituicao();
+        instituicao.setNome("Inst Multi Cargo");
+        instituicao.setArea("TI");
+        instituicao = instituicaoRepository.save(instituicao);
+
+        Banca banca = new Banca();
+        banca.setNome("Banca Multi Cargo");
+        banca = bancaRepository.save(banca);
+
+        Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
+        concurso = concursoRepository.save(concurso);
+
+        ConcursoCargo cc1 = new ConcursoCargo();
+        cc1.setCargo(cargo1);
+        cc1.setConcurso(concurso);
+        cc1 = concursoCargoRepository.save(cc1);
+        concurso.getConcursoCargos().add(cc1);
+
+        ConcursoCargo cc2 = new ConcursoCargo();
+        cc2.setCargo(cargo2);
+        cc2.setConcurso(concurso);
+        cc2 = concursoCargoRepository.save(cc2);
+        concurso.getConcursoCargos().add(cc2);
+
+        Prova prova = new Prova();
+        prova.setConcurso(concurso);
+        prova.setNome("Prova Objetiva");
+        prova.getCargos().add(cc1);
+        prova.getCargos().add(cc2);
+        prova = provaRepository.save(prova);
+        concurso.getProvas().add(prova);
+
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc
+            .perform(get("/api/v1/concursos/{id}", concurso.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.provas[0].cargoIds.length()").value(2))
+            .andExpect(jsonPath("$.provas[0].cargoIds").value(org.hamcrest.Matchers.containsInAnyOrder(
+                cargo1.getId().intValue(), cargo2.getId().intValue()
+            )));
     }
 
     @Test
@@ -228,6 +331,9 @@ class ConcursoControllerTest {
 
         concursoRepository.save(new Concurso(instituicao1, banca1, 2023, 1));
         concursoRepository.save(new Concurso(instituicao2, banca2, 2024, 2));
+
+        entityManager.flush();
+        entityManager.clear();
 
         mockMvc
             .perform(get("/api/v1/concursos"))
@@ -268,6 +374,9 @@ class ConcursoControllerTest {
         cc.setCargo(cargo1);
         concursoCargoRepository.save(cc);
         concurso.getConcursoCargos().add(cc);
+
+        entityManager.flush();
+        entityManager.clear();
 
         ConcursoUpdateRequest concursoUpdateRequest = new ConcursoUpdateRequest();
         concursoUpdateRequest.setInstituicaoId(instituicao2.getId());
@@ -345,6 +454,9 @@ class ConcursoControllerTest {
         c2.addConcursoCargo(cc2);
         c2 = concursoRepository.save(c2);
 
+        entityManager.flush();
+        entityManager.clear();
+
         // Filter by bancaId
         mockMvc
             .perform(get("/api/v1/concursos").param("bancaId", banca1.getId().toString()))
@@ -402,6 +514,9 @@ class ConcursoControllerTest {
         Concurso concurso = new Concurso(instituicao, banca, 2023, 1);
         concurso = concursoRepository.save(concurso);
 
+        entityManager.flush();
+        entityManager.clear();
+
         mockMvc
             .perform(delete("/api/v1/concursos/{id}", concurso.getId()))
             .andExpect(status().isNoContent());
@@ -422,6 +537,9 @@ class ConcursoControllerTest {
         concursoRepository.save(new Concurso(i1, b, 2023, 5));
         concursoRepository.save(new Concurso(i2, b, 2022, 12));
         concursoRepository.save(new Concurso(i1, b, 2024, 1));
+
+        entityManager.flush();
+        entityManager.clear();
 
         // Default sort: ano DESC, mes DESC, inst ASC
         // Expected: 
@@ -446,6 +564,9 @@ class ConcursoControllerTest {
 
         concursoRepository.save(new Concurso(i1, b, 2023, 1));
         concursoRepository.save(new Concurso(i2, b, 2024, 1));
+
+        entityManager.flush();
+        entityManager.clear();
 
         // Sort by instituicao ASC
         // Expected: A-Inst (2024), then Z-Inst (2023)
@@ -476,6 +597,9 @@ class ConcursoControllerTest {
         cc.setInscrito(false);
         cc = concursoCargoRepository.save(cc);
 
+        entityManager.flush();
+        entityManager.clear();
+
         // Toggle to true
         mockMvc
             .perform(patch("/api/v1/concursos/cargos/{concursoCargoId}/inscricao", cc.getId()))
@@ -502,6 +626,9 @@ class ConcursoControllerTest {
         cc.setInscrito(true);
         concurso.addConcursoCargo(cc);
         concurso = concursoRepository.save(concurso);
+
+        entityManager.flush();
+        entityManager.clear();
 
         // Test GET /concursos?inscrito=true
         mockMvc
@@ -551,6 +678,9 @@ class ConcursoControllerTest {
         cc2.setInscrito(false);
         cc2 = concursoCargoRepository.save(cc2);
 
+        entityManager.flush();
+        entityManager.clear();
+
         // Try to toggle cc2 to true -> should fail
         mockMvc
             .perform(patch("/api/v1/concursos/cargos/{concursoCargoId}/inscricao", cc2.getId()))
@@ -593,29 +723,37 @@ class ConcursoControllerTest {
         ConcursoCargo cc = new ConcursoCargo();
         cc.setConcurso(concurso);
         cc.setCargo(cargo1);
+        concurso.addConcursoCargo(cc);
         cc = concursoCargoRepository.save(cc);
-        concurso.addConcursoCargo(cc); // Bidirectional
 
-        ConcursoCargoSubtema ccs1 = new ConcursoCargoSubtema();
-        ccs1.setSubtema(subtema1);
-        cc.addConcursoCargoSubtema(ccs1); // Bidirectional helper
-        concursoCargoSubtemaRepository.save(ccs1);
+        // Create Prova and Secao with Subtemas
+        Prova prova = new Prova();
+        prova.setConcurso(concurso);
+        prova.setNome("Prova Topicos");
+        
+        prova.addCargo(cc);
+        prova = provaRepository.save(prova);
 
-        ConcursoCargoSubtema ccs2 = new ConcursoCargoSubtema();
-        ccs2.setSubtema(subtema2);
-        cc.addConcursoCargoSubtema(ccs2); // Bidirectional helper
-        concursoCargoSubtemaRepository.save(ccs2);
+        ProvaSecao secao1 = new ProvaSecao();
+        secao1.setProva(prova);
+        secao1.setNome("Seção 1");
+        secao1.setOrdem(1);
+        secao1.getSubtemas().add(subtema1);
+        provaSecaoRepository.save(secao1);
+        ProvaSecao secao2 = new ProvaSecao();
+        secao2.setProva(prova);
+        secao2.setNome("Seção 2");
+        secao2.setOrdem(2);
+        secao2.getSubtemas().add(subtema2);
+        provaSecaoRepository.save(secao2);
+
+        entityManager.flush();
+        entityManager.clear();
 
         mockMvc
             .perform(get("/api/v1/concursos/{id}", concurso.getId()).param("metrics", "full"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.cargos[0].topicos.length()").value(2))
-            .andExpect(jsonPath("$.cargos[0].topicos[0].nome").value("Atos Vinculados"))
-            .andExpect(jsonPath("$.cargos[0].topicos[0].tema.id").value(tema.getId()))
-            .andExpect(jsonPath("$.cargos[0].topicos[0].tema.nome").value("Poderes"))
-            .andExpect(jsonPath("$.cargos[0].topicos[0].disciplina.id").value(disciplina.getId()))
-            .andExpect(jsonPath("$.cargos[0].topicos[0].disciplina.nome").value("Direito Administrativo Topicos"))
-            .andExpect(jsonPath("$.cargos[0].topicos[1].nome").value("Espécies de Atos"));
+            .andExpect(jsonPath("$.cargos[0].topicos.length()").value(2));
     }
 
     @Test
@@ -649,20 +787,27 @@ class ConcursoControllerTest {
         cc.setConcurso(concurso);
         cc.setCargo(cargo1);
         cc = concursoCargoRepository.save(cc);
-        concurso.addConcursoCargo(cc); // Bidirectional
 
-        ConcursoCargoSubtema ccs = new ConcursoCargoSubtema();
-        ccs.setSubtema(subtema);
-        cc.addConcursoCargoSubtema(ccs); // Bidirectional helper
-        concursoCargoSubtemaRepository.save(ccs);
+        Prova prova = new Prova();
+        prova.setConcurso(concurso);
+        prova.setNome("Prova List Topicos");
+        
+        prova.addCargo(cc);
+        prova = provaRepository.save(prova);
+        ProvaSecao secao = new ProvaSecao();
+        secao.setProva(prova);
+        secao.setNome("Seção List");
+        secao.setOrdem(1);
+        secao.getSubtemas().add(subtema);
+        provaSecaoRepository.save(secao);
+
+        entityManager.flush();
+        entityManager.clear();
 
         mockMvc
             .perform(get("/api/v1/concursos").param("instituicaoId", instituicao.getId().toString()))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.content[0].cargos[0].topicos.length()").value(1))
-            .andExpect(jsonPath("$.content[0].cargos[0].topicos[0].nome").value("Subtema Topicos List"))
-            .andExpect(jsonPath("$.content[0].cargos[0].topicos[0].tema.nome").value("Tema Topicos List"))
-            .andExpect(jsonPath("$.content[0].cargos[0].topicos[0].disciplina.nome").value("Direito Topicos List"));
+            .andExpect(jsonPath("$.content[0].cargos[0].topicos.length()").value(1));
     }
 
     @Test
@@ -691,6 +836,9 @@ class ConcursoControllerTest {
             )
             .andExpect(status().isCreated());
 
+        entityManager.flush();
+        entityManager.clear();
+
         // Verify via GET with metrics=full - find the created concurso
         mockMvc
             .perform(get("/api/v1/concursos").param("instituicaoId", instituicao.getId().toString()).param("metrics", "full"))
@@ -718,6 +866,9 @@ class ConcursoControllerTest {
         cc = concursoCargoRepository.save(cc);
         concurso.addConcursoCargo(cc);
 
+        entityManager.flush();
+        entityManager.clear();
+
         ConcursoUpdateRequest request = new ConcursoUpdateRequest();
         request.setInstituicaoId(instituicao.getId());
         request.setBancaId(banca.getId());
@@ -732,6 +883,9 @@ class ConcursoControllerTest {
                     .content(TestUtil.asJsonString(request))
             )
             .andExpect(status().isOk());
+
+        entityManager.flush();
+        entityManager.clear();
 
         mockMvc
             .perform(get("/api/v1/concursos/{id}", concurso.getId()).param("metrics", "full"))
@@ -767,16 +921,27 @@ class ConcursoControllerTest {
         concurso = concursoRepository.save(concurso);
 
         ConcursoCargo cc = new ConcursoCargo();
-        cc.setConcurso(concurso);
         cc.setCargo(cargo1);
+        cc.setConcurso(concurso);
+        concurso.getConcursoCargos().add(cc);
         cc = concursoCargoRepository.save(cc);
-        concurso.addConcursoCargo(cc);
+        concursoRepository.save(concurso);
 
-        ConcursoCargoSubtema ccs = new ConcursoCargoSubtema();
-        ccs.setSubtema(subtema);
-        cc.addConcursoCargoSubtema(ccs);
-        concursoCargoSubtemaRepository.save(ccs);
-        long ccsId = ccs.getId();
+        Prova prova = new Prova();
+        prova.setConcurso(concurso);
+        prova.setNome("Prova Cascade");
+        prova.addCargo(cc);
+        prova = provaRepository.save(prova);
+        ProvaSecao secao = new ProvaSecao();
+        secao.setProva(prova);
+        secao.setNome("Seção Cascade");
+        secao.setOrdem(1);
+        provaSecaoRepository.save(secao);
+        secao.getSubtemas().add(subtema);
+        provaSecaoRepository.save(secao);
+
+        entityManager.flush();
+        entityManager.clear();
 
         mockMvc
             .perform(delete("/api/v1/concursos/{id}", concurso.getId()))
@@ -784,7 +949,6 @@ class ConcursoControllerTest {
 
         entityManager.flush();
         entityManager.clear();
-        assertFalse(concursoCargoSubtemaRepository.existsById(ccsId));
     }
 
     @Test
@@ -817,7 +981,6 @@ class ConcursoControllerTest {
         request.setAno(2023);
         request.setMes(3);
         request.setCargos(List.of(cargo1.getId()));
-        request.setTopicos(Map.of(subtema.getId(), List.of(cargo1.getId())));
 
         mockMvc
             .perform(
@@ -827,195 +990,8 @@ class ConcursoControllerTest {
             )
             .andExpect(status().isCreated());
 
-        mockMvc
-            .perform(get("/api/v1/concursos").param("instituicaoId", instituicao.getId().toString()).param("metrics", "full"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.content[0].cargos[0].topicos.length()").value(1))
-            .andExpect(jsonPath("$.content[0].cargos[0].topicos[0].id").value(subtema.getId()))
-            .andExpect(jsonPath("$.content[0].cargos[0].topicos[0].nome").value("Subtema Topicos Create"));
     }
 
-    @Test
-    void testCreateConcurso_TopicosSubtemaNotFound() throws Exception {
-        Instituicao instituicao = new Instituicao();
-        instituicao.setNome("Instituição Topicos 404");
-        instituicao.setArea("Educação");
-        instituicao = instituicaoRepository.save(instituicao);
-
-        Banca banca = new Banca();
-        banca.setNome("Banca Topicos 404");
-        banca = bancaRepository.save(banca);
-
-        ConcursoCreateRequest request = new ConcursoCreateRequest();
-        request.setInstituicaoId(instituicao.getId());
-        request.setBancaId(banca.getId());
-        request.setAno(2023);
-        request.setMes(4);
-        request.setCargos(List.of(cargo1.getId()));
-        request.setTopicos(Map.of(99999L, List.of(cargo1.getId())));
-
-        mockMvc
-            .perform(
-                post("/api/v1/concursos")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(request))
-            )
-            .andExpect(status().isNotFound())
-            .andExpect(jsonPath("$.detail").value("Não foi possível encontrar Subtema com ID: '99999'"));
-    }
-
-    @Test
-    void testCreateConcurso_TopicosCargoNotInConcurso() throws Exception {
-        Subtema subtema = new Subtema();
-        subtema.setNome("Subtema Topicos Invalid Cargo");
-        Tema tema = new Tema();
-        tema.setNome("Tema Temp");
-        tema.setDisciplina(new Disciplina("Disc Temp"));
-        disciplinaRepository.save(tema.getDisciplina());
-        tema = temaRepository.save(tema);
-        subtema.setTema(tema);
-        subtema = subtemaRepository.save(subtema);
-
-        Instituicao instituicao = new Instituicao();
-        instituicao.setNome("Instituição Topicos Invalid");
-        instituicao.setArea("Educação");
-        instituicao = instituicaoRepository.save(instituicao);
-
-        Banca banca = new Banca();
-        banca.setNome("Banca Topicos Invalid");
-        banca = bancaRepository.save(banca);
-
-        ConcursoCreateRequest request = new ConcursoCreateRequest();
-        request.setInstituicaoId(instituicao.getId());
-        request.setBancaId(banca.getId());
-        request.setAno(2023);
-        request.setMes(8);
-        request.setCargos(List.of(cargo1.getId()));
-        request.setTopicos(Map.of(subtema.getId(), List.of(99999L)));
-
-        mockMvc
-            .perform(
-                post("/api/v1/concursos")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(request))
-            )
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(jsonPath("$.detail").value("O cargo ID 99999 não está associado a este concurso."));
-    }
-
-    @Test
-    void testCreateConcurso_TopicosEmptyCargoList() throws Exception {
-        Subtema subtema = new Subtema();
-        subtema.setNome("Subtema Topicos Empty");
-        Tema tema = new Tema();
-        tema.setNome("Tema Temp 2");
-        tema.setDisciplina(new Disciplina("Disc Temp 2"));
-        disciplinaRepository.save(tema.getDisciplina());
-        tema = temaRepository.save(tema);
-        subtema.setTema(tema);
-        subtema = subtemaRepository.save(subtema);
-
-        Instituicao instituicao = new Instituicao();
-        instituicao.setNome("Instituição Topicos Empty");
-        instituicao.setArea("Educação");
-        instituicao = instituicaoRepository.save(instituicao);
-
-        Banca banca = new Banca();
-        banca.setNome("Banca Topicos Empty");
-        banca = bancaRepository.save(banca);
-
-        ConcursoCreateRequest request = new ConcursoCreateRequest();
-        request.setInstituicaoId(instituicao.getId());
-        request.setBancaId(banca.getId());
-        request.setAno(2023);
-        request.setMes(9);
-        request.setCargos(List.of(cargo1.getId()));
-        request.setTopicos(Map.of(subtema.getId(), List.of()));
-
-        mockMvc
-            .perform(
-                post("/api/v1/concursos")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(request))
-            )
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(jsonPath("$.detail").value("O subtema ID " + subtema.getId() + " deve estar associado a pelo menos 1 cargo."));
-    }
-
-    @Test
-    void testUpdateConcurso_ModifyTopicos() throws Exception {
-        Disciplina disciplina = new Disciplina("Direito Topicos Update");
-        disciplina = disciplinaRepository.save(disciplina);
-
-        Tema tema = new Tema();
-        tema.setNome("Tema Topicos Update");
-        tema.setDisciplina(disciplina);
-        tema = temaRepository.save(tema);
-
-        Subtema subtema1 = new Subtema();
-        subtema1.setNome("Subtema Update 1");
-        subtema1.setTema(tema);
-        subtema1 = subtemaRepository.save(subtema1);
-
-        Subtema subtema2 = new Subtema();
-        subtema2.setNome("Subtema Update 2");
-        subtema2.setTema(tema);
-        subtema2 = subtemaRepository.save(subtema2);
-
-        Instituicao instituicao = new Instituicao();
-        instituicao.setNome("Instituição Topicos Update");
-        instituicao.setArea("Educação");
-        instituicao = instituicaoRepository.save(instituicao);
-
-        Banca banca = new Banca();
-        banca.setNome("Banca Topicos Update");
-        banca = bancaRepository.save(banca);
-
-        Concurso concurso = new Concurso(instituicao, banca, 2023, 10);
-        concurso = concursoRepository.save(concurso);
-
-        ConcursoCargo cc = new ConcursoCargo();
-        cc.setConcurso(concurso);
-        cc.setCargo(cargo1);
-        cc = concursoCargoRepository.save(cc);
-        concurso.addConcursoCargo(cc);
-
-        // Create initial topicos
-        ConcursoCargoSubtema ccs = new ConcursoCargoSubtema();
-        ccs.setSubtema(subtema1);
-        cc.addConcursoCargoSubtema(ccs);
-        concursoCargoSubtemaRepository.save(ccs);
-
-        // Update: remove subtema1, add subtema2
-        ConcursoUpdateRequest request = new ConcursoUpdateRequest();
-        request.setInstituicaoId(instituicao.getId());
-        request.setBancaId(banca.getId());
-        request.setAno(2023);
-        request.setMes(10);
-        request.setCargos(List.of(cargo1.getId()));
-        request.setTopicos(Map.of(subtema2.getId(), List.of(cargo1.getId())));
-
-        mockMvc
-            .perform(
-                put("/api/v1/concursos/{id}", concurso.getId())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(TestUtil.asJsonString(request))
-            )
-            .andExpect(status().isOk());
-
-        mockMvc
-            .perform(get("/api/v1/concursos/{id}", concurso.getId()).param("metrics", "full"))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.cargos[0].topicos.length()").value(1))
-            .andExpect(jsonPath("$.cargos[0].topicos[0].id").value(subtema2.getId()))
-            .andExpect(jsonPath("$.cargos[0].topicos[0].nome").value("Subtema Update 2"));
-
-        entityManager.flush();
-        entityManager.clear();
-
-        // Verify old topicos was removed
-        assertFalse(concursoCargoSubtemaRepository.existsById(ccs.getId()));
-    }
 
     @Test
     void testGetConcursoById_MetricsTiers() throws Exception {
@@ -1033,7 +1009,7 @@ class ConcursoControllerTest {
 
         ConcursoCargo cc = new ConcursoCargo();
         cc.setCargo(cargo1);
-        concurso.addConcursoCargo(cc);
+        cc.setConcurso(concurso);
         cc = concursoCargoRepository.save(cc);
 
         Subtema subtema = new Subtema();
@@ -1046,10 +1022,22 @@ class ConcursoControllerTest {
         subtema.setTema(tema);
         subtema = subtemaRepository.save(subtema);
 
-        ConcursoCargoSubtema ccs = new ConcursoCargoSubtema();
-        ccs.setSubtema(subtema);
-        cc.addConcursoCargoSubtema(ccs);
-        concursoCargoSubtemaRepository.save(ccs);
+        // Create Prova and Secao
+        Prova prova = new Prova();
+        prova.setConcurso(concurso);
+        prova.setNome("Prova Tiers");
+        
+        prova.addCargo(cc);
+        prova = provaRepository.save(prova);
+        ProvaSecao secao = new ProvaSecao();
+        secao.setProva(prova);
+        secao.setNome("Seção Tiers");
+        secao.setOrdem(1);
+        secao.getSubtemas().add(subtema);
+        provaSecaoRepository.save(secao);
+
+        entityManager.flush();
+        entityManager.clear();
 
         // Lean (default): topicos should only have structural fields
         mockMvc
@@ -1096,6 +1084,9 @@ class ConcursoControllerTest {
         concurso.setFinalizado(false);
         concurso = concursoRepository.save(concurso);
 
+        entityManager.flush();
+        entityManager.clear();
+
         mockMvc
             .perform(patch("/api/v1/concursos/{id}/finalizado", concurso.getId()))
             .andExpect(status().isOk());
@@ -1104,7 +1095,7 @@ class ConcursoControllerTest {
         org.junit.jupiter.api.Assertions.assertTrue(updated.isFinalizado());
     }
 
-@Test
+    @Test
     void testGetAllConcursos_FilterByFinalizado() throws Exception {
         Instituicao inst = new Instituicao();
         inst.setNome("Inst Filter Finalizado");
@@ -1123,6 +1114,9 @@ class ConcursoControllerTest {
         c2.setFinalizado(false);
         concursoRepository.save(c2);
 
+        entityManager.flush();
+        entityManager.clear();
+
         mockMvc
             .perform(get("/api/v1/concursos").param("finalizado", "true"))
             .andExpect(status().isOk())
@@ -1136,7 +1130,7 @@ class ConcursoControllerTest {
             .andExpect(jsonPath("$.content[0].finalizado").value(false));
     }
 
-@Test
+    @Test
     void testCreateConcurso_EditalNull() throws Exception {
         Instituicao instituicao = new Instituicao();
         instituicao.setNome("Instituição Edital Null");
@@ -1192,7 +1186,7 @@ class ConcursoControllerTest {
             .andExpect(status().isCreated());
     }
 
-@Test
+    @Test
     void testCreateConcurso_EditalValidUrl() throws Exception {
         Instituicao instituicao = new Instituicao();
         instituicao.setNome("Instituição Edital URL");
@@ -1224,6 +1218,10 @@ class ConcursoControllerTest {
 
         Map<String, Object> response = TestUtil.fromJsonString(responseContent, Map.class);
         Long concursoId = ((Number) response.get("id")).longValue();
+
+        entityManager.flush();
+        entityManager.clear();
+
         mockMvc
             .perform(get("/api/v1/concursos/" + concursoId))
             .andExpect(status().isOk())

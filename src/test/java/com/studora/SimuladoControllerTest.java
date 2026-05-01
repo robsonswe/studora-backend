@@ -60,6 +60,12 @@ class SimuladoControllerTest {
     private AlternativaRepository alternativaRepository;
 
     @Autowired
+    private ProvaRepository provaRepository;
+
+    @Autowired
+    private ProvaSecaoRepository provaSecaoRepository;
+
+    @Autowired
     private CacheManager cacheManager;
 
     private Banca savedBanca;
@@ -74,18 +80,47 @@ class SimuladoControllerTest {
                 cache.clear();
             }
         }
-        Instituicao inst = new Instituicao(); inst.setNome("Inst 1"); inst.setArea("A"); instituicaoRepository.save(inst);
-        savedBanca = new Banca(); savedBanca.setNome("Banca 1"); savedBanca = bancaRepository.save(savedBanca);
-        Concurso conc = new Concurso(inst, savedBanca, 2023, 1); concursoRepository.save(conc);
-        
-        savedDisc = new Disciplina(); savedDisc.setNome("Direito"); savedDisc = disciplinaRepository.save(savedDisc);
-        Tema tema = new Tema(); tema.setNome("Tema 1"); tema.setDisciplina(savedDisc); tema = temaRepository.save(tema);
-        Subtema sub = new Subtema(); sub.setNome("Sub 1"); sub.setTema(tema); sub = subtemaRepository.save(sub);
+        Instituicao inst = new Instituicao();
+        inst.setNome("Inst 1");
+        inst.setArea("A");
+        instituicaoRepository.save(inst);
+        savedBanca = new Banca();
+        savedBanca.setNome("Banca 1");
+        savedBanca = bancaRepository.save(savedBanca);
+        Concurso conc = new Concurso(inst, savedBanca, 2023, 1);
+        concursoRepository.save(conc);
+
+        savedDisc = new Disciplina();
+        savedDisc.setNome("Direito");
+        savedDisc = disciplinaRepository.save(savedDisc);
+        Tema tema = new Tema();
+        tema.setNome("Tema 1");
+        tema.setDisciplina(savedDisc);
+        tema = temaRepository.save(tema);
+        Subtema sub = new Subtema();
+        sub.setNome("Sub 1");
+        sub.setTema(tema);
+        sub = subtemaRepository.save(sub);
+
+        Prova prova = new Prova();
+        prova.setConcurso(conc);
+        prova.setNome("Prova 1");
+        prova = provaRepository.save(prova);
+
+        ProvaSecao secao = new ProvaSecao();
+        secao.setProva(prova);
+        secao.setNome("Geral");
+        secao.setOrdem(1);
+        secao = provaSecaoRepository.save(secao);
 
         for (int i = 1; i <= 20; i++) {
             Questao q = new Questao();
             q.setEnunciado("Q" + i);
-            q.setConcurso(conc);
+
+            QuestaoProvaSecao qps = new QuestaoProvaSecao();
+            qps.setProvaSecao(secao);
+            q.addSecao(qps);
+
             q.getSubtemas().add(sub);
             questaoRepository.save(q);
         }
@@ -97,7 +132,7 @@ class SimuladoControllerTest {
         request.setNome("Simulado Teste");
         request.setBancaId(savedBanca.getId());
         request.setIgnorarRespondidas(true);
-        
+
         SimuladoGenerationRequest.ItemSelection item = new SimuladoGenerationRequest.ItemSelection();
         item.setId(savedDisc.getId());
         item.setQuantidade(20);
@@ -131,7 +166,10 @@ class SimuladoControllerTest {
         // 1. Setup a question with an alternative
         Questao q1 = questaoRepository.findAll().get(0);
         Alternativa alt = new Alternativa();
-        alt.setQuestao(q1); alt.setOrdem(1); alt.setTexto("A1"); alt.setCorreta(true);
+        alt.setQuestao(q1);
+        alt.setOrdem(1);
+        alt.setTexto("A1");
+        alt.setCorreta(true);
         alt = alternativaRepository.save(alt);
 
         Simulado simulado = new Simulado();
@@ -145,7 +183,7 @@ class SimuladoControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.startedAt").isNotEmpty())
                 .andExpect(jsonPath("$.questoes").doesNotExist());
-        
+
         // 3. Try to finish without answers - Should fail (422)
         mockMvc.perform(patch("/api/v1/simulados/{id}/finalizar", id))
                 .andExpect(status().isUnprocessableEntity());
@@ -162,7 +200,7 @@ class SimuladoControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.finishedAt").isNotEmpty())
                 .andExpect(jsonPath("$.questoes").doesNotExist());
-        
+
         // 6. Get (Finished) - Should return questao because it is detail view
         mockMvc.perform(get("/api/v1/simulados/{id}", id))
                 .andExpect(status().isOk())
@@ -171,7 +209,7 @@ class SimuladoControllerTest {
         // 7. Delete
         mockMvc.perform(delete("/api/v1/simulados/{id}", id))
                 .andExpect(status().isNoContent());
-        
+
         assertFalse(simuladoRepository.existsById(id));
     }
 

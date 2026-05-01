@@ -32,33 +32,47 @@ public class QuestaoSpecification {
             // Avoid duplicate results when joining collections
             query.distinct(true);
 
+            jakarta.persistence.criteria.Join<Object, Object> qpsJoin = root.join("secoes", jakarta.persistence.criteria.JoinType.LEFT);
+            jakarta.persistence.criteria.Join<Object, Object> provaSecaoJoin = qpsJoin.join("provaSecao", jakarta.persistence.criteria.JoinType.LEFT);
+            jakarta.persistence.criteria.Join<Object, Object> provaJoin = provaSecaoJoin.join("prova", jakarta.persistence.criteria.JoinType.LEFT);
+            jakarta.persistence.criteria.Join<Object, Object> concursoJoin = provaJoin.join("concurso", jakarta.persistence.criteria.JoinType.LEFT);
+            jakarta.persistence.criteria.Join<Object, Object> provaCargoJoin = provaJoin.join("cargos", jakarta.persistence.criteria.JoinType.LEFT);
+
+
             // Hierarchy branch
             if (filter.getConcursoId() != null) {
-                predicates.add(cb.equal(root.get("concurso").get("id"), filter.getConcursoId()));
+                predicates.add(cb.equal(concursoJoin.get("id"), filter.getConcursoId()));
+            }
+
+            if (filter.getProvaId() != null) {
+                predicates.add(cb.equal(provaJoin.get("id"), filter.getProvaId()));
+            }
+            if (filter.getProvaSecaoId() != null) {
+                predicates.add(cb.equal(provaSecaoJoin.get("id"), filter.getProvaSecaoId()));
             }
 
             if (filter.getBancaId() != null) {
-                predicates.add(cb.equal(root.get("concurso").get("banca").get("id"), filter.getBancaId()));
+                predicates.add(cb.equal(concursoJoin.get("banca").get("id"), filter.getBancaId()));
             }
 
             if (filter.getInstituicaoId() != null) {
-                predicates.add(cb.equal(root.get("concurso").get("instituicao").get("id"), filter.getInstituicaoId()));
+                predicates.add(cb.equal(concursoJoin.get("instituicao").get("id"), filter.getInstituicaoId()));
             }
 
             if (filter.getCargoId() != null) {
-                predicates.add(cb.equal(root.join("questaoCargos").get("concursoCargo").get("cargo").get("id"), filter.getCargoId()));
+                predicates.add(cb.equal(provaCargoJoin.get("cargo").get("id"), filter.getCargoId()));
             }
 
             if (filter.getInstituicaoArea() != null) {
-                predicates.add(cb.equal(cb.lower(root.get("concurso").get("instituicao").get("area")), filter.getInstituicaoArea().toLowerCase()));
+                predicates.add(cb.equal(cb.lower(concursoJoin.get("instituicao").get("area")), filter.getInstituicaoArea().toLowerCase()));
             }
 
             if (filter.getCargoArea() != null) {
-                predicates.add(cb.equal(cb.lower(root.join("questaoCargos").get("concursoCargo").get("cargo").get("area")), filter.getCargoArea().toLowerCase()));
+                predicates.add(cb.equal(cb.lower(provaCargoJoin.get("cargo").get("area")), filter.getCargoArea().toLowerCase()));
             }
 
             if (filter.getCargoNivel() != null) {
-                predicates.add(cb.equal(root.join("questaoCargos").get("concursoCargo").get("cargo").get("nivel"), filter.getCargoNivel()));
+                predicates.add(cb.equal(provaCargoJoin.get("cargo").get("nivel"), filter.getCargoNivel()));
             }
 
             // Taxonomy branch

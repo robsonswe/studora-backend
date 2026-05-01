@@ -16,6 +16,12 @@ public class QuestaoFilter {
     @Schema(description = "Filtrar por ID do concurso", example = "1")
     private Long concursoId;
 
+    @Schema(description = "Filtrar por ID da prova", example = "1")
+    private Long provaId;
+    
+    @Schema(description = "Filtrar por ID da seção da prova", example = "1")
+    private Long provaSecaoId;
+
     @Schema(description = "Filtrar por ID do cargo", example = "1")
     private Long cargoId;
 

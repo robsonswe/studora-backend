@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonView;
 import com.studora.dto.Views;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+import java.util.List;
 
 @Schema(description = "DTO com contexto do concurso para exibição em questões")
 @Data
@@ -43,4 +44,9 @@ public class ConcursoQuestaoDto {
     @Schema(description = "Área da instituição", example = "Segurança")
     @JsonView(Views.Summary.class)
     private String instituicaoArea;
+
+    @Schema(description = "Cargos associados à questão neste concurso, com suas respectivas seções")
+    @JsonView(Views.Summary.class)
+    private List<CargoQuestaoDto> cargos;
+
 }

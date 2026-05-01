@@ -1,13 +1,14 @@
 package com.studora.repository;
 
-import com.studora.entity.Concurso;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.stereotype.Repository;
-
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import java.util.Optional;
+import org.springframework.stereotype.Repository;
+
+import com.studora.entity.Concurso;
 
 @Repository
 public interface ConcursoRepository extends JpaRepository<Concurso, Long>, JpaSpecificationExecutor<Concurso> {
@@ -20,9 +21,12 @@ public interface ConcursoRepository extends JpaRepository<Concurso, Long>, JpaSp
            "JOIN FETCH c.banca " +
            "LEFT JOIN FETCH c.concursoCargos cc " +
            "LEFT JOIN FETCH cc.cargo " +
-           "LEFT JOIN FETCH cc.concursoCargoSubtemas ccs " +
-           "LEFT JOIN FETCH ccs.subtema s " +
-           "LEFT JOIN FETCH s.tema t " +
+           "LEFT JOIN FETCH c.provas p " +
+           "LEFT JOIN FETCH p.cargos pc " +
+           "LEFT JOIN FETCH pc.cargo " +
+           "LEFT JOIN FETCH p.secoes s " +
+           "LEFT JOIN FETCH s.subtemas st " +
+           "LEFT JOIN FETCH st.tema t " +
            "LEFT JOIN FETCH t.disciplina " +
            "WHERE c.id = :id")
     Optional<Concurso> findByIdWithDetails(@Param("id") Long id);
@@ -32,9 +36,12 @@ public interface ConcursoRepository extends JpaRepository<Concurso, Long>, JpaSp
            "JOIN FETCH c.banca " +
            "LEFT JOIN FETCH c.concursoCargos cc " +
            "LEFT JOIN FETCH cc.cargo " +
-           "LEFT JOIN FETCH cc.concursoCargoSubtemas ccs " +
-           "LEFT JOIN FETCH ccs.subtema s " +
-           "LEFT JOIN FETCH s.tema t " +
+           "LEFT JOIN FETCH c.provas p " +
+           "LEFT JOIN FETCH p.cargos pc " +
+           "LEFT JOIN FETCH pc.cargo " +
+           "LEFT JOIN FETCH p.secoes s " +
+           "LEFT JOIN FETCH s.subtemas st " +
+           "LEFT JOIN FETCH st.tema t " +
            "LEFT JOIN FETCH t.disciplina " +
            "WHERE c.id IN :ids")
     java.util.List<Concurso> findAllByIdsWithDetails(@Param("ids") java.util.List<Long> ids);

@@ -35,6 +35,8 @@ class SimuladoGenerationFilterTest {
     @Autowired private SubtemaRepository subtemaRepository;
     @Autowired private RespostaRepository respostaRepository;
     @Autowired private AlternativaRepository alternativaRepository;
+    @Autowired private ProvaRepository provaRepository;
+    @Autowired private ProvaSecaoRepository provaSecaoRepository;
     @Autowired private EntityManager entityManager;
 
     private Subtema subtema;
@@ -49,10 +51,25 @@ class SimuladoGenerationFilterTest {
         Tema tema = new Tema(); tema.setNome("Tema F"); tema.setDisciplina(disc); tema = temaRepository.save(tema);
         subtema = new Subtema(); subtema.setNome("Sub F"); subtema.setTema(tema); subtema = subtemaRepository.save(subtema);
 
+        Prova prova = new Prova();
+        prova.setConcurso(conc);
+        prova.setNome("Prova F");
+        prova = provaRepository.save(prova);
+
+        ProvaSecao secao = new ProvaSecao();
+        secao.setProva(prova);
+        secao.setNome("Geral F");
+        secao.setOrdem(1);
+        secao = provaSecaoRepository.save(secao);
+
         for (int i = 1; i <= 30; i++) {
             Questao q = new Questao();
             q.setEnunciado("QF" + i);
-            q.setConcurso(conc);
+            
+            QuestaoProvaSecao qps = new QuestaoProvaSecao();
+            qps.setProvaSecao(secao);
+            q.addSecao(qps);
+            
             q.getSubtemas().add(subtema);
             
             Alternativa alt = new Alternativa();

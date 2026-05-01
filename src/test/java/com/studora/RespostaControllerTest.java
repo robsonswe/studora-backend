@@ -1,12 +1,5 @@
 package com.studora;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-import com.studora.dto.request.RespostaCreateRequest;
-import com.studora.entity.*;
-import com.studora.repository.*;
-import com.studora.util.TestUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +8,29 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.studora.dto.request.RespostaCreateRequest;
+import com.studora.entity.Alternativa;
+import com.studora.entity.Banca;
+import com.studora.entity.Concurso;
+import com.studora.entity.Dificuldade;
+import com.studora.entity.Instituicao;
+import com.studora.entity.Questao;
+import com.studora.entity.Resposta;
+import com.studora.repository.AlternativaRepository;
+import com.studora.repository.BancaRepository;
+import com.studora.repository.ConcursoRepository;
+import com.studora.repository.InstituicaoRepository;
+import com.studora.repository.QuestaoRepository;
+import com.studora.repository.RespostaRepository;
+import com.studora.util.TestUtil;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -64,7 +79,7 @@ class RespostaControllerTest {
         );
         Questao newQuestao = new Questao();
         newQuestao.setEnunciado("Enunciado da Questão Resposta");
-        newQuestao.setConcurso(concurso);
+        newQuestao.setAutoral(true);
         questao = questaoRepository.save(newQuestao);
 
         Alternativa newAlternativa = new Alternativa();
@@ -133,7 +148,7 @@ class RespostaControllerTest {
         // Create a second question to avoid unique constraint violation on questao_id
         Questao questao2 = new Questao();
         questao2.setEnunciado("Enunciado 2");
-        questao2.setConcurso(questao.getConcurso());
+        questao2.setAutoral(true);
         questao2 = questaoRepository.save(questao2);
 
         Alternativa alt2 = new Alternativa();
@@ -164,7 +179,7 @@ class RespostaControllerTest {
         respostaRepository.deleteAll();
         
         // Create 2 questions and answers with different timestamps
-        Questao q1 = new Questao(); q1.setEnunciado("Q1"); q1.setConcurso(questao.getConcurso()); q1 = questaoRepository.save(q1);
+        Questao q1 = new Questao(); q1.setEnunciado("Q1"); q1.setAutoral(true); q1 = questaoRepository.save(q1);
         Alternativa a1 = new Alternativa(); a1.setOrdem(1); a1.setTexto("A1"); a1.setQuestao(q1); a1.setCorreta(true); a1 = alternativaRepository.save(a1);
         Resposta r1 = new Resposta(q1, a1); 
         r1 = respostaRepository.save(r1);
@@ -172,7 +187,7 @@ class RespostaControllerTest {
         // Sleep to ensure different createdAt (if necessary for the test logic, but normally order is enough)
         Thread.sleep(10);
 
-        Questao q2 = new Questao(); q2.setEnunciado("Q2"); q2.setConcurso(questao.getConcurso()); q2 = questaoRepository.save(q2);
+        Questao q2 = new Questao(); q2.setEnunciado("Q2"); q2.setAutoral(true); q2 = questaoRepository.save(q2);
         Alternativa a2 = new Alternativa(); a2.setOrdem(1); a2.setTexto("A2"); a2.setQuestao(q2); a2.setCorreta(true); a2 = alternativaRepository.save(a2);
         Resposta r2 = new Resposta(q2, a2); 
         r2 = respostaRepository.save(r2);
@@ -222,7 +237,7 @@ class RespostaControllerTest {
         Questao annulledQuestao = new Questao();
         annulledQuestao.setEnunciado("Questão Anulada");
         annulledQuestao.setAnulada(true); // Set as annulled
-        annulledQuestao.setConcurso(questao.getConcurso()); // Use the same concurso as the existing question
+        annulledQuestao.setAutoral(true);
         annulledQuestao = questaoRepository.save(annulledQuestao);
 
         // Create an alternative for the annulled question
