@@ -13,7 +13,7 @@ public class ProvaSecaoUpdateRequest {
 
     private Integer ordem;
     private Integer numQuestoes;
-    
-    private List<ProvaSecaoPesoUpdateRequest> pesos;
-    private List<Long> subtemaIds;
-}
+
+    private Double peso;
+    private Double notaMinima;
+    private List<Long> subtemaIds;}

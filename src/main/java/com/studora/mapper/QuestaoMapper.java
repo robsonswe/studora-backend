@@ -59,6 +59,7 @@ public interface QuestaoMapper {
     @Mapping(target = "instituicaoNome", source = "instituicao.nome")
     @Mapping(target = "instituicaoSigla", source = "instituicao.sigla")
     @Mapping(target = "instituicaoArea", source = "instituicao.area")
+    @Mapping(target = "cargos", ignore = true)
     ConcursoQuestaoDto toConcursoQuestaoDto(com.studora.entity.Concurso concurso);
 
     @Mapping(target = "tema", source = "tema")
@@ -80,30 +81,31 @@ public interface QuestaoMapper {
                 
                 for (com.studora.entity.QuestaoProvaSecao qps : qpSecoes) {
                     com.studora.entity.ProvaSecao ps = qps.getProvaSecao();
-                    if (ps == null || ps.getProva() == null) continue;
+                    if (ps == null || ps.getProva() == null || ps.getProva().getConcursoCargo() == null) continue;
                     
                     com.studora.dto.questao.SecaoQuestaoDto sDto = new com.studora.dto.questao.SecaoQuestaoDto();
                     sDto.setId(ps.getId());
                     sDto.setNome(ps.getNome());
                     sDto.setProvaNome(ps.getProva().getNome());
                     sDto.setProvaId(ps.getProva().getId());
+                    sDto.setNumeroQuestao(qps.getNumeroQuestao());
                     
-                    for (com.studora.entity.ConcursoCargo cc : ps.getProva().getCargos()) {
-                        com.studora.entity.Cargo cargo = cc.getCargo();
-                        com.studora.dto.questao.CargoQuestaoDto cDto = cargoMap.computeIfAbsent(cargo.getId(), id -> {
-                            com.studora.dto.questao.CargoQuestaoDto newCDto = new com.studora.dto.questao.CargoQuestaoDto();
-                            newCDto.setId(cargo.getId());
-                            newCDto.setNome(cargo.getNome());
-                            newCDto.setNivel(cargo.getNivel());
-                            newCDto.setArea(cargo.getArea());
-                            newCDto.setSecoes(new java.util.ArrayList<>());
-                            return newCDto;
-                        });
-                        
-                        // Avoid duplicates if a question is somehow linked twice to the same section
-                        if (cDto.getSecoes().stream().noneMatch(existing -> existing.getId().equals(sDto.getId()))) {
-                            cDto.getSecoes().add(sDto);
-                        }
+                    com.studora.entity.Cargo cargo = ps.getProva().getConcursoCargo().getCargo();
+                    if (cargo == null) continue;
+
+                    com.studora.dto.questao.CargoQuestaoDto cDto = cargoMap.computeIfAbsent(cargo.getId(), id -> {
+                        com.studora.dto.questao.CargoQuestaoDto newCDto = new com.studora.dto.questao.CargoQuestaoDto();
+                        newCDto.setId(cargo.getId());
+                        newCDto.setNome(cargo.getNome());
+                        newCDto.setNivel(cargo.getNivel());
+                        newCDto.setArea(cargo.getArea());
+                        newCDto.setSecoes(new java.util.ArrayList<>());
+                        return newCDto;
+                    });
+                    
+                    // Avoid duplicates if a question is somehow linked twice to the same section
+                    if (cDto.getSecoes().stream().noneMatch(existing -> existing.getId().equals(sDto.getId()))) {
+                        cDto.getSecoes().add(sDto);
                     }
                 }
                 

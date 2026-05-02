@@ -34,8 +34,8 @@ public class QuestaoUpdateRequest {
     @com.fasterxml.jackson.annotation.JsonProperty("subtemas")
     private List<Long> subtemaIds;
 
-    @Schema(description = "IDs das seções da prova às quais a questão pertence (ignorado se autoral=true)")
-    private List<Long> secoesIds;
+    @Schema(description = "Associações com seções da prova (ignorado se autoral=true)")
+    private List<SecaoQuestaoRequest> secoes;
 
     @Schema(description = "Alternativas da questão")
     @Size(min = AppConstants.MIN_ALTERNATIVAS, message = "A questão deve ter pelo menos {min} alternativas")

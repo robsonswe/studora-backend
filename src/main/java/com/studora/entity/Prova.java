@@ -36,16 +36,12 @@ public class Prova extends BaseEntity {
     @Column(nullable = false)
     private String nome;
 
-    @ManyToMany
-    @JoinTable(name = "prova_cargo", joinColumns = @JoinColumn(name = "prova_id"), inverseJoinColumns = @JoinColumn(name = "concurso_cargo_id"))
-    private Set<ConcursoCargo> cargos = new LinkedHashSet<>();
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "concurso_cargo_id")
+    private ConcursoCargo concursoCargo;
     
     @OneToMany(mappedBy = "prova", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ProvaSecao> secoes = new LinkedHashSet<>();
-
-    public void addCargo(ConcursoCargo cargo) {
-        this.cargos.add(cargo);
-    }
 
     public void addSecao(ProvaSecao secao) {
         this.secoes.add(secao);

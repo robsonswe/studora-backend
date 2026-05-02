@@ -35,8 +35,11 @@ class SimuladoGenerationFilterTest {
     @Autowired private SubtemaRepository subtemaRepository;
     @Autowired private RespostaRepository respostaRepository;
     @Autowired private AlternativaRepository alternativaRepository;
-    @Autowired private ProvaRepository provaRepository;
+@Autowired private ProvaRepository provaRepository;
     @Autowired private ProvaSecaoRepository provaSecaoRepository;
+    @Autowired private CargoRepository cargoRepository;
+    @Autowired private ConcursoCargoRepository concursoCargoRepository;
+    @Autowired private SecaoCargoRepository secaoCargoRepository;
     @Autowired private EntityManager entityManager;
 
     private Subtema subtema;
@@ -45,19 +48,30 @@ class SimuladoGenerationFilterTest {
     void setUp() {
         Instituicao inst = new Instituicao(); inst.setNome("Inst F"); inst.setArea("A"); instituicaoRepository.save(inst);
         Banca banca = new Banca(); banca.setNome("Banca F"); bancaRepository.save(banca);
-        Concurso conc = new Concurso(inst, banca, 2023, 1); concursoRepository.save(conc);
+        Concurso conc = new Concurso(inst, banca, 2023, 1); conc = concursoRepository.save(conc);
         
         Disciplina disc = new Disciplina(); disc.setNome("Direito F"); disc = disciplinaRepository.save(disc);
         Tema tema = new Tema(); tema.setNome("Tema F"); tema.setDisciplina(disc); tema = temaRepository.save(tema);
         subtema = new Subtema(); subtema.setNome("Sub F"); subtema.setTema(tema); subtema = subtemaRepository.save(subtema);
 
+        Cargo cargo = new Cargo(); cargo.setNome("Cargo F"); cargo.setNivel(com.studora.entity.NivelCargo.SUPERIOR); cargo.setArea("TI");
+        cargo = cargoRepository.save(cargo);
+
+        ConcursoCargo cc = new ConcursoCargo(); cc.setConcurso(conc); cc.setCargo(cargo);
+        cc = concursoCargoRepository.save(cc);
+
+        SecaoCargo scDef = new SecaoCargo(); scDef.setConcursoCargo(cc); scDef.setNome("Geral"); scDef.setPeso(1.0);
+        scDef = secaoCargoRepository.save(scDef);
+
         Prova prova = new Prova();
         prova.setConcurso(conc);
+        prova.setConcursoCargo(cc);
         prova.setNome("Prova F");
         prova = provaRepository.save(prova);
 
         ProvaSecao secao = new ProvaSecao();
         secao.setProva(prova);
+        secao.setSecaoCargo(scDef);
         secao.setNome("Geral F");
         secao.setOrdem(1);
         secao = provaSecaoRepository.save(secao);

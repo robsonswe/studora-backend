@@ -64,6 +64,9 @@ class StatsStructureTest {
     @Autowired
     private ProvaSecaoRepository provaSecaoRepository;
 
+    @Autowired
+    private SecaoCargoRepository secaoCargoRepository;
+
     @BeforeEach
     void clearCaches() {
         if (cacheManager != null) {
@@ -126,11 +129,19 @@ class StatsStructureTest {
         Prova prova = new Prova();
         prova.setConcurso(data.concurso);
         prova.setNome("Prova Agente");
-        prova.addCargo(concursoCargo);
+        prova.setConcursoCargo(concursoCargo);
         prova = provaRepository.save(prova);
+
+        SecaoCargo scDef = new SecaoCargo();
+        scDef.setConcursoCargo(concursoCargo);
+        scDef.setNome("Conhecimentos Gerais");
+        scDef.setPeso(1.0);
+        scDef.addSubtema(subtema);
+        scDef = secaoCargoRepository.save(scDef);
 
         ProvaSecao secao = new ProvaSecao();
         secao.setProva(prova);
+        secao.setSecaoCargo(scDef);
         secao.setNome("Conhecimentos Gerais");
         secao.setOrdem(1);
         secao = provaSecaoRepository.save(secao);

@@ -9,6 +9,6 @@ public class ProvaDetailDto {
     private Long concursoId;
     private String nome;
        
-    private List<Long> cargoIds;
+    private Long cargoId;
     private List<ProvaSecaoDto> secoes;
 }

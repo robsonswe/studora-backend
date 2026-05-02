@@ -1,5 +1,7 @@
 package com.studora.service;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +19,7 @@ import com.studora.dto.questao.QuestaoFilter;
 import com.studora.dto.questao.QuestaoSummaryDto;
 import com.studora.dto.request.QuestaoCreateRequest;
 import com.studora.dto.request.QuestaoUpdateRequest;
+import com.studora.dto.request.SecaoQuestaoRequest;
 import com.studora.entity.Alternativa;
 import com.studora.entity.ProvaSecao;
 import com.studora.entity.Questao;
@@ -53,25 +56,25 @@ public class QuestaoService {
     private final EntityManager entityManager;
     private final ProvaSecaoRepository provaSecaoRepository;
 
+    // =========================================================================
+    // READ
+    // =========================================================================
+
     @Transactional(readOnly = true)
     public Page<QuestaoSummaryDto> findAll(QuestaoFilter filter, Pageable pageable) {
         Specification<Questao> spec = QuestaoSpecification.withFilter(filter);
-        
-        // 1. Fetch the page of questions (initially without full details to keep count/pagination simple)
         Page<Questao> page = questaoRepository.findAll(spec, pageable);
-        
+
         if (page.isEmpty()) {
             return Page.empty(pageable);
         }
 
-        // 2. Extract IDs and fetch full details in a single query
         List<Long> ids = page.getContent().stream().map(Questao::getId).toList();
         List<Questao> withDetails = questaoRepository.findByIdsWithDetails(ids);
-        
-        // 3. Map to DTOs while maintaining the original page order
-        java.util.Map<Long, Questao> detailsMap = withDetails.stream()
-                .collect(java.util.stream.Collectors.toMap(Questao::getId, q -> q));
-        
+
+        Map<Long, Questao> detailsMap = withDetails.stream()
+                .collect(Collectors.toMap(Questao::getId, q -> q));
+
         return page.map(q -> questaoMapper.toSummaryDto(detailsMap.getOrDefault(q.getId(), q)));
     }
 
@@ -94,49 +97,44 @@ public class QuestaoService {
         filter.setInstituicaoArea(randomFilter.getInstituicaoArea());
         filter.setCargoArea(randomFilter.getCargoArea());
         filter.setCargoNivel(randomFilter.getCargoNivel());
-
-        // 1. Force desatualizada to false (not an option for random endpoint)
         filter.setDesatualizada(false);
-
-        // 2. Default anulada to false if not provided
         filter.setAnulada(java.util.Objects.requireNonNullElse(randomFilter.getAnulada(), false));
 
-        // 3. Handle autoral filter: default to standard-only, include both when includeAutoral=true
-        if (Boolean.TRUE.equals(randomFilter.getIncludeAutoral())) {
-            // Don't set the filter — both types eligible
-        } else {
-            filter.setAutoral(false); // standard only
+        if (!Boolean.TRUE.equals(randomFilter.getIncludeAutoral())) {
+            filter.setAutoral(false);
         }
 
         Specification<Questao> spec = QuestaoSpecification.withFilter(filter)
                 .and(QuestaoSpecification.notAnsweredRecently(java.time.LocalDateTime.now().minusMonths(1)));
 
         long count = questaoRepository.count(spec);
-
         if (count == 0) {
             throw new ResourceNotFoundException("Não foi possível encontrar nenhuma questão com os filtros fornecidos.");
         }
 
         int randomIndex = (int) (Math.random() * count);
-        Page<Questao> randomPage = questaoRepository.findAll(spec, org.springframework.data.domain.PageRequest.of(randomIndex, 1));
-        
+        Page<Questao> randomPage = questaoRepository.findAll(spec,
+                org.springframework.data.domain.PageRequest.of(randomIndex, 1));
+
         if (randomPage.hasContent()) {
-            // We need details, and findAll with pageable won't fetch everything efficiently/correctly with details in a single query
-            // So we fetch the full details by ID of the randomly picked question
             return getQuestaoDetailById(randomPage.getContent().get(0).getId());
         }
 
         throw new ResourceNotFoundException("Não foi possível encontrar nenhuma questão com os filtros fornecidos.");
     }
 
+    // =========================================================================
+    // CREATE
+    // =========================================================================
+
     public Long create(QuestaoCreateRequest request) {
         log.info("Criando nova questão");
 
         boolean isAutoral = Boolean.TRUE.equals(request.getAutoral());
-        validateQuestaoBusinessRules(request.getAlternativas(), request.getAnulada(), request.getSecoesIds(), isAutoral, request.getSubtemaIds());
+        validateQuestaoBusinessRules(request.getAlternativas(), request.getAnulada(),
+                request.getSecoes(), isAutoral, request.getSubtemaIds());
 
         Questao questao = questaoMapper.toEntity(request);
-
 
         if (request.getSubtemaIds() != null && !request.getSubtemaIds().isEmpty()) {
             List<Subtema> subtemas = subtemaRepository.findAllById(request.getSubtemaIds());
@@ -156,15 +154,26 @@ public class QuestaoService {
         }
 
         if (!isAutoral) {
-            synchronizeSecoes(questao, request.getSecoesIds());
+            synchronizeSecoes(questao, request.getSecoes());
         }
 
         normalizeAlternativaOrders(questao);
-        Questao savedQuestao = questaoRepository.save(questao);
 
+        // Persist first so all QPS rows have real DB IDs before normalization
+        Questao saved = questaoRepository.save(questao);
         entityManager.flush();
-        return savedQuestao.getId();
+
+        // Now renumber every question in the affected prova(s)
+        if (!isAutoral && !saved.getSecoes().isEmpty()) {
+            collectProvaIds(saved).forEach(this::normalizeQuestaoNumbersForProva);
+        }
+
+        return saved.getId();
     }
+
+    // =========================================================================
+    // UPDATE
+    // =========================================================================
 
     public QuestaoDetailDto update(Long id, QuestaoUpdateRequest request) {
         log.info("Atualizando questão ID: {}", id);
@@ -172,210 +181,109 @@ public class QuestaoService {
         Questao questao = questaoRepository.findByIdWithDetails(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Questão", "ID", id));
 
-        // Guard: type cannot be changed after creation
         if (request.getAutoral() != null && !request.getAutoral().equals(questao.getAutoral())) {
-            throw new com.studora.exception.ValidationException("O tipo da questão (autoral/concurso) não pode ser alterado após a criação.");
+            throw new com.studora.exception.ValidationException(
+                    "O tipo da questão (autoral/concurso) não pode ser alterado após a criação.");
         }
 
         boolean isAutoral = Boolean.TRUE.equals(questao.getAutoral());
-        validateQuestaoBusinessRules(request.getAlternativas(), request.getAnulada(), request.getSecoesIds(), isAutoral, request.getSubtemaIds());
+        validateQuestaoBusinessRules(request.getAlternativas(), request.getAnulada(),
+                request.getSecoes(), isAutoral, request.getSubtemaIds());
 
         boolean contentChanged = hasContentChanged(questao, request, isAutoral);
         if (contentChanged) {
-            log.info("Mudança de conteúdo detectada na questão {}. Excluindo histórico de respostas.", id);
             respostaRepository.deleteByQuestaoId(id);
         }
 
+        questao.setEnunciado(request.getEnunciado());
+        questao.setAnulada(request.getAnulada());
+        if (request.getDesatualizada() != null) {
+            questao.setDesatualizada(request.getDesatualizada());
+        }
+        questao.setImageUrl(request.getImageUrl());
 
         if (request.getSubtemaIds() != null) {
             List<Subtema> subtemas = subtemaRepository.findAllById(request.getSubtemaIds());
             questao.setSubtemas(new HashSet<>(subtemas));
         }
 
-        questaoMapper.updateEntityFromDto(request, questao);
-        
+        if (!isAutoral) {
+            synchronizeSecoes(questao, request.getSecoes());
+        }
+
+        // Update alternativas with negative-shift to avoid UNIQUE(questao_id, ordem)
+        // conflicts when reordering
         if (request.getAlternativas() != null) {
-            log.debug("Processando atualização de alternativas para questão ID {}. Qtd: {}", id, request.getAlternativas().size());
-            List<Alternativa> currentAlts = alternativaRepository.findByQuestaoIdOrderByOrdemAsc(id);
-            java.util.Map<Long, Alternativa> existingMap = currentAlts.stream()
-                .collect(Collectors.toMap(Alternativa::getId, a -> a));
+            List<Alternativa> existing = alternativaRepository.findByQuestaoIdOrderByOrdemAsc(id);
 
-            Set<Long> idsToKeep = request.getAlternativas().stream()
-                .map(com.studora.dto.request.AlternativaUpdateRequest::getId)
-                .filter(java.util.Objects::nonNull)
-                .collect(Collectors.toSet());
-
-            // 1. Remove orphans
-            questao.getAlternativas().removeIf(alt -> !idsToKeep.contains(alt.getId()));
-
-            // 1.5. Temporary Shift: Set existing items to temporary unique negative orders
-            // This prevents UNIQUE constraint violations (e.g. swapping 1 and 2) by clearing the positive number space.
-            log.trace("Realizando shift temporário para ordens negativas para evitar conflitos.");
-            for (Alternativa alt : questao.getAlternativas()) {
-                if (alt.getId() != null) {
-                    alt.setOrdem(-1 * alt.getId().intValue());
-                }
-            }
-            // Flush only once here to clear the positive sequence in DB
+            // Phase 1: negative shift to vacate all ordre slots atomically
+            existing.forEach(alt -> alt.setOrdem(-alt.getId().intValue()));
             entityManager.flush();
 
-            // 2. Update or Create
+            Map<Long, Alternativa> existingById = existing.stream()
+                    .filter(a -> a.getId() != null)
+                    .collect(Collectors.toMap(Alternativa::getId, a -> a));
+
+            Set<Long> requestIds = request.getAlternativas().stream()
+                    .filter(r -> ((com.studora.dto.request.AlternativaUpdateRequest) r).getId() != null)
+                    .map(r -> ((com.studora.dto.request.AlternativaUpdateRequest) r).getId())
+                    .collect(Collectors.toSet());
+
+            // Remove alternativas absent from the request
+            questao.getAlternativas().removeIf(
+                    alt -> alt.getId() != null && !requestIds.contains(alt.getId()));
+
+            // Phase 2: apply requested ordens
             for (com.studora.dto.request.AlternativaUpdateRequest altReq : request.getAlternativas()) {
-                Alternativa alt;
-                if (altReq.getId() != null) {
-                    alt = existingMap.get(altReq.getId());
-                    if (alt != null) {
-                        alt.setTexto(altReq.getTexto());
-                        alt.setCorreta(altReq.getCorreta());
-                        alt.setOrdem(altReq.getOrdem());
-                        alt.setJustificativa(altReq.getJustificativa());
-                    }
-                } else {
-                    alt = new Alternativa();
-                    alt.setQuestao(questao);
+                if (altReq.getId() != null && existingById.containsKey(altReq.getId())) {
+                    Alternativa alt = existingById.get(altReq.getId());
                     alt.setTexto(altReq.getTexto());
                     alt.setCorreta(altReq.getCorreta());
                     alt.setOrdem(altReq.getOrdem());
                     alt.setJustificativa(altReq.getJustificativa());
-                    questao.getAlternativas().add(alt);
+                } else {
+                    Alternativa newAlt = new Alternativa();
+                    newAlt.setQuestao(questao);
+                    newAlt.setTexto(altReq.getTexto());
+                    newAlt.setCorreta(altReq.getCorreta());
+                    newAlt.setOrdem(altReq.getOrdem());
+                    newAlt.setJustificativa(altReq.getJustificativa());
+                    questao.getAlternativas().add(newAlt);
                 }
             }
         }
 
-        if (!isAutoral && request.getSecoesIds() != null) {
-            synchronizeSecoes(questao, request.getSecoesIds());
-        }
-
         normalizeAlternativaOrders(questao);
+
         Questao saved = questaoRepository.save(questao);
         entityManager.flush();
-        return questaoMapper.toDetailDto(questaoRepository.findByIdWithDetails(saved.getId()).get());
+
+        // Renumber every question in the affected prova(s)
+        if (!isAutoral && !saved.getSecoes().isEmpty()) {
+            collectProvaIds(saved).forEach(this::normalizeQuestaoNumbersForProva);
+        }
+
+        return questaoMapper.toDetailDto(questao);
     }
 
-    private void normalizeAlternativaOrders(Questao questao) {
-        if (questao.getAlternativas() == null || questao.getAlternativas().isEmpty()) return;
-        
-        List<Alternativa> sorted = questao.getAlternativas().stream()
-                .sorted(java.util.Comparator.comparing(Alternativa::getOrdem))
-                .collect(Collectors.toList());
-        
-        int order = 1;
-        for (Alternativa alt : sorted) {
-            alt.setOrdem(order++);
-        }
-    }
-
-    private void validateQuestaoBusinessRules(List<? extends com.studora.dto.request.AlternativaBaseRequest> alternativas,
-                                            Boolean anulada, List<Long> secoesIds, boolean autoral,
-                                            List<Long> subtemaIds) {
-        if (alternativas == null || alternativas.size() < com.studora.common.constants.AppConstants.MIN_ALTERNATIVAS) {
-            throw new com.studora.exception.ValidationException("A questão deve ter pelo menos " + com.studora.common.constants.AppConstants.MIN_ALTERNATIVAS + " alternativas");
-        }
-
-        if (subtemaIds == null || subtemaIds.isEmpty()) {
-            throw new com.studora.exception.ValidationException("A questão deve estar associada a pelo menos um subtema");
-        }
-
-        if (Boolean.FALSE.equals(anulada)) {
-            long correctCount = alternativas.stream().filter(com.studora.dto.request.AlternativaBaseRequest::getCorreta).count();
-            if (correctCount != com.studora.common.constants.AppConstants.REQUIRED_CORRECT_ALTERNATIVAS) {
-                throw new com.studora.exception.ValidationException("Uma questão não anulada deve ter exatamente uma alternativa correta");
-            }
-        }
-
-        // Only enforced for standard (non-autoral) questions
-        if (!autoral) {
-            if (secoesIds == null || secoesIds.isEmpty()) {
-                throw new com.studora.exception.ValidationException("Uma questão de concurso deve estar associada a pelo menos uma seção de prova");
-            }
-        }
-    }
-
-    private boolean hasContentChanged(Questao questao, QuestaoUpdateRequest request, boolean isAutoral) {
-        if (!request.getEnunciado().equals(questao.getEnunciado())) return true;
-        if (!request.getAnulada().equals(questao.getAnulada())) return true;
-
-        if (request.getSecoesIds() != null && !isAutoral) {
-            Set<Long> currentSecoesIds = questao.getSecoes().stream()
-                    .map(qs -> qs.getProvaSecao().getId())
-                    .collect(Collectors.toSet());
-            Set<Long> newSecoesIds = new HashSet<>(request.getSecoesIds());
-            if (!currentSecoesIds.equals(newSecoesIds)) return true;
-        }
-
-        if (request.getAlternativas().size() != questao.getAlternativas().size()) return true;
-        
-        java.util.Map<Long, Alternativa> currentMap = questao.getAlternativas().stream()
-                .filter(a -> a.getId() != null)
-                .collect(Collectors.toMap(Alternativa::getId, a -> a));
-
-        for (com.studora.dto.request.AlternativaUpdateRequest altReq : request.getAlternativas()) {
-            if (altReq.getId() == null) return true; // New alternative
-            Alternativa current = currentMap.get(altReq.getId());
-            if (current == null) return true; // Alternative not found (shouldn't happen with valid IDs)
-            if (!altReq.getTexto().equals(current.getTexto())) return true;
-            if (!altReq.getCorreta().equals(current.getCorreta())) return true;
-            
-            String reqJust = altReq.getJustificativa() != null ? altReq.getJustificativa() : "";
-            String curJust = current.getJustificativa() != null ? current.getJustificativa() : "";
-            if (!reqJust.equals(curJust)) return true;
-        }
-        
-        return false;
-    }
-
-    private void synchronizeSecoes(Questao questao, List<Long> secoesIds) {
-        if (secoesIds == null || secoesIds.isEmpty()) {
-            questao.getSecoes().clear();
-            return;
-        }
-
-        // Validate: One section per prova per questao
-        Map<Long, String> provaToSecaoMap = new java.util.HashMap<>();
-        for (Long secaoId : secoesIds) {
-            ProvaSecao ps = provaSecaoRepository.findById(secaoId)
-                    .orElseThrow(() -> new ResourceNotFoundException("ProvaSecao", "ID", secaoId));
-            String secaoNome = ps.getNome() != null ? ps.getNome() : "Sem nome";
-            if (ps.getProva() == null) {
-                throw new com.studora.exception.ValidationException("A seção '" + secaoNome + "' (ID: " + secaoId + ") não está vinculada a nenhuma prova.");
-            }
-            Long provaId = ps.getProva().getId();
-            if (provaToSecaoMap.containsKey(provaId)) {
-                throw new com.studora.exception.ValidationException(
-                    "A questão já está vinculada à seção '" + provaToSecaoMap.get(provaId) + 
-                    "' desta prova. Não pode ser vinculada à seção '" + secaoNome + "'."
-                );
-            }
-            provaToSecaoMap.put(provaId, secaoNome);
-        }
-
-        java.util.Map<Long, QuestaoProvaSecao> currentMap = questao.getSecoes().stream()
-                .collect(Collectors.toMap(qs -> qs.getProvaSecao().getId(), qs -> qs));
-
-        Set<Long> idsToKeep = new HashSet<>(secoesIds);
-
-        // 1. Remove orphans - leveraging orphanRemoval = true
-        questao.getSecoes().removeIf(qs -> !idsToKeep.contains(qs.getProvaSecao().getId()));
-
-        // 2. Add new
-        for (Long secaoId : secoesIds) {
-            if (!currentMap.containsKey(secaoId)) {
-                ProvaSecao ps = provaSecaoRepository.findById(secaoId)
-                        .orElseThrow(() -> new ResourceNotFoundException("ProvaSecao", "ID", secaoId));
-                
-                QuestaoProvaSecao qps = new QuestaoProvaSecao();
-                qps.setProvaSecao(ps);
-                questao.addSecao(qps);
-            }
-        }
-    }
+    // =========================================================================
+    // DELETE
+    // =========================================================================
 
     public void delete(Long id) {
         log.info("Excluindo questão ID: {}", id);
-        if (!questaoRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Questão", "ID", id);
-        }
+
+        // Load before deleting so we can capture the affected prova IDs
+        Questao questao = questaoRepository.findByIdWithDetails(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Questão", "ID", id));
+
+        Set<Long> provaIds = collectProvaIds(questao);
+
         questaoRepository.deleteById(id);
+        entityManager.flush(); // cascade-deletes QPS rows first
+
+        // Renumber the survivors in each affected prova
+        provaIds.forEach(this::normalizeQuestaoNumbersForProva);
     }
 
     public void toggleDesatualizada(Long id) {
@@ -383,5 +291,246 @@ public class QuestaoService {
                 .orElseThrow(() -> new ResourceNotFoundException("Questão", "ID", id));
         questao.setDesatualizada(!questao.getDesatualizada());
         questaoRepository.save(questao);
+    }
+
+    // =========================================================================
+    // NORMALIZATION — "Shift Algorithm" (section-ordered, global numbering)
+    // =========================================================================
+
+    /**
+     * Re-numbers every QuestaoProvaSecao that belongs to the given Prova.
+     *
+     * The algorithm guarantees that:
+     *  • Numbers are strictly sequential across the whole prova, starting at 1.
+     *  • The sequence respects ProvaSecao.ordem: all questions of section A
+     *    (ordem=1) come before all questions of section B (ordem=2), etc.
+     *  • Within a section, the existing relative ordering of questions is
+     *    preserved (questions with lower current numeroQuestao come first;
+     *    questions with null numeroQuestao are appended at the end of their
+     *    section).
+     *  • Empty sections simply contribute nothing to the counter — they do not
+     *    create gaps.
+     *
+     * The negative-shift phase prevents UNIQUE constraint violations that would
+     * arise if two questions temporarily hold the same numero during the
+     * reassignment (e.g. swapping section orders).
+     *
+     * IMPORTANT: must be called AFTER the triggering entity has been flushed
+     * to the database so that all QPS rows have real primary-key IDs.
+     */
+    private void normalizeQuestaoNumbersForProva(Long provaId) {
+        // Load all sections (sorted by ordem ASC) together with their QPS rows
+        List<ProvaSecao> sections = provaSecaoRepository.findByProvaIdWithQuestoes(provaId);
+
+        // Build the globally-ordered list: section by section, preserving
+        // intra-section order (sort by current numeroQuestao, nulls last)
+        List<QuestaoProvaSecao> orderedList = new ArrayList<>();
+        for (ProvaSecao section : sections) {
+            List<QuestaoProvaSecao> sectionQs = new ArrayList<>(section.getQuestoes());
+            sectionQs.sort(Comparator.comparingInt(qps ->
+                    qps.getNumeroQuestao() != null ? qps.getNumeroQuestao() : Integer.MAX_VALUE));
+            orderedList.addAll(sectionQs);
+        }
+
+        if (orderedList.isEmpty()) return;
+
+        // Phase 1 — Negative shift: ensures no two rows share the same positive
+        // value while we are mid-reassignment (guards future UNIQUE constraints)
+        for (QuestaoProvaSecao qps : orderedList) {
+            qps.setNumeroQuestao(-qps.getId().intValue());
+        }
+        entityManager.flush();
+
+        // Phase 2 — Sequential global assignment, section-ordered
+        int globalCounter = 1;
+        for (QuestaoProvaSecao qps : orderedList) {
+            qps.setNumeroQuestao(globalCounter++);
+        }
+        // No explicit flush here — the enclosing transaction will commit the values
+    }
+
+    /**
+     * Collects the IDs of every Prova that contains at least one of the
+     * questão's section associations. A questão can theoretically span multiple
+     * provas, so we return a Set to handle that edge case.
+     */
+    private Set<Long> collectProvaIds(Questao questao) {
+        return questao.getSecoes().stream()
+                .map(qps -> qps.getProvaSecao().getProva().getId())
+                .collect(Collectors.toSet());
+    }
+
+    // =========================================================================
+    // SECTION SYNCHRONIZATION
+    // =========================================================================
+
+    /**
+     * Adds/removes QuestaoProvaSecao links so that the questão's section
+     * memberships match {@code secoesReq}.
+     *
+     * Deliberately does NOT set numeroQuestao here — that is the exclusive
+     * responsibility of {@link #normalizeQuestaoNumbersForProva}.
+     */
+    private void synchronizeSecoes(Questao questao, List<SecaoQuestaoRequest> secoesReq) {
+        if (secoesReq == null || secoesReq.isEmpty()) {
+            questao.getSecoes().clear();
+            return;
+        }
+
+        // Guard: within the same concursoCargo a questão may only belong to one
+        // SecaoCargo definition (it can appear in multiple Provas for that cargo,
+        // but always in the same thematic section)
+        Map<Long, Long> cargoToSecaoDefMap = new java.util.HashMap<>();
+        for (SecaoQuestaoRequest req : secoesReq) {
+            Long secaoId = req.getSecaoId();
+            ProvaSecao ps = provaSecaoRepository.findById(secaoId)
+                    .orElseThrow(() -> new ResourceNotFoundException("ProvaSecao", "ID", secaoId));
+
+            if (ps.getProva() == null || ps.getProva().getConcursoCargo() == null
+                    || ps.getSecaoCargo() == null) {
+                throw new com.studora.exception.ValidationException(
+                        "A seção ID " + secaoId
+                                + " deve estar vinculada a uma prova com cargo e definição de seção.");
+            }
+
+            Long concursoCargoId = ps.getProva().getConcursoCargo().getId();
+            Long secaoDefId = ps.getSecaoCargo().getId();
+            String cargoNome = ps.getProva().getConcursoCargo().getCargo().getNome();
+            String secaoNome = ps.getSecaoCargo().getNome();
+
+            if (cargoToSecaoDefMap.containsKey(concursoCargoId)
+                    && !cargoToSecaoDefMap.get(concursoCargoId).equals(secaoDefId)) {
+                com.studora.entity.SecaoCargo prevDef = entityManager
+                        .find(com.studora.entity.SecaoCargo.class, cargoToSecaoDefMap.get(concursoCargoId));
+                String prevName = prevDef != null ? prevDef.getNome() : "outra seção";
+                throw new com.studora.exception.ValidationException(
+                        "A questão já está vinculada à seção temática '" + prevName
+                                + "' para o cargo '" + cargoNome
+                                + "'. Não pode ser vinculada a uma segunda seção temática ('"
+                                + secaoNome + "') para o mesmo cargo.");
+            }
+            cargoToSecaoDefMap.put(concursoCargoId, secaoDefId);
+        }
+
+        Map<Long, QuestaoProvaSecao> currentMap = questao.getSecoes().stream()
+                .collect(Collectors.toMap(qs -> qs.getProvaSecao().getId(), qs -> qs));
+
+        Set<Long> idsToKeep = secoesReq.stream()
+                .map(SecaoQuestaoRequest::getSecaoId)
+                .collect(Collectors.toSet());
+
+        // Remove associations that are no longer requested
+        questao.getSecoes().removeIf(qs -> !idsToKeep.contains(qs.getProvaSecao().getId()));
+
+        // Add new associations (numeroQuestao intentionally left null —
+        // normalizeQuestaoNumbersForProva will assign the correct value after flush)
+        for (SecaoQuestaoRequest req : secoesReq) {
+            if (!currentMap.containsKey(req.getSecaoId())) {
+                ProvaSecao ps = provaSecaoRepository.findById(req.getSecaoId())
+                        .orElseThrow(() -> new ResourceNotFoundException("ProvaSecao", "ID", req.getSecaoId()));
+                QuestaoProvaSecao qps = new QuestaoProvaSecao();
+                qps.setProvaSecao(ps);
+                // numeroQuestao = null → sorts to end of section during normalization
+                questao.addSecao(qps);
+            }
+        }
+    }
+
+    // =========================================================================
+    // ALTERNATIVA HELPERS
+    // =========================================================================
+
+    /**
+     * Sorts alternativas by their current {@code ordem} and re-assigns
+     * sequential values 1, 2, 3 … in that order.
+     *
+     * This does NOT do a negative-shift flush — callers in {@code update()}
+     * are expected to have already performed that step before setting the new
+     * ordens.  In {@code create()}, alternativas are brand-new (no UNIQUE
+     * conflict possible), so no flush is needed.
+     */
+    private void normalizeAlternativaOrders(Questao questao) {
+        if (questao.getAlternativas() == null || questao.getAlternativas().isEmpty()) return;
+
+        List<Alternativa> sorted = new ArrayList<>(questao.getAlternativas());
+        sorted.sort(Comparator.comparingInt(
+                a -> a.getOrdem() != null ? a.getOrdem() : Integer.MAX_VALUE));
+
+        int counter = 1;
+        for (Alternativa alt : sorted) {
+            alt.setOrdem(counter++);
+        }
+    }
+
+    // =========================================================================
+    // VALIDATION
+    // =========================================================================
+
+    private void validateQuestaoBusinessRules(
+            List<? extends com.studora.dto.request.AlternativaBaseRequest> alternativas,
+            Boolean anulada, List<SecaoQuestaoRequest> secoes,
+            boolean autoral, List<Long> subtemaIds) {
+
+        if (alternativas == null
+                || alternativas.size() < com.studora.common.constants.AppConstants.MIN_ALTERNATIVAS) {
+            throw new com.studora.exception.ValidationException(
+                    "A questão deve ter pelo menos "
+                            + com.studora.common.constants.AppConstants.MIN_ALTERNATIVAS
+                            + " alternativas");
+        }
+
+        if (subtemaIds == null || subtemaIds.isEmpty()) {
+            throw new com.studora.exception.ValidationException(
+                    "A questão deve estar associada a pelo menos um subtema");
+        }
+
+        if (Boolean.FALSE.equals(anulada)) {
+            long correctCount = alternativas.stream()
+                    .filter(com.studora.dto.request.AlternativaBaseRequest::getCorreta).count();
+            if (correctCount != com.studora.common.constants.AppConstants.REQUIRED_CORRECT_ALTERNATIVAS) {
+                throw new com.studora.exception.ValidationException(
+                        "Uma questão não anulada deve ter exatamente uma alternativa correta");
+            }
+        }
+
+        if (!autoral && (secoes == null || secoes.isEmpty())) {
+            throw new com.studora.exception.ValidationException(
+                    "Uma questão de concurso deve estar associada a pelo menos uma seção de prova");
+        }
+    }
+
+    private boolean hasContentChanged(Questao questao, QuestaoUpdateRequest request, boolean isAutoral) {
+        if (!request.getEnunciado().equals(questao.getEnunciado())) return true;
+        if (!request.getAnulada().equals(questao.getAnulada())) return true;
+
+        if (request.getSecoes() != null && !isAutoral) {
+            Set<Long> currentSecoesIds = questao.getSecoes().stream()
+                    .map(qs -> qs.getProvaSecao().getId())
+                    .collect(Collectors.toSet());
+            Set<Long> newSecoesIds = request.getSecoes().stream()
+                    .map(SecaoQuestaoRequest::getSecaoId)
+                    .collect(Collectors.toSet());
+            if (!currentSecoesIds.equals(newSecoesIds)) return true;
+        }
+
+        if (request.getAlternativas().size() != questao.getAlternativas().size()) return true;
+
+        Map<Long, Alternativa> currentMap = questao.getAlternativas().stream()
+                .filter(a -> a.getId() != null)
+                .collect(Collectors.toMap(Alternativa::getId, a -> a));
+
+        for (com.studora.dto.request.AlternativaUpdateRequest altReq : request.getAlternativas()) {
+            if (altReq.getId() == null) return true;
+            Alternativa current = currentMap.get(altReq.getId());
+            if (current == null) return true;
+            if (!altReq.getTexto().equals(current.getTexto())) return true;
+            if (!altReq.getCorreta().equals(current.getCorreta())) return true;
+
+            String reqJust = altReq.getJustificativa() != null ? altReq.getJustificativa() : "";
+            String curJust = current.getJustificativa() != null ? current.getJustificativa() : "";
+            if (!reqJust.equals(curJust)) return true;
+        }
+
+        return false;
     }
 }

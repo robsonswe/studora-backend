@@ -12,7 +12,11 @@ import java.util.Optional;
 public interface ProvaRepository extends JpaRepository<Prova, Long> {
     List<Prova> findByConcursoId(Long concursoId);
 
-    @Query("SELECT p FROM Prova p LEFT JOIN FETCH p.secoes s LEFT JOIN FETCH s.subtemas LEFT JOIN FETCH s.pesos LEFT JOIN FETCH p.cargos c LEFT JOIN FETCH c.cargo WHERE p.id = :id")
+    @Query("SELECT p FROM Prova p " +
+           "LEFT JOIN FETCH p.secoes s " +
+           "LEFT JOIN FETCH s.secaoCargo sc " +
+           "LEFT JOIN FETCH sc.subtemas " +
+           "WHERE p.id = :id")
     Optional<Prova> findByIdWithDetails(@Param("id") Long id);
 
     boolean existsByConcursoIdAndNomeIgnoreCase(Long concursoId, String nome);

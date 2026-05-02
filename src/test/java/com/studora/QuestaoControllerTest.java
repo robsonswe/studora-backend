@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.studora.dto.request.AlternativaCreateRequest;
 import com.studora.dto.request.QuestaoCreateRequest;
 import com.studora.dto.request.QuestaoUpdateRequest;
+import com.studora.dto.request.SecaoQuestaoRequest;
 import com.studora.entity.*;
 import com.studora.entity.NivelCargo;
 import com.studora.repository.*;
@@ -72,6 +73,9 @@ class QuestaoControllerTest {
     private ProvaSecaoRepository provaSecaoRepository;
 
     @Autowired
+    private SecaoCargoRepository secaoCargoRepository;
+
+    @Autowired
     private jakarta.persistence.EntityManager entityManager;
 
     private Concurso concurso;
@@ -114,12 +118,19 @@ class QuestaoControllerTest {
         // Create Prova and Secao
         Prova prova = new Prova();
         prova.setConcurso(concurso);
-        prova.setNome("Prova Q Test");
-        prova.addCargo(concursoCargo);
+        prova.setNome("Prova Objetiva");
+        prova.setConcursoCargo(concursoCargo);
         prova = provaRepository.save(prova);
+
+        SecaoCargo scDef = new SecaoCargo();
+        scDef.setConcursoCargo(concursoCargo);
+        scDef.setNome("Seção Q Test");
+        scDef.setPeso(1.0);
+        scDef = secaoCargoRepository.save(scDef);
 
         savedSecao = new ProvaSecao();
         savedSecao.setProva(prova);
+        savedSecao.setSecaoCargo(scDef);
         savedSecao.setNome("Seção Q Test");
         savedSecao.setOrdem(1);
         savedSecao = provaSecaoRepository.save(savedSecao);
@@ -142,10 +153,11 @@ class QuestaoControllerTest {
 
         QuestaoCreateRequest questaoCreateRequest = new QuestaoCreateRequest();
         questaoCreateRequest.setEnunciado("Qual a capital do Brasil?");
-        questaoCreateRequest.setSecoesIds(Collections.singletonList(savedSecao.getId()));
+        questaoCreateRequest.setSecoes(List.of(new SecaoQuestaoRequest(savedSecao.getId(), 1)));
         questaoCreateRequest.setSubtemaIds(Collections.singletonList(subtema.getId()));
         // Add alternativas to comply with validation
         questaoCreateRequest.setAlternativas(Arrays.asList(alt1, alt2));
+
 
         // Store tema and disciplina for assertions
         Tema tema = subtema.getTema();
@@ -438,11 +450,12 @@ class QuestaoControllerTest {
 
         QuestaoUpdateRequest updatedRequest = new QuestaoUpdateRequest();
         updatedRequest.setEnunciado("New Enunciado");
-        updatedRequest.setSecoesIds(Collections.singletonList(savedSecao.getId()));
+        updatedRequest.setSecoes(List.of(new SecaoQuestaoRequest(savedSecao.getId(), 1)));
         updatedRequest.setAnulada(true);
         updatedRequest.setSubtemaIds(Collections.singletonList(subtema.getId()));
         // Add new alternatives for the update
         updatedRequest.setAlternativas(Arrays.asList(alt1, alt2));
+
 
         // Add some initial alternatives to the question
         com.studora.entity.Alternativa initialAlt = new com.studora.entity.Alternativa();

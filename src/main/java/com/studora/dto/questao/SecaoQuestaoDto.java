@@ -23,4 +23,8 @@ public class SecaoQuestaoDto {
     @Schema(description = "ID da prova à qual a seção pertence", example = "10")
     @JsonView(Views.Summary.class)
     private Long provaId;
-}
+
+    @Schema(description = "Número da questão na seção", example = "1")
+    @JsonView(Views.Summary.class)
+    private Integer numeroQuestao;
+    }

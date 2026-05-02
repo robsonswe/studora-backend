@@ -12,6 +12,7 @@ public class ProvaSecaoCreateRequest {
     private Integer ordem;
     private Integer numQuestoes;
 
-    private List<ProvaSecaoPesoCreateRequest> pesos;
+    private Double peso;
+    private Double notaMinima;
     private List<Long> subtemaIds;
 }

@@ -22,10 +22,11 @@ public interface ConcursoRepository extends JpaRepository<Concurso, Long>, JpaSp
            "LEFT JOIN FETCH c.concursoCargos cc " +
            "LEFT JOIN FETCH cc.cargo " +
            "LEFT JOIN FETCH c.provas p " +
-           "LEFT JOIN FETCH p.cargos pc " +
+           "LEFT JOIN FETCH p.concursoCargo pc " +
            "LEFT JOIN FETCH pc.cargo " +
            "LEFT JOIN FETCH p.secoes s " +
-           "LEFT JOIN FETCH s.subtemas st " +
+           "LEFT JOIN FETCH s.secaoCargo sc " +
+           "LEFT JOIN FETCH sc.subtemas st " +
            "LEFT JOIN FETCH st.tema t " +
            "LEFT JOIN FETCH t.disciplina " +
            "WHERE c.id = :id")
@@ -37,10 +38,11 @@ public interface ConcursoRepository extends JpaRepository<Concurso, Long>, JpaSp
            "LEFT JOIN FETCH c.concursoCargos cc " +
            "LEFT JOIN FETCH cc.cargo " +
            "LEFT JOIN FETCH c.provas p " +
-           "LEFT JOIN FETCH p.cargos pc " +
+           "LEFT JOIN FETCH p.concursoCargo pc " +
            "LEFT JOIN FETCH pc.cargo " +
            "LEFT JOIN FETCH p.secoes s " +
-           "LEFT JOIN FETCH s.subtemas st " +
+           "LEFT JOIN FETCH s.secaoCargo sc " +
+           "LEFT JOIN FETCH sc.subtemas st " +
            "LEFT JOIN FETCH st.tema t " +
            "LEFT JOIN FETCH t.disciplina " +
            "WHERE c.id IN :ids")

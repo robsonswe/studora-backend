@@ -36,7 +36,10 @@ public class QuestaoSpecification {
             jakarta.persistence.criteria.Join<Object, Object> provaSecaoJoin = qpsJoin.join("provaSecao", jakarta.persistence.criteria.JoinType.LEFT);
             jakarta.persistence.criteria.Join<Object, Object> provaJoin = provaSecaoJoin.join("prova", jakarta.persistence.criteria.JoinType.LEFT);
             jakarta.persistence.criteria.Join<Object, Object> concursoJoin = provaJoin.join("concurso", jakarta.persistence.criteria.JoinType.LEFT);
-            jakarta.persistence.criteria.Join<Object, Object> provaCargoJoin = provaJoin.join("cargos", jakarta.persistence.criteria.JoinType.LEFT);
+            
+            // New path for cargo-related filters
+            jakarta.persistence.criteria.Join<Object, Object> secaoCargoJoin = provaSecaoJoin.join("secaoCargo", jakarta.persistence.criteria.JoinType.LEFT);
+            jakarta.persistence.criteria.Join<Object, Object> concursoCargoJoin = secaoCargoJoin.join("concursoCargo", jakarta.persistence.criteria.JoinType.LEFT);
 
 
             // Hierarchy branch
@@ -60,7 +63,7 @@ public class QuestaoSpecification {
             }
 
             if (filter.getCargoId() != null) {
-                predicates.add(cb.equal(provaCargoJoin.get("cargo").get("id"), filter.getCargoId()));
+                predicates.add(cb.equal(concursoCargoJoin.get("cargo").get("id"), filter.getCargoId()));
             }
 
             if (filter.getInstituicaoArea() != null) {
@@ -68,11 +71,11 @@ public class QuestaoSpecification {
             }
 
             if (filter.getCargoArea() != null) {
-                predicates.add(cb.equal(cb.lower(provaCargoJoin.get("cargo").get("area")), filter.getCargoArea().toLowerCase()));
+                predicates.add(cb.equal(cb.lower(concursoCargoJoin.get("cargo").get("area")), filter.getCargoArea().toLowerCase()));
             }
 
             if (filter.getCargoNivel() != null) {
-                predicates.add(cb.equal(provaCargoJoin.get("cargo").get("nivel"), filter.getCargoNivel()));
+                predicates.add(cb.equal(concursoCargoJoin.get("cargo").get("nivel"), filter.getCargoNivel()));
             }
 
             // Taxonomy branch

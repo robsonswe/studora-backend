@@ -61,6 +61,9 @@ class ConcursoMetricsIntegrationTest {
     private ProvaSecaoRepository provaSecaoRepository;
 
     @Autowired
+    private SecaoCargoRepository secaoCargoRepository;
+
+    @Autowired
     private QuestaoRepository questaoRepository;
 
     @Autowired
@@ -109,14 +112,21 @@ class ConcursoMetricsIntegrationTest {
         Prova prova = new Prova();
         prova.setConcurso(concurso);
         prova.setNome("Prova Objetiva");
-        prova.addCargo(cc);
+        prova.setConcursoCargo(cc);
         prova = provaRepository.save(prova);
+
+        SecaoCargo scDef = new SecaoCargo();
+        scDef.setConcursoCargo(cc);
+        scDef.setNome("Conhecimentos Específicos");
+        scDef.setPeso(1.0);
+        scDef.addSubtema(sub);
+        scDef = secaoCargoRepository.save(scDef);
 
         ProvaSecao secao = new ProvaSecao();
         secao.setProva(prova);
+        secao.setSecaoCargo(scDef);
         secao.setNome("Conhecimentos Específicos");
         secao.setOrdem(1);
-        secao.getSubtemas().add(sub);
         secao = provaSecaoRepository.save(secao);
 
         // 4. Setup Question and Answer

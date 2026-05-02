@@ -19,35 +19,47 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
+
 @Entity
-@Table(name = "prova_secao", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"prova_id", "ordem"})
-})
+@Table(name = "secao_cargo")
 @Getter
 @Setter
-public class ProvaSecao extends BaseEntity {
+public class SecaoCargo extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "prova_id", nullable = false)
-    private Prova prova;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "secao_cargo_id", nullable = false)
-    private SecaoCargo secaoCargo;
-
     @Column(nullable = false)
     private String nome;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "concurso_cargo_id", nullable = false)
+    private ConcursoCargo concursoCargo;
+
     @Column(nullable = false)
+    private Double peso = 1.0;
+
+    @Column(name = "nota_minima")
+    private Double notaMinima;
+
     private Integer ordem;
 
     @Column(name = "num_questoes")
     private Integer numQuestoes;
 
-    @OneToMany(mappedBy = "provaSecao", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<QuestaoProvaSecao> questoes = new LinkedHashSet<>();
+    @ManyToMany
+    @JoinTable(
+        name = "secao_cargo_subtema",
+        joinColumns = @JoinColumn(name = "secao_cargo_id"),
+        inverseJoinColumns = @JoinColumn(name = "subtema_id")
+    )
+    private Set<Subtema> subtemas = new LinkedHashSet<>();
+
+    @OneToMany(mappedBy = "secaoCargo", cascade = CascadeType.ALL)
+    private Set<ProvaSecao> provaSecoes = new LinkedHashSet<>();
+
+    public void addSubtema(Subtema subtema) {
+        this.subtemas.add(subtema);
+    }
 }

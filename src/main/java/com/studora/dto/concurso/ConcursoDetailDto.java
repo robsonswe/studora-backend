@@ -19,5 +19,4 @@ public class ConcursoDetailDto {
     private java.time.LocalDateTime dataProva;
     private boolean finalizado;
     private List<ConcursoCargoSummaryDto> cargos;
-    private List<ProvaDetailDto> provas;
 }

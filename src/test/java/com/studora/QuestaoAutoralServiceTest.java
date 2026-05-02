@@ -21,9 +21,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.studora.dto.request.AlternativaCreateRequest;
 import com.studora.dto.request.AlternativaUpdateRequest;
 import com.studora.dto.request.QuestaoCreateRequest;
+import com.studora.dto.request.QuestaoCreateRequest;
 import com.studora.dto.request.QuestaoUpdateRequest;
+import com.studora.dto.request.SecaoQuestaoRequest;
 import com.studora.entity.Alternativa;
 import com.studora.entity.Cargo;
+import com.studora.entity.Questao;
+
 import com.studora.entity.Concurso;
 import com.studora.entity.ConcursoCargo;
 import com.studora.entity.Disciplina;
@@ -133,7 +137,7 @@ class QuestaoAutoralServiceTest {
         QuestaoCreateRequest request = new QuestaoCreateRequest();
         request.setEnunciado("Standard without concurso");
         request.setAutoral(false);
-        request.setSecoesIds(null); // instead of concursoId(null)
+        request.setSecoes(null); 
         request.setSubtemaIds(List.of(subtema.getId()));
         request.setAlternativas(buildAlternativasCreate());
 

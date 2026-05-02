@@ -38,8 +38,8 @@ public class QuestaoCreateRequest {
     @Schema(description = "IDs dos subtemas associados à questão")
     private List<Long> subtemaIds; // IDs of associated subtemas
 
-    @Schema(description = "IDs das seções da prova às quais a questão pertence (ignorado se autoral=true)")
-    private List<Long> secoesIds;
+    @Schema(description = "Associações com seções da prova (ignorado se autoral=true)")
+    private List<SecaoQuestaoRequest> secoes;
 
     @NotNull(message = "Alternativas são obrigatórias")
     @jakarta.validation.constraints.Size(min = com.studora.common.constants.AppConstants.MIN_ALTERNATIVAS, message = "A questão deve ter pelo menos {min} alternativas")

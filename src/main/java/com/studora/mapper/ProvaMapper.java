@@ -11,43 +11,32 @@ import org.mapstruct.Named;
 
 import com.studora.dto.prova.ProvaDetailDto;
 import com.studora.dto.prova.ProvaSecaoDto;
-import com.studora.dto.prova.ProvaSecaoPesoDto;
 import com.studora.dto.prova.ProvaSummaryDto;
 import com.studora.dto.request.ProvaCreateRequest;
 import com.studora.dto.request.ProvaUpdateRequest;
 import com.studora.entity.Prova;
 import com.studora.entity.ProvaSecao;
-import com.studora.entity.ProvaSecaoPeso;
 import com.studora.entity.Subtema;
 
 @Mapper(componentModel = "spring")
 public interface ProvaMapper {
     @Mapping(target = "concursoId", source = "concurso.id")
+    @Mapping(target = "cargoId", source = "concursoCargo.cargo.id")
     ProvaSummaryDto toSummaryDto(Prova prova);
 
     @Mapping(target = "concursoId", source = "concurso.id")
     @Mapping(target = "secoes", source = "secoes")
-    @Mapping(target = "cargoIds", source = "cargos", qualifiedByName = "mapConcursoCargosToIds")
+    @Mapping(target = "cargoId", source = "concursoCargo.cargo.id")
     ProvaDetailDto toDetailDto(Prova prova);
 
-    @Named("mapConcursoCargosToIds")
-    default List<Long> mapConcursoCargosToIds(Set<com.studora.entity.ConcursoCargo> cargos) {
-        if (cargos == null) return java.util.Collections.emptyList();
-        return cargos.stream()
-                .map(cc -> cc.getCargo().getId())
-                .collect(java.util.stream.Collectors.toList());
-    }
-
-
-    @Mapping(target = "subtemaIds", source = "subtemas", qualifiedByName = "mapSubtemasToIds")
+    @Mapping(target = "peso", source = "secaoCargo.peso")
+    @Mapping(target = "notaMinima", source = "secaoCargo.notaMinima")
+    @Mapping(target = "subtemaIds", source = "secaoCargo.subtemas", qualifiedByName = "mapSubtemasToIds")
     ProvaSecaoDto toSecaoDto(ProvaSecao secao);
-
-    @Mapping(target = "concursoCargoId", source = "concursoCargo.id")
-    ProvaSecaoPesoDto toSecaoPesoDto(ProvaSecaoPeso peso);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "concurso", ignore = true)
-    @Mapping(target = "cargos", ignore = true)
+    @Mapping(target = "concursoCargo", ignore = true)
     @Mapping(target = "secoes", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
@@ -55,7 +44,7 @@ public interface ProvaMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "concurso", ignore = true)
-    @Mapping(target = "cargos", ignore = true)
+    @Mapping(target = "concursoCargo", ignore = true)
     @Mapping(target = "secoes", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)

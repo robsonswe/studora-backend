@@ -7,6 +7,7 @@ import com.studora.dto.request.AlternativaCreateRequest;
 import com.studora.dto.request.AlternativaUpdateRequest;
 import com.studora.dto.request.QuestaoCreateRequest;
 import com.studora.dto.request.QuestaoUpdateRequest;
+import com.studora.dto.request.SecaoQuestaoRequest;
 import com.studora.entity.*;
 import com.studora.repository.*;
 import com.studora.util.TestUtil;
@@ -72,6 +73,9 @@ class QuestaoAutoralControllerTest {
     private ProvaSecaoRepository provaSecaoRepository;
 
     @Autowired
+    private SecaoCargoRepository secaoCargoRepository;
+
+    @Autowired
     private jakarta.persistence.EntityManager entityManager;
 
     private Subtema subtema;
@@ -112,11 +116,18 @@ class QuestaoAutoralControllerTest {
         Prova prova = new Prova();
         prova.setConcurso(concurso);
         prova.setNome("Prova Autoral Test");
-        prova.addCargo(concursoCargo);
+        prova.setConcursoCargo(concursoCargo);
         prova = provaRepository.save(prova);
+
+        SecaoCargo scDef = new SecaoCargo();
+        scDef.setConcursoCargo(concursoCargo);
+        scDef.setNome("Seção Autoral Test");
+        scDef.setPeso(1.0);
+        secaoCargoRepository.save(scDef);
 
         savedSecao = new ProvaSecao();
         savedSecao.setProva(prova);
+        savedSecao.setSecaoCargo(scDef);
         savedSecao.setNome("Seção Autoral Test");
         savedSecao.setOrdem(1);
         savedSecao = provaSecaoRepository.save(savedSecao);
@@ -217,7 +228,7 @@ class QuestaoAutoralControllerTest {
         QuestaoCreateRequest request = new QuestaoCreateRequest();
         request.setEnunciado("Questão padrão sem subtema");
         request.setAutoral(false);
-        request.setSecoesIds(Collections.singletonList(savedSecao.getId()));
+        request.setSecoes(List.of(new SecaoQuestaoRequest(savedSecao.getId(), 1)));
         request.setSubtemaIds(null); // no subtemas
         request.setAlternativas(Arrays.asList(alt1, alt2));
 
@@ -454,7 +465,7 @@ class QuestaoAutoralControllerTest {
         QuestaoCreateRequest request = new QuestaoCreateRequest();
         request.setEnunciado(enunciado);
         request.setAutoral(false);
-        request.setSecoesIds(Collections.singletonList(savedSecao.getId()));
+        request.setSecoes(List.of(new SecaoQuestaoRequest(savedSecao.getId(), 1)));
         request.setSubtemaIds(Collections.singletonList(subtema.getId()));
         request.setAlternativas(Arrays.asList(alt1, alt2));
 

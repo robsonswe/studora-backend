@@ -9,6 +9,6 @@ public class ProvaCreateRequest {
     @NotBlank(message = "Nome é obrigatório")
     private String nome;
 
-    private List<Long> cargoIds;
+    private Long cargoId;
     private List<ProvaSecaoCreateRequest> secoes;
 }

@@ -91,7 +91,7 @@ public class Concurso extends BaseEntity {
     @Schema(description = "Associações entre o concurso e cargos")
     private Set<ConcursoCargo> concursoCargos = new LinkedHashSet<>();
 
-    @OneToMany(
+@OneToMany(
         mappedBy = "concurso",
         cascade = CascadeType.ALL,
         orphanRemoval = true,
@@ -107,6 +107,11 @@ public class Concurso extends BaseEntity {
         this.banca = banca;
         this.ano = ano;
         this.mes = mes;
+    }
+
+    public void addProva(Prova prova) {
+        this.provas.add(prova);
+        prova.setConcurso(this);
     }
 
     // Getters and Setters
@@ -195,10 +200,5 @@ public class Concurso extends BaseEntity {
     public void setProvas(Set<Prova> provas) {
         this.provas = provas;
     }
-    public void addProva(Prova prova) {
-        this.provas.add(prova);
-        prova.setConcurso(this);
-    }
-
 
 }

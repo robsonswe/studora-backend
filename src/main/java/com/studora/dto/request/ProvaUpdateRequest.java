@@ -10,8 +10,6 @@ public class ProvaUpdateRequest {
     
     @NotBlank(message = "Nome é obrigatório")
     private String nome;
-        
-    private List<Long> cargoIds;
-    
+    private Long cargoId;
     private List<ProvaSecaoUpdateRequest> secoes;
 }

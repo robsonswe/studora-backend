@@ -52,6 +52,7 @@ class StatsAutoralTest {
     @Autowired private ConcursoCargoRepository concursoCargoRepository;
     @Autowired private ProvaRepository provaRepository;
     @Autowired private ProvaSecaoRepository provaSecaoRepository;
+    @Autowired private SecaoCargoRepository secaoCargoRepository;
 
     private Disciplina disciplina;
     private Tema tema;
@@ -114,11 +115,18 @@ class StatsAutoralTest {
         Prova prova = new Prova();
         prova.setConcurso(concurso);
         prova.setNome("Prova Stats");
-        prova.addCargo(cc);
+        prova.setConcursoCargo(cc);
         prova = provaRepository.save(prova);
+
+        SecaoCargo scDef = new SecaoCargo();
+        scDef.setConcursoCargo(cc);
+        scDef.setNome("Geral");
+        scDef.setPeso(1.0);
+        secaoCargoRepository.save(scDef);
 
         ProvaSecao secao = new ProvaSecao();
         secao.setProva(prova);
+        secao.setSecaoCargo(scDef);
         secao.setNome("Geral");
         secao.setOrdem(1);
         secao = provaSecaoRepository.save(secao);
@@ -276,11 +284,18 @@ class StatsAutoralTest {
             Prova prova = new Prova();
             prova.setConcurso(concurso);
             prova.setNome("Banca Prova");
-            prova.addCargo(cc);
+            prova.setConcursoCargo(cc);
             prova = provaRepository.save(prova);
+
+            SecaoCargo scDef = new SecaoCargo();
+            scDef.setConcursoCargo(cc);
+            scDef.setNome("Geral");
+            scDef.setPeso(1.0);
+            secaoCargoRepository.save(scDef);
 
             ProvaSecao secao = new ProvaSecao();
             secao.setProva(prova);
+            secao.setSecaoCargo(scDef);
             secao.setNome("Geral");
             secao.setOrdem(1);
             secao = provaSecaoRepository.save(secao);

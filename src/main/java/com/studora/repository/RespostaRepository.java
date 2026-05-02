@@ -84,11 +84,11 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     @Query("SELECT c.instituicao.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao q JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE c.instituicao.id IN :ids GROUP BY c.instituicao.id")
     List<Object[]> countRespondidasByInstituicaoIds(@Param("ids") List<Long> ids);
 
-    @Query("SELECT cc.cargo.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao q JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc WHERE cc.cargo.id IN :ids GROUP BY cc.cargo.id")
+    @Query("SELECT cc.cargo.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao q JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE cc.cargo.id IN :ids GROUP BY cc.cargo.id")
     List<Object[]> countRespondidasByCargoIds(@Param("ids") List<Long> ids);
 
     // --- Granular breakdown queries for Disciplina ---
-    @Query("SELECT CAST(cc.cargo.nivel AS string), COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY cc.cargo.nivel")
+    @Query("SELECT CAST(cc.cargo.nivel AS string), COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY cc.cargo.nivel")
     List<Object[]> countRespondidasAcertadasByDisciplinaIdGroupByNivel(@Param("disciplinaId") Long disciplinaId);
 
     @Query("SELECT c.banca.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY c.banca.id")
@@ -100,13 +100,13 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     @Query("SELECT c.instituicao.area, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY c.instituicao.area")
     List<Object[]> countRespondidasAcertadasByDisciplinaIdGroupByAreaInstituicao(@Param("disciplinaId") Long disciplinaId);
 
-    @Query("SELECT cc.cargo.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY cc.cargo.id")
+    @Query("SELECT cc.cargo.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY cc.cargo.id")
     List<Object[]> countRespondidasAcertadasByDisciplinaIdGroupByCargo(@Param("disciplinaId") Long disciplinaId);
 
-    @Query("SELECT cc.cargo.area, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY cc.cargo.area")
+    @Query("SELECT cc.cargo.area, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY cc.cargo.area")
     List<Object[]> countRespondidasAcertadasByDisciplinaIdGroupByAreaCargo(@Param("disciplinaId") Long disciplinaId);
 
-    @Query("SELECT CAST(cc.cargo.nivel AS string), AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc WHERE s.tema.disciplina.id = :disciplinaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.nivel")
+    @Query("SELECT CAST(cc.cargo.nivel AS string), AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.disciplina.id = :disciplinaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.nivel")
     List<Object[]> avgTempoByDisciplinaIdGroupByNivel(@Param("disciplinaId") Long disciplinaId);
 
     @Query("SELECT c.banca.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.disciplina.id = :disciplinaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.banca.id")
@@ -118,14 +118,14 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     @Query("SELECT c.instituicao.area, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.disciplina.id = :disciplinaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.instituicao.area")
     List<Object[]> avgTempoByDisciplinaIdGroupByAreaInstituicao(@Param("disciplinaId") Long disciplinaId);
 
-    @Query("SELECT cc.cargo.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc WHERE s.tema.disciplina.id = :disciplinaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.id")
+    @Query("SELECT cc.cargo.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.disciplina.id = :disciplinaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.id")
     List<Object[]> avgTempoByDisciplinaIdGroupByCargo(@Param("disciplinaId") Long disciplinaId);
 
-    @Query("SELECT cc.cargo.area, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc WHERE s.tema.disciplina.id = :disciplinaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.area")
+    @Query("SELECT cc.cargo.area, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.disciplina.id = :disciplinaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.area")
     List<Object[]> avgTempoByDisciplinaIdGroupByAreaCargo(@Param("disciplinaId") Long disciplinaId);
 
     // --- Granular breakdown queries for Tema ---
-    @Query("SELECT CAST(cc.cargo.nivel AS string), COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY cc.cargo.nivel")
+    @Query("SELECT CAST(cc.cargo.nivel AS string), COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY cc.cargo.nivel")
     List<Object[]> countRespondidasAcertadasByTemaIdGroupByNivel(@Param("temaId") Long temaId);
 
     @Query("SELECT c.banca.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY c.banca.id")
@@ -137,13 +137,13 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     @Query("SELECT c.instituicao.area, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY c.instituicao.area")
     List<Object[]> countRespondidasAcertadasByTemaIdGroupByAreaInstituicao(@Param("temaId") Long temaId);
 
-    @Query("SELECT cc.cargo.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY cc.cargo.id")
+    @Query("SELECT cc.cargo.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY cc.cargo.id")
     List<Object[]> countRespondidasAcertadasByTemaIdGroupByCargo(@Param("temaId") Long temaId);
 
-    @Query("SELECT cc.cargo.area, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY cc.cargo.area")
+    @Query("SELECT cc.cargo.area, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY cc.cargo.area")
     List<Object[]> countRespondidasAcertadasByTemaIdGroupByAreaCargo(@Param("temaId") Long temaId);
 
-    @Query("SELECT CAST(cc.cargo.nivel AS string), AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc WHERE s.tema.id = :temaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.nivel")
+    @Query("SELECT CAST(cc.cargo.nivel AS string), AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.id = :temaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.nivel")
     List<Object[]> avgTempoByTemaIdGroupByNivel(@Param("temaId") Long temaId);
 
     @Query("SELECT c.banca.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.id = :temaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.banca.id")
@@ -155,14 +155,14 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     @Query("SELECT c.instituicao.area, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.id = :temaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.instituicao.area")
     List<Object[]> avgTempoByTemaIdGroupByAreaInstituicao(@Param("temaId") Long temaId);
 
-    @Query("SELECT cc.cargo.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc WHERE s.tema.id = :temaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.id")
+    @Query("SELECT cc.cargo.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.id = :temaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.id")
     List<Object[]> avgTempoByTemaIdGroupByCargo(@Param("temaId") Long temaId);
 
-    @Query("SELECT cc.cargo.area, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc WHERE s.tema.id = :temaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.area")
+    @Query("SELECT cc.cargo.area, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.id = :temaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.area")
     List<Object[]> avgTempoByTemaIdGroupByAreaCargo(@Param("temaId") Long temaId);
 
     // --- Granular breakdown queries for Subtema ---
-    @Query("SELECT CAST(cc.cargo.nivel AS string), COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc WHERE s.id = :subtemaId AND q.anulada = false GROUP BY cc.cargo.nivel")
+    @Query("SELECT CAST(cc.cargo.nivel AS string), COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.id = :subtemaId AND q.anulada = false GROUP BY cc.cargo.nivel")
     List<Object[]> countRespondidasAcertadasBySubtemaIdGroupByNivel(@Param("subtemaId") Long subtemaId);
 
     @Query("SELECT c.banca.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.id = :subtemaId AND q.anulada = false GROUP BY c.banca.id")
@@ -174,13 +174,13 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     @Query("SELECT c.instituicao.area, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.id = :subtemaId AND q.anulada = false GROUP BY c.instituicao.area")
     List<Object[]> countRespondidasAcertadasBySubtemaIdGroupByAreaInstituicao(@Param("subtemaId") Long subtemaId);
 
-    @Query("SELECT cc.cargo.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc WHERE s.id = :subtemaId AND q.anulada = false GROUP BY cc.cargo.id")
+    @Query("SELECT cc.cargo.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.id = :subtemaId AND q.anulada = false GROUP BY cc.cargo.id")
     List<Object[]> countRespondidasAcertadasBySubtemaIdGroupByCargo(@Param("subtemaId") Long subtemaId);
 
-    @Query("SELECT cc.cargo.area, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc WHERE s.id = :subtemaId AND q.anulada = false GROUP BY cc.cargo.area")
+    @Query("SELECT cc.cargo.area, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.id = :subtemaId AND q.anulada = false GROUP BY cc.cargo.area")
     List<Object[]> countRespondidasAcertadasBySubtemaIdGroupByAreaCargo(@Param("subtemaId") Long subtemaId);
 
-    @Query("SELECT CAST(cc.cargo.nivel AS string), AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc WHERE s.id = :subtemaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.nivel")
+    @Query("SELECT CAST(cc.cargo.nivel AS string), AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.id = :subtemaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.nivel")
     List<Object[]> avgTempoBySubtemaIdGroupByNivel(@Param("subtemaId") Long subtemaId);
 
     @Query("SELECT c.banca.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.id = :subtemaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.banca.id")
@@ -192,17 +192,17 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     @Query("SELECT c.instituicao.area, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.id = :subtemaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.instituicao.area")
     List<Object[]> avgTempoBySubtemaIdGroupByAreaInstituicao(@Param("subtemaId") Long subtemaId);
 
-    @Query("SELECT cc.cargo.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc WHERE s.id = :subtemaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.id")
+    @Query("SELECT cc.cargo.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.id = :subtemaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.id")
     List<Object[]> avgTempoBySubtemaIdGroupByCargo(@Param("subtemaId") Long subtemaId);
 
-    @Query("SELECT cc.cargo.area, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc WHERE s.id = :subtemaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.area")
+    @Query("SELECT cc.cargo.area, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.id = :subtemaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.area")
     List<Object[]> avgTempoBySubtemaIdGroupByAreaCargo(@Param("subtemaId") Long subtemaId);
 
     // --- Batch: ConcursoCargo context ---
     @Query("SELECT s.id, COUNT(DISTINCT r.questao.id) FROM Resposta r " +
            "JOIN r.questao q " +
            "JOIN q.subtemas s " +
-           "JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc " +
+           "JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc " +
            "WHERE cc.id = :concursoCargoId " +
            "AND s.id IN :subtemaIds " +
            "GROUP BY s.id")
@@ -211,7 +211,7 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     @Query("SELECT s.id, COUNT(DISTINCT r.questao.id) FROM Resposta r " +
            "JOIN r.questao q " +
            "JOIN q.subtemas s " +
-           "JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc " +
+           "JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc " +
            "WHERE cc.id = :concursoCargoId " +
            "AND s.id IN :subtemaIds " +
            "AND r.alternativaEscolhida.correta = true " +
@@ -221,7 +221,7 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     @Query("SELECT s.id, AVG(r.tempoRespostaSegundos) FROM Resposta r " +
            "JOIN r.questao q " +
            "JOIN q.subtemas s " +
-           "JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc " +
+           "JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc " +
            "WHERE cc.id = :concursoCargoId " +
            "AND s.id IN :subtemaIds " +
            "AND r.tempoRespostaSegundos IS NOT NULL " +
@@ -231,7 +231,7 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     @Query("SELECT s.id, MAX(r.createdAt) FROM Resposta r " +
            "JOIN r.questao q " +
            "JOIN q.subtemas s " +
-           "JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc " +
+           "JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc " +
            "WHERE cc.id = :concursoCargoId " +
            "AND s.id IN :subtemaIds " +
            "GROUP BY s.id")
@@ -252,9 +252,9 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
         JOIN subtema s ON qs.subtema_id = s.id
         JOIN questao_prova_secao qps ON q.id = qps.questao_id
         JOIN prova_secao ps ON qps.prova_secao_id = ps.id
-        JOIN prova_cargo pc ON ps.prova_id = pc.prova_id
+        JOIN prova p ON ps.prova_id = p.id
         JOIN alternativa a ON r.alternativa_id = a.id
-        WHERE pc.concurso_cargo_id = :concursoCargoId AND s.id IN (:subtemaIds) AND r.rn = 1
+        WHERE p.concurso_cargo_id = :concursoCargoId AND s.id IN (:subtemaIds) AND r.rn = 1
         GROUP BY s.id, COALESCE(r.dificuldade_id, 2)
     """, nativeQuery = true)
     List<Object[]> getDificuldadeStatsByConcursoCargoAndSubtemaIds(@Param("concursoCargoId") Long concursoCargoId, @Param("subtemaIds") List<Long> subtemaIds);
@@ -275,7 +275,7 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     @Query("SELECT c.instituicao.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao q JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE c.instituicao.id IN :ids AND r.alternativaEscolhida.correta = true GROUP BY c.instituicao.id")
     List<Object[]> countAcertadasByInstituicaoIds(@Param("ids") List<Long> ids);
 
-    @Query("SELECT cc.cargo.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao q JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc WHERE cc.cargo.id IN :ids AND r.alternativaEscolhida.correta = true GROUP BY cc.cargo.id")
+    @Query("SELECT cc.cargo.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao q JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE cc.cargo.id IN :ids AND r.alternativaEscolhida.correta = true GROUP BY cc.cargo.id")
     List<Object[]> countAcertadasByCargoIds(@Param("ids") List<Long> ids);
 
     // --- Batch: mediaTempoResposta ---
@@ -294,7 +294,7 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     @Query("SELECT c.instituicao.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE c.instituicao.id IN :ids AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.instituicao.id")
     List<Object[]> avgTempoByInstituicaoIds(@Param("ids") List<Long> ids);
 
-    @Query("SELECT cc.cargo.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc WHERE cc.cargo.id IN :ids AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.id")
+    @Query("SELECT cc.cargo.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE cc.cargo.id IN :ids AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.id")
     List<Object[]> avgTempoByCargoIds(@Param("ids") List<Long> ids);
 
     // --- Batch: ultimaQuestao ---
@@ -313,7 +313,7 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     @Query("SELECT c.instituicao.id, MAX(r.createdAt) FROM Resposta r JOIN r.questao q JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE c.instituicao.id IN :ids GROUP BY c.instituicao.id")
     List<Object[]> findLatestResponseDatesByInstituicaoIds(@Param("ids") List<Long> ids);
 
-    @Query("SELECT cc.cargo.id, MAX(r.createdAt) FROM Resposta r JOIN r.questao q JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc WHERE cc.cargo.id IN :ids GROUP BY cc.cargo.id")
+    @Query("SELECT cc.cargo.id, MAX(r.createdAt) FROM Resposta r JOIN r.questao q JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE cc.cargo.id IN :ids GROUP BY cc.cargo.id")
     List<Object[]> findLatestResponseDatesByCargoIds(@Param("ids") List<Long> ids);
 
     // --- Autoral resposta batch queries ---
@@ -520,7 +520,7 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
             FROM resposta
         ) r
         JOIN questao q ON r.questao_id = q.id
-        JOIN questao_prova_secao qps ON q.id = qps.questao_id JOIN prova_secao ps ON qps.prova_secao_id = ps.id JOIN prova_cargo pc ON ps.prova_id = pc.prova_id JOIN concurso_cargo cc ON pc.concurso_cargo_id = cc.id
+        JOIN questao_prova_secao qps ON q.id = qps.questao_id JOIN prova_secao ps ON qps.prova_secao_id = ps.id JOIN prova p ON ps.prova_id = p.id JOIN concurso_cargo cc ON p.concurso_cargo_id = cc.id
         JOIN alternativa a ON r.alternativa_id = a.id
         WHERE cc.cargo_id IN (:ids) AND r.rn = 1
         GROUP BY cc.cargo_id, COALESCE(r.dificuldade_id, 2)
@@ -572,28 +572,27 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     List<Object[]> avgTempoByInstituicaoIdGroupByAreaCargo(@Param("instituicaoId") Long instituicaoId);
 
     // --- Granular breakdown queries for Cargo ---
-    @Query("SELECT CAST(cc.cargo.nivel AS string), COUNT(DISTINCT r.questao.id), SUM(CASE WHEN a.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida a JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc WHERE cc.cargo.id = :cargoId AND q.anulada = false GROUP BY cc.cargo.nivel")
+    @Query("SELECT CAST(cc.cargo.nivel AS string), COUNT(DISTINCT r.questao.id), SUM(CASE WHEN a.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida a JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE cc.cargo.id = :cargoId AND q.anulada = false GROUP BY cc.cargo.nivel")
     List<Object[]> countRespondidasAcertadasByCargoIdGroupByNivel(@Param("cargoId") Long cargoId);
 
-    @Query("SELECT c.banca.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN a.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida a JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE cc.cargo.id = :cargoId AND q.anulada = false GROUP BY c.banca.id")
+    @Query("SELECT c.banca.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN a.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida a JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE cc.cargo.id = :cargoId AND q.anulada = false GROUP BY c.banca.id")
     List<Object[]> countRespondidasAcertadasByCargoIdGroupByBanca(@Param("cargoId") Long cargoId);
 
-    @Query("SELECT cc.cargo.area, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN a.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida a JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc WHERE cc.cargo.id = :cargoId AND q.anulada = false GROUP BY cc.cargo.area")
+    @Query("SELECT cc.cargo.area, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN a.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida a JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE cc.cargo.id = :cargoId AND q.anulada = false GROUP BY cc.cargo.area")
     List<Object[]> countRespondidasAcertadasByCargoIdGroupByAreaCargo(@Param("cargoId") Long cargoId);
 
-    @Query("SELECT c.instituicao.area, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN a.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida a JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE cc.cargo.id = :cargoId AND q.anulada = false GROUP BY c.instituicao.area")
+    @Query("SELECT c.instituicao.area, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN a.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida a JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE cc.cargo.id = :cargoId AND q.anulada = false GROUP BY c.instituicao.area")
     List<Object[]> countRespondidasAcertadasByCargoIdGroupByAreaInstituicao(@Param("cargoId") Long cargoId);
 
-    @Query("SELECT CAST(cc.cargo.nivel AS string), AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc WHERE cc.cargo.id = :cargoId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.nivel")
+    @Query("SELECT CAST(cc.cargo.nivel AS string), AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE cc.cargo.id = :cargoId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.nivel")
     List<Object[]> avgTempoByCargoIdGroupByNivel(@Param("cargoId") Long cargoId);
 
-    @Query("SELECT c.banca.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE cc.cargo.id = :cargoId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.banca.id")
+    @Query("SELECT c.banca.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE cc.cargo.id = :cargoId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.banca.id")
     List<Object[]> avgTempoByCargoIdGroupByBanca(@Param("cargoId") Long cargoId);
 
-    @Query("SELECT cc.cargo.area, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc WHERE cc.cargo.id = :cargoId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.area")
+    @Query("SELECT cc.cargo.area, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE cc.cargo.id = :cargoId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.area")
     List<Object[]> avgTempoByCargoIdGroupByAreaCargo(@Param("cargoId") Long cargoId);
 
-    @Query("SELECT c.instituicao.area, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.cargos cc JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE cc.cargo.id = :cargoId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.instituicao.area")
+    @Query("SELECT c.instituicao.area, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE cc.cargo.id = :cargoId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.instituicao.area")
     List<Object[]> avgTempoByCargoIdGroupByAreaInstituicao(@Param("cargoId") Long cargoId);
 }
-

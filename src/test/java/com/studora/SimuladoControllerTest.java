@@ -56,7 +56,7 @@ class SimuladoControllerTest {
     @Autowired
     private RespostaRepository respostaRepository;
 
-    @Autowired
+@Autowired
     private AlternativaRepository alternativaRepository;
 
     @Autowired
@@ -66,6 +66,15 @@ class SimuladoControllerTest {
     private ProvaSecaoRepository provaSecaoRepository;
 
     @Autowired
+    private CargoRepository cargoRepository;
+
+    @Autowired
+    private ConcursoCargoRepository concursoCargoRepository;
+
+    @Autowired
+    private SecaoCargoRepository secaoCargoRepository;
+
+    @Autowired
     private CacheManager cacheManager;
 
     private Banca savedBanca;
@@ -73,7 +82,6 @@ class SimuladoControllerTest {
 
     @BeforeEach
     void setUp() {
-        // Clear simulado-stats cache to avoid stale data from previous tests
         if (cacheManager != null) {
             var cache = cacheManager.getCache("simulado-stats");
             if (cache != null) {
@@ -87,8 +95,8 @@ class SimuladoControllerTest {
         savedBanca = new Banca();
         savedBanca.setNome("Banca 1");
         savedBanca = bancaRepository.save(savedBanca);
-        Concurso conc = new Concurso(inst, savedBanca, 2023, 1);
-        concursoRepository.save(conc);
+Concurso conc = new Concurso(inst, savedBanca, 2023, 1);
+        conc = concursoRepository.save(conc);
 
         savedDisc = new Disciplina();
         savedDisc.setNome("Direito");
@@ -102,13 +110,32 @@ class SimuladoControllerTest {
         sub.setTema(tema);
         sub = subtemaRepository.save(sub);
 
+        Cargo cargo = new Cargo();
+        cargo.setNome("Cargo Test");
+        cargo.setNivel(com.studora.entity.NivelCargo.SUPERIOR);
+        cargo.setArea("TI");
+        cargo = cargoRepository.save(cargo);
+
+        ConcursoCargo cc = new ConcursoCargo();
+        cc.setConcurso(conc);
+        cc.setCargo(cargo);
+        cc = concursoCargoRepository.save(cc);
+
+        SecaoCargo scDef = new SecaoCargo();
+        scDef.setConcursoCargo(cc);
+        scDef.setNome("Geral");
+        scDef.setPeso(1.0);
+        scDef = secaoCargoRepository.save(scDef);
+
         Prova prova = new Prova();
         prova.setConcurso(conc);
+        prova.setConcursoCargo(cc);
         prova.setNome("Prova 1");
         prova = provaRepository.save(prova);
 
         ProvaSecao secao = new ProvaSecao();
         secao.setProva(prova);
+        secao.setSecaoCargo(scDef);
         secao.setNome("Geral");
         secao.setOrdem(1);
         secao = provaSecaoRepository.save(secao);

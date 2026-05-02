@@ -111,7 +111,7 @@ public class QuestaoRepositoryImpl implements QuestaoRepositoryCustom {
                 case FUNDAMENTAL -> "'FUNDAMENTAL'";
             };
             String nivelFilter =
-                "(q.autoral = true OR EXISTS (SELECT 1 FROM q.secoes qsNivel JOIN qsNivel.provaSecao psNivel JOIN psNivel.prova provaNivel JOIN provaNivel.cargos ccNivel JOIN ccNivel.cargo cargoNivel WHERE cargoNivel.nivel IN (" + nivelLevels + ")))";
+                "(q.autoral = true OR EXISTS (SELECT 1 FROM q.secoes qsNivel JOIN qsNivel.provaSecao psNivel JOIN psNivel.prova provaNivel JOIN provaNivel.concursoCargo ccNivel JOIN ccNivel.cargo cargoNivel WHERE cargoNivel.nivel IN (" + nivelLevels + ")))";
             whereClauses.add(nivelFilter);
         }
 
@@ -127,27 +127,18 @@ public class QuestaoRepositoryImpl implements QuestaoRepositoryCustom {
 
         // Cargo Preference
         if (req.getCargoId() != null) {
-            orderBy.append(" + CASE WHEN EXISTS (SELECT 1 FROM q.secoes qsCargo JOIN qsCargo.provaSecao psCargo JOIN psCargo.prova provaCargo JOIN provaCargo.cargos ccCargo WHERE ccCargo.cargo.id = :cargoId) THEN 500 ELSE 0 END");
+            orderBy.append(" + CASE WHEN EXISTS (SELECT 1 FROM q.secoes qsCargo JOIN qsCargo.provaSecao psCargo JOIN psCargo.prova provaCargo JOIN provaCargo.concursoCargo ccCargo WHERE ccCargo.cargo.id = :cargoId) THEN 500 ELSE 0 END");
         }
 
         // Area Preference
         if (req.getAreas() != null && !req.getAreas().isEmpty()) {
-            orderBy.append(" + CASE WHEN (lower(i.area) IN :areasLower OR EXISTS (SELECT 1 FROM q.secoes qsArea JOIN qsArea.provaSecao psArea JOIN psArea.prova provaArea JOIN provaArea.cargos ccArea JOIN ccArea.cargo cargoArea WHERE lower(cargoArea.area) IN :areasLower)) THEN 100 ELSE 0 END");
+            orderBy.append(" + CASE WHEN (lower(i.area) IN :areasLower OR EXISTS (SELECT 1 FROM q.secoes qsArea JOIN qsArea.provaSecao psArea JOIN psArea.prova provaArea JOIN provaArea.concursoCargo ccArea JOIN ccArea.cargo cargoArea WHERE lower(cargoArea.area) IN :areasLower)) THEN 100 ELSE 0 END");
         }
 
         // Nivel Priority
-        // Superior (requested) -> Sup(30) > Med(20) > Fund(10)
-        // Medio (requested) -> Med(20) > Fund(10)
-        // Fund (requested) -> Fund(10)
-        // We can just assign static weights to levels found.
-        // If question has Superior cargo -> +30. If Medio -> +20. If Fund -> +10.
-        // MAX score wins.
-        // Query: check if it has Superior, else if Medio...
-        // "COALESCE((SELECT MAX(CASE WHEN c4.nivel='SUPERIOR' THEN 30 WHEN c4.nivel='MEDIO' THEN 20 ELSE 10 END) FROM ...), 0)"
-        // Simplified: Just add points if it HAS that level.
-        orderBy.append(" + CASE WHEN EXISTS (SELECT 1 FROM q.secoes qsSup JOIN qsSup.provaSecao psSup JOIN psSup.prova provaSup JOIN provaSup.cargos ccSup JOIN ccSup.cargo cSup WHERE cSup.nivel = 'SUPERIOR') THEN 30 ELSE 0 END");
-        orderBy.append(" + CASE WHEN EXISTS (SELECT 1 FROM q.secoes qsMed JOIN qsMed.provaSecao psMed JOIN psMed.prova provaMed JOIN provaMed.cargos ccMed JOIN ccMed.cargo cMed WHERE cMed.nivel = 'MEDIO') THEN 20 ELSE 0 END");
-        orderBy.append(" + CASE WHEN EXISTS (SELECT 1 FROM q.secoes qsFun JOIN qsFun.provaSecao psFun JOIN psFun.prova provaFun JOIN provaFun.cargos ccFun JOIN ccFun.cargo cFun WHERE cFun.nivel = 'FUNDAMENTAL') THEN 10 ELSE 0 END");
+        orderBy.append(" + CASE WHEN EXISTS (SELECT 1 FROM q.secoes qsSup JOIN qsSup.provaSecao psSup JOIN psSup.prova provaSup JOIN provaSup.concursoCargo ccSup JOIN ccSup.cargo cSup WHERE cSup.nivel = 'SUPERIOR') THEN 30 ELSE 0 END");
+        orderBy.append(" + CASE WHEN EXISTS (SELECT 1 FROM q.secoes qsMed JOIN qsMed.provaSecao psMed JOIN psMed.prova provaMed JOIN provaMed.concursoCargo ccMed JOIN ccMed.cargo cMed WHERE cMed.nivel = 'MEDIO') THEN 20 ELSE 0 END");
+        orderBy.append(" + CASE WHEN EXISTS (SELECT 1 FROM q.secoes qsFun JOIN qsFun.provaSecao psFun JOIN psFun.prova provaFun JOIN provaFun.concursoCargo ccFun JOIN ccFun.cargo cFun WHERE cFun.nivel = 'FUNDAMENTAL') THEN 10 ELSE 0 END");
 
         orderBy.append(") DESC, RANDOM()");
 
