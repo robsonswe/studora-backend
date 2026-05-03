@@ -441,6 +441,9 @@ if (targetCargoId != null) {
                 // Update definition fields
                 sc.setPeso(sReq.getPeso() != null ? sReq.getPeso() : 1.0);
                 sc.setNotaMinima(sReq.getNotaMinima() != null ? sReq.getNotaMinima() : 0.0);
+                sc.setOrdem(sReq.getOrdem());
+                sc.setNumQuestoes(sReq.getNumQuestoes());
+                secaoCargoRepository.save(sc);
 
                 if (sReq.getSubtemaIds() != null) {
                     List<Subtema> subtemas = subtemaRepository.findAllById(sReq.getSubtemaIds());

@@ -41,9 +41,12 @@ import com.studora.repository.ConcursoCargoRepository;
 import com.studora.repository.ConcursoRepository;
 import com.studora.repository.InstituicaoRepository;
 import com.studora.repository.ProvaRepository;
+import com.studora.repository.SecaoCargoRepository;
 import com.studora.repository.SubtemaRepository;
+import com.studora.repository.EstudoSubtemaRepository;
 import com.studora.service.ConcursoService;
 import com.studora.service.ProvaService;
+import com.studora.service.StatsAssembler;
 
 import jakarta.persistence.EntityManager;
 
@@ -55,12 +58,15 @@ class ConcursoServiceTest {
     @Mock private BancaRepository bancaRepository;
     @Mock private CargoRepository cargoRepository;
     @Mock private ConcursoCargoRepository concursoCargoRepository;
+    @Mock private SecaoCargoRepository secaoCargoRepository;
     @Mock private SubtemaRepository subtemaRepository;
+    @Mock private EstudoSubtemaRepository estudoSubtemaRepository;
     @Mock private ProvaRepository provaRepository;
     @Mock private ConcursoMapper concursoMapper;
     @Mock private ProvaMapper provaMapper;
     @Mock private EntityManager entityManager;
     @Mock private ProvaService provaService;
+    @Mock private StatsAssembler statsAssembler;
 
     @InjectMocks
     private ConcursoService concursoService;
@@ -450,5 +456,84 @@ class ConcursoServiceTest {
         when(subtemaRepository.findAllById(any())).thenReturn(List.of(subtema));
 
         assertThrows(ValidationException.class, () -> concursoService.update(concursoId, req));
+    }
+
+    @Test
+    void testUpdate_SyncsOrdemAndNumQuestoesToSecaoCargo() {
+        // Setup
+        Long concursoId = 1L;
+        Concurso existing = new Concurso();
+        existing.setId(concursoId);
+        existing.setAno(2023);
+        existing.setMes(6);
+        Instituicao inst = new Instituicao(); inst.setId(1L);
+        Banca banca = new Banca(); banca.setId(1L);
+        existing.setInstituicao(inst);
+        existing.setBanca(banca);
+
+        Cargo cargo = new Cargo(); cargo.setId(10L);
+        ConcursoCargo cc = new ConcursoCargo();
+        cc.setId(100L);
+        cc.setCargo(cargo);
+        cc.setConcurso(existing);
+        existing.addConcursoCargo(cc);
+
+        Prova existingProva = new Prova();
+        existingProva.setId(10L);
+        existingProva.setNome("Prova 1");
+        existingProva.setConcurso(existing);
+        existingProva.setConcursoCargo(cc);
+        existing.getProvas().add(existingProva);
+
+        SecaoCargo scDef = new SecaoCargo();
+        scDef.setId(500L);
+        scDef.setNome("Conhecimentos Gerais");
+        scDef.setConcursoCargo(cc);
+        scDef.setOrdem(10); // Old value
+        scDef.setNumQuestoes(10); // Old value
+        cc.getSecaoCargos().add(scDef);
+
+        ProvaSecao ps = new ProvaSecao();
+        ps.setId(1000L);
+        ps.setNome("Conhecimentos Gerais");
+        ps.setOrdem(10);
+        ps.setNumQuestoes(10);
+        ps.setProva(existingProva);
+        ps.setSecaoCargo(scDef);
+        existingProva.getSecoes().add(ps);
+
+        // Request to update
+        ConcursoUpdateRequest req = new ConcursoUpdateRequest();
+        req.setCargos(List.of(10L));
+
+        ProvaUpdateRequest pReq = new ProvaUpdateRequest();
+        pReq.setId(10L);
+        pReq.setNome("Prova 1");
+        pReq.setCargoId(10L);
+
+        ProvaSecaoUpdateRequest sReq = new ProvaSecaoUpdateRequest();
+        sReq.setId(1000L);
+        sReq.setNome("Conhecimentos Gerais");
+        sReq.setOrdem(0); // New value
+        sReq.setNumQuestoes(20); // New value
+        pReq.setSecoes(List.of(sReq));
+
+        req.setProvas(List.of(pReq));
+
+        when(concursoRepository.findByIdWithDetails(concursoId)).thenReturn(Optional.of(existing));
+        when(secaoCargoRepository.findByConcursoCargoIdAndNomeIgnoreCase(100L, "Conhecimentos Gerais"))
+                .thenReturn(Optional.of(scDef));
+        when(concursoRepository.save(any(Concurso.class))).thenAnswer(i -> i.getArgument(0));
+
+        // Execute
+        concursoService.update(concursoId, req);
+
+        // Verify ProvaSecao
+        assertEquals(0, ps.getOrdem());
+        assertEquals(20, ps.getNumQuestoes());
+
+        // Verify SecaoCargo (This was failing before the fix)
+        assertEquals(0, scDef.getOrdem());
+        assertEquals(20, scDef.getNumQuestoes());
     }
 }
