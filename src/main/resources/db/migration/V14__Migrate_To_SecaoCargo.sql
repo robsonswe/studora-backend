@@ -1,12 +1,15 @@
 -- V14__Migrate_To_SecaoCargo.sql
 
+-- ==============================================================================
 -- 1. BACKUP DAS TABELAS ANTIGAS
+-- ==============================================================================
 ALTER TABLE prova RENAME TO old_prova;
 ALTER TABLE prova_secao RENAME TO old_prova_secao;
 ALTER TABLE questao_prova_secao RENAME TO old_questao_prova_secao;
 
+-- ==============================================================================
 -- 2. CRIAÇÃO DAS NOVAS TABELAS (ARQUITETURA CARGO-CENTRIC COM HERANÇA)
-
+-- ==============================================================================
 CREATE TABLE secao_cargo (
     id                INTEGER PRIMARY KEY AUTOINCREMENT,
     concurso_cargo_id INTEGER NOT NULL REFERENCES concurso_cargo(id) ON DELETE CASCADE,
@@ -59,7 +62,9 @@ CREATE TABLE questao_prova_secao (
     UNIQUE(questao_id, prova_secao_id)
 );
 
+-- ==============================================================================
 -- 3. MIGRAÇÃO E DESMEMBRAMENTO DE DADOS
+-- ==============================================================================
 
 -- A) Criar as Provas (Uma por cargo que participava da prova antiga)
 INSERT INTO prova (concurso_id, concurso_cargo_id, nome, created_at, updated_at)
@@ -68,7 +73,6 @@ FROM old_prova op
 JOIN prova_cargo pc ON pc.prova_id = op.id;
 
 -- B) Criar as definições de Seção por Cargo (SecaoCargo)
--- Agrupamos por nome de seção e cargo para consolidar pesos e subtemas
 INSERT INTO secao_cargo (concurso_cargo_id, nome, peso, nota_minima)
 SELECT DISTINCT 
     p.concurso_cargo_id, 
@@ -106,10 +110,35 @@ JOIN prova p ON p.concurso_id = op.concurso_id AND p.nome = op.nome
 JOIN secao_cargo sc ON sc.concurso_cargo_id = p.concurso_cargo_id AND sc.nome = ops.nome
 JOIN prova_secao ps ON ps.prova_id = p.id AND ps.secao_cargo_id = sc.id;
 
+-- ==============================================================================
 -- 4. LIMPEZA FINAL
+-- ==============================================================================
 DROP TABLE old_prova;
 DROP TABLE old_prova_secao;
 DROP TABLE old_questao_prova_secao;
 DROP TABLE prova_cargo;
 DROP TABLE prova_secao_peso;
 DROP TABLE prova_secao_subtema;
+
+-- ==============================================================================
+-- 5. RECRIAÇÃO DE ÍNDICES (CRÍTICO PARA PERFORMANCE)
+-- ==============================================================================
+
+-- Índices para secao_cargo
+CREATE INDEX IF NOT EXISTS idx_secao_cargo_concurso_cargo ON secao_cargo(concurso_cargo_id);
+
+-- Índices para secao_cargo_subtema
+CREATE INDEX IF NOT EXISTS idx_secao_cargo_subtema_secao ON secao_cargo_subtema(secao_cargo_id);
+CREATE INDEX IF NOT EXISTS idx_secao_cargo_subtema_subtema ON secao_cargo_subtema(subtema_id);
+
+-- Índices para prova
+CREATE INDEX IF NOT EXISTS idx_prova_concurso ON prova(concurso_id);
+CREATE INDEX IF NOT EXISTS idx_prova_concurso_cargo ON prova(concurso_cargo_id);
+
+-- Índices para prova_secao
+CREATE INDEX IF NOT EXISTS idx_prova_secao_prova ON prova_secao(prova_id);
+CREATE INDEX IF NOT EXISTS idx_prova_secao_secao_cargo ON prova_secao(secao_cargo_id);
+
+-- Índices para questao_prova_secao
+CREATE INDEX IF NOT EXISTS idx_questao_prova_secao_questao ON questao_prova_secao(questao_id);
+CREATE INDEX IF NOT EXISTS idx_questao_prova_secao_secao ON questao_prova_secao(prova_secao_id);

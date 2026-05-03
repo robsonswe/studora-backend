@@ -88,11 +88,11 @@ CREATE INDEX IF NOT EXISTS idx_questao_prova_secao_secao ON questao_prova_secao(
 -- 2. AUTO-MIGRAÇÃO DE DADOS LEGADOS
 -- ==============================================================================
 
--- A) Criar "Prova Única" para todos os concursos existentes (removido valor 'OBJETIVA')
+-- A) Criar "Prova Única" para todos os concursos existentes
 INSERT INTO prova (concurso_id, nome)
 SELECT id, 'Prova Única' FROM concurso;
 
--- B) Criar Seção "Conhecimentos Gerais" para a Prova Única (removido valor 'GERAL')
+-- B) Criar Seção "Conhecimentos Gerais" para a Prova Única
 INSERT INTO prova_secao (prova_id, nome, ordem)
 SELECT id, 'Conhecimentos Gerais', 1 FROM prova;
 
@@ -121,3 +121,6 @@ WHERE q.concurso_id IS NOT NULL;
 -- F) Atribuir Peso 1.0 para todos nessa seção única
 INSERT INTO prova_secao_peso (prova_secao_id, peso)
 SELECT id, 1.0 FROM prova_secao;
+
+-- G) Limpeza da tabela legada (Substituída pela nova estrutura de provas)
+DROP TABLE IF EXISTS concurso_cargo_subtema;
