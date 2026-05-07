@@ -208,7 +208,7 @@ prova.setConcursoCargo(targetCc);
                         secao.setProva(prova);
                         secao.setNome(sReq.getNome());
                         secao.setOrdem(sReq.getOrdem());
-                        secao.setNumQuestoes(sReq.getNumQuestoes());
+                        secao.setNumQuestoes(sReq.getNumQuestoes() != null && sReq.getNumQuestoes() > 0 ? sReq.getNumQuestoes() : 1);
                         prova.getSecoes().add(secao);
 
                         // Find or Create SecaoCargo (Inheritance Definition)
@@ -231,7 +231,7 @@ prova.setConcursoCargo(targetCc);
                             sc.setPeso(sReq.getPeso() != null ? sReq.getPeso() : 1.0);
                             sc.setNotaMinima(sReq.getNotaMinima() != null ? sReq.getNotaMinima() : 0.0);
                             sc.setOrdem(sReq.getOrdem());
-                            sc.setNumQuestoes(sReq.getNumQuestoes());
+                            sc.setNumQuestoes(sReq.getNumQuestoes() != null && sReq.getNumQuestoes() > 0 ? sReq.getNumQuestoes() : 1);
                             
                             if (sReq.getSubtemaIds() != null) {
                                 List<Subtema> subtemas = subtemaRepository.findAllById(sReq.getSubtemaIds());
@@ -442,7 +442,7 @@ if (targetCargoId != null) {
                 sc.setPeso(sReq.getPeso() != null ? sReq.getPeso() : 1.0);
                 sc.setNotaMinima(sReq.getNotaMinima() != null ? sReq.getNotaMinima() : 0.0);
                 sc.setOrdem(sReq.getOrdem());
-                sc.setNumQuestoes(sReq.getNumQuestoes());
+                sc.setNumQuestoes(sReq.getNumQuestoes() != null && sReq.getNumQuestoes() > 0 ? sReq.getNumQuestoes() : 1);
                 secaoCargoRepository.save(sc);
 
                 if (sReq.getSubtemaIds() != null) {
@@ -459,7 +459,7 @@ if (targetCargoId != null) {
                 if (secao == null) throw new ResourceNotFoundException("ProvaSecao", "ID", sReq.getId());
                 secao.setNome(sReq.getNome());
                 secao.setOrdem(sReq.getOrdem());
-                secao.setNumQuestoes(sReq.getNumQuestoes());
+                secao.setNumQuestoes(sReq.getNumQuestoes() != null && sReq.getNumQuestoes() > 0 ? sReq.getNumQuestoes() : 1);
                 if (sc != null) {
                     secao.setSecaoCargo(sc);
                 }
@@ -468,7 +468,7 @@ if (targetCargoId != null) {
                 secao.setProva(prova);
                 secao.setNome(sReq.getNome());
                 secao.setOrdem(sReq.getOrdem());
-                secao.setNumQuestoes(sReq.getNumQuestoes());
+                secao.setNumQuestoes(sReq.getNumQuestoes() != null && sReq.getNumQuestoes() > 0 ? sReq.getNumQuestoes() : 1);
                 if (sc != null) {
                     secao.setSecaoCargo(sc);
                 }

@@ -3,6 +3,7 @@ package com.studora;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import org.mockito.ArgumentCaptor;
 
 import java.util.List;
 import java.util.Optional;
@@ -20,7 +21,9 @@ import com.studora.dto.concurso.ConcursoCargoSubtemaDto;
 import com.studora.dto.prova.ProvaDetailDto;
 import com.studora.dto.request.ConcursoCreateRequest;
 import com.studora.dto.request.ConcursoUpdateRequest;
+import com.studora.dto.request.ProvaCreateRequest;
 import com.studora.dto.request.ProvaUpdateRequest;
+import com.studora.dto.request.ProvaSecaoCreateRequest;
 import com.studora.dto.request.ProvaSecaoUpdateRequest;
 import com.studora.entity.Banca;
 import com.studora.entity.Cargo;
@@ -376,6 +379,13 @@ class ConcursoServiceTest {
 
         when(concursoRepository.findByIdWithDetails(concursoId)).thenReturn(Optional.of(existing));
         when(concursoRepository.save(any(Concurso.class))).thenAnswer(i -> i.getArgument(0));
+        when(secaoCargoRepository.findByConcursoCargoIdAndNomeIgnoreCase(anyLong(), anyString())).thenReturn(Optional.empty());
+        when(secaoCargoRepository.save(any()))
+            .thenAnswer(invocation -> {
+                cc.getSecaoCargos().add((com.studora.entity.SecaoCargo) invocation.getArgument(0));
+                return invocation.getArgument(0);
+            });
+        when(secaoCargoRepository.findAllByConcursoCargoId(anyLong())).thenAnswer(i -> cc.getSecaoCargos().stream().toList());
 
         // Execute
         concursoService.update(concursoId, req);
@@ -454,6 +464,14 @@ class ConcursoServiceTest {
 
         when(concursoRepository.findByIdWithDetails(concursoId)).thenReturn(Optional.of(existing));
         when(subtemaRepository.findAllById(any())).thenReturn(List.of(subtema));
+        when(secaoCargoRepository.findByConcursoCargoIdAndNomeIgnoreCase(anyLong(), anyString())).thenReturn(Optional.empty());
+        when(secaoCargoRepository.save(any()))
+            .thenAnswer(invocation -> {
+                Object sc = invocation.getArgument(0);
+                cc.getSecaoCargos().add((com.studora.entity.SecaoCargo)sc);
+                return sc;
+            });
+        when(secaoCargoRepository.findAllByConcursoCargoId(anyLong())).thenAnswer(i -> cc.getSecaoCargos().stream().toList());
 
         assertThrows(ValidationException.class, () -> concursoService.update(concursoId, req));
     }
@@ -535,5 +553,96 @@ class ConcursoServiceTest {
         // Verify SecaoCargo (This was failing before the fix)
         assertEquals(0, scDef.getOrdem());
         assertEquals(20, scDef.getNumQuestoes());
+    }
+
+    @Test
+    void testCreate_SetsDefaultNumQuestoesTo1_WhenNullOrZero() {
+        // Setup
+        Long instId = 1L;
+        Long bancaId = 1L;
+        Integer ano = 2024;
+
+        Instituicao inst = new Instituicao();
+        inst.setId(instId);
+        Banca banca = new Banca();
+        banca.setId(bancaId);
+
+        Cargo cargo = new Cargo();
+        cargo.setId(1L);
+
+        // Request with secao without numQuestoes
+        ConcursoCreateRequest req = new ConcursoCreateRequest();
+        req.setInstituicaoId(instId);
+        req.setBancaId(bancaId);
+        req.setAno(ano);
+        req.setMes(6);
+        req.setCargos(List.of(1L));
+
+        ProvaCreateRequest pReq = new ProvaCreateRequest();
+        pReq.setNome("Prova Teste");
+        pReq.setCargoId(1L);
+
+        ProvaSecaoCreateRequest sReq = new ProvaSecaoCreateRequest();
+        sReq.setNome("Seção 1");
+        sReq.setOrdem(1);
+        // numQuestoes not set - should default to 1
+        pReq.setSecoes(List.of(sReq));
+
+        ProvaSecaoCreateRequest sReq2 = new ProvaSecaoCreateRequest();
+        sReq2.setNome("Seção 2");
+        sReq2.setOrdem(2);
+        sReq2.setNumQuestoes(0); // explicitly set to 0 - should default to 1
+        pReq.setSecoes(List.of(sReq, sReq2));
+
+        req.setProvas(List.of(pReq));
+
+        // Execute
+        when(instituicaoRepository.findById(instId)).thenReturn(Optional.of(inst));
+        when(bancaRepository.findById(bancaId)).thenReturn(Optional.of(banca));
+        when(cargoRepository.findById(1L)).thenReturn(Optional.of(cargo));
+
+// Mock the mapper to return a valid empty concurso
+        Concurso savedConcurso = new Concurso();
+        savedConcurso.setInstituicao(inst);
+        savedConcurso.setBanca(banca);
+        savedConcurso.setAno(ano);
+        savedConcurso.setMes(6);
+        // Initialize empty collections
+        savedConcurso.setProvas(new java.util.LinkedHashSet<>());
+savedConcurso.setConcursoCargos(new java.util.LinkedHashSet<>());
+        when(concursoMapper.toEntity(any(ConcursoCreateRequest.class))).thenReturn(savedConcurso);
+        when(concursoRepository.save(any(Concurso.class))).thenAnswer(invocation -> {
+            Concurso saved = invocation.getArgument(0);
+            saved.setId(1L);
+            return saved;
+        });
+
+        Long id = concursoService.create(req);
+
+        // Verify
+        assertNotNull(id);
+        // Get the saved concurso from the mock
+        ArgumentCaptor<Concurso> captor = ArgumentCaptor.forClass(Concurso.class);
+        verify(concursoRepository).save(captor.capture());
+        Concurso saved = captor.getValue();
+
+        // Find the prova
+        Prova prova = saved.getProvas().stream().findFirst().orElseThrow();
+
+        // Find secao 1 (null value should default to 1)
+        ProvaSecao secao1 = prova.getSecoes().stream()
+                .filter(s -> s.getNome().equals("Seção 1"))
+                .findFirst().orElseThrow();
+        assertEquals(1, secao1.getNumQuestoes(), "Seção 1 with null numQuestoes should default to 1");
+
+        // Find secao 2 (0 value should default to 1)
+        ProvaSecao secao2 = prova.getSecoes().stream()
+                .filter(s -> s.getNome().equals("Seção 2"))
+                .findFirst().orElseThrow();
+        assertEquals(1, secao2.getNumQuestoes(), "Seção 2 with 0 numQuestoes should default to 1");
+
+        // Verify SecaoCargo also has default
+        assertNotNull(secao1.getSecaoCargo());
+        assertEquals(1, secao1.getSecaoCargo().getNumQuestoes());
     }
 }
