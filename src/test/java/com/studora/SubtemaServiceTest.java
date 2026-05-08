@@ -143,7 +143,7 @@ class SubtemaServiceTest {
     void testDelete_Success() {
         Long id = 1L;
         when(subtemaRepository.existsById(id)).thenReturn(true);
-        when(questaoRepository.existsBySubtemasId(id)).thenReturn(false);
+        when(questaoRepository.existsByQuestaoSubtemasSubtemaId(id)).thenReturn(false);
 
         subtemaService.delete(id);
 
@@ -154,7 +154,7 @@ class SubtemaServiceTest {
     void testDelete_Conflict() {
         Long id = 1L;
         when(subtemaRepository.existsById(id)).thenReturn(true);
-        when(questaoRepository.existsBySubtemasId(id)).thenReturn(true);
+        when(questaoRepository.existsByQuestaoSubtemasSubtemaId(id)).thenReturn(true);
 
         assertThrows(com.studora.exception.ValidationException.class, () -> {
             subtemaService.delete(id);

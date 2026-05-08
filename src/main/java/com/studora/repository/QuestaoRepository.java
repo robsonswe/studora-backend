@@ -15,11 +15,11 @@ import com.studora.entity.Questao;
 public interface QuestaoRepository extends JpaRepository<Questao, Long>, JpaSpecificationExecutor<Questao>, QuestaoRepositoryCustom {
     @Query("SELECT COUNT(q) > 0 FROM Questao q JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.prova p WHERE p.concurso.id = :concursoId")
     boolean existsByConcursoId(@Param("concursoId") Long concursoId);
-    boolean existsBySubtemasId(Long subtemaId);
+    boolean existsByQuestaoSubtemasSubtemaId(Long subtemaId);
 
     @Query("SELECT DISTINCT q FROM Questao q " +
            "LEFT JOIN FETCH q.alternativas " +
-           "LEFT JOIN FETCH q.subtemas s " +
+           "LEFT JOIN FETCH q.questaoSubtemas qs LEFT JOIN FETCH qs.subtema s " +
            "LEFT JOIN FETCH s.tema st " +
            "LEFT JOIN FETCH st.disciplina " +
            "LEFT JOIN FETCH q.secoes qps " +
@@ -30,7 +30,7 @@ public interface QuestaoRepository extends JpaRepository<Questao, Long>, JpaSpec
 
     @Query("SELECT DISTINCT q FROM Questao q " +
            "LEFT JOIN FETCH q.alternativas a " +
-           "LEFT JOIN FETCH q.subtemas s " +
+           "LEFT JOIN FETCH q.questaoSubtemas qs LEFT JOIN FETCH qs.subtema s " +
            "LEFT JOIN FETCH s.tema st " +
            "LEFT JOIN FETCH st.disciplina " +
            "LEFT JOIN FETCH q.secoes qps " +
@@ -47,7 +47,7 @@ public interface QuestaoRepository extends JpaRepository<Questao, Long>, JpaSpec
 
     @Query("SELECT DISTINCT q FROM Questao q " +
            "LEFT JOIN FETCH q.alternativas a " +
-           "LEFT JOIN FETCH q.subtemas s " +
+           "LEFT JOIN FETCH q.questaoSubtemas qs LEFT JOIN FETCH qs.subtema s " +
            "LEFT JOIN FETCH s.tema st " +
            "LEFT JOIN FETCH st.disciplina " +
            "LEFT JOIN FETCH q.secoes qps " +
@@ -64,13 +64,13 @@ public interface QuestaoRepository extends JpaRepository<Questao, Long>, JpaSpec
 
     // --- Batch question count queries ---
 
-    @Query("SELECT s.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s WHERE s.id IN :ids GROUP BY s.id")
+    @Query("SELECT s.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s WHERE s.id IN :ids GROUP BY s.id")
     List<Object[]> countQuestoesBySubtemaIds(@Param("ids") List<Long> ids);
 
-    @Query("SELECT s.tema.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s WHERE s.tema.id IN :ids GROUP BY s.tema.id")
+    @Query("SELECT s.tema.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s WHERE s.tema.id IN :ids GROUP BY s.tema.id")
     List<Object[]> countQuestoesByTemaIds(@Param("ids") List<Long> ids);
 
-    @Query("SELECT s.tema.disciplina.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s WHERE s.tema.disciplina.id IN :ids GROUP BY s.tema.disciplina.id")
+    @Query("SELECT s.tema.disciplina.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s WHERE s.tema.disciplina.id IN :ids GROUP BY s.tema.disciplina.id")
     List<Object[]> countQuestoesByDisciplinaIds(@Param("ids") List<Long> ids);
 
     @Query("SELECT c.banca.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.prova p JOIN p.concurso c WHERE c.banca.id IN :ids AND q.anulada = false GROUP BY c.banca.id")
@@ -83,64 +83,64 @@ public interface QuestaoRepository extends JpaRepository<Questao, Long>, JpaSpec
     List<Object[]> countQuestoesByCargoIds(@Param("ids") List<Long> ids);
 
     // --- Granular breakdown queries for Disciplina ---
-    @Query("SELECT CAST(cc.cargo.nivel AS string), COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.secaoCargo sc JOIN sc.concursoCargo cc WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY cc.cargo.nivel")
+    @Query("SELECT CAST(cc.cargo.nivel AS string), COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.secaoCargo sc JOIN sc.concursoCargo cc WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY cc.cargo.nivel")
     List<Object[]> countQuestoesByDisciplinaIdGroupByNivel(@Param("disciplinaId") Long disciplinaId);
 
-    @Query("SELECT c.banca.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.prova p JOIN p.concurso c WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY c.banca.id")
+    @Query("SELECT c.banca.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.prova p JOIN p.concurso c WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY c.banca.id")
     List<Object[]> countQuestoesByDisciplinaIdGroupByBanca(@Param("disciplinaId") Long disciplinaId);
 
-    @Query("SELECT c.instituicao.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.prova p JOIN p.concurso c WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY c.instituicao.id")
+    @Query("SELECT c.instituicao.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.prova p JOIN p.concurso c WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY c.instituicao.id")
     List<Object[]> countQuestoesByDisciplinaIdGroupByInstituicao(@Param("disciplinaId") Long disciplinaId);
 
-    @Query("SELECT c.instituicao.area, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.prova p JOIN p.concurso c WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY c.instituicao.area")
+    @Query("SELECT c.instituicao.area, COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.prova p JOIN p.concurso c WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY c.instituicao.area")
     List<Object[]> countQuestoesByDisciplinaIdGroupByAreaInstituicao(@Param("disciplinaId") Long disciplinaId);
 
-    @Query("SELECT cc.cargo.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.secaoCargo sc JOIN sc.concursoCargo cc WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY cc.cargo.id")
+    @Query("SELECT cc.cargo.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.secaoCargo sc JOIN sc.concursoCargo cc WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY cc.cargo.id")
     List<Object[]> countQuestoesByDisciplinaIdGroupByCargo(@Param("disciplinaId") Long disciplinaId);
 
-    @Query("SELECT cc.cargo.area, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.secaoCargo sc JOIN sc.concursoCargo cc WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY cc.cargo.area")
+    @Query("SELECT cc.cargo.area, COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.secaoCargo sc JOIN sc.concursoCargo cc WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY cc.cargo.area")
     List<Object[]> countQuestoesByDisciplinaIdGroupByAreaCargo(@Param("disciplinaId") Long disciplinaId);
 
     // --- Granular breakdown queries for Tema ---
-    @Query("SELECT CAST(cc.cargo.nivel AS string), COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.secaoCargo sc JOIN sc.concursoCargo cc WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY cc.cargo.nivel")
+    @Query("SELECT CAST(cc.cargo.nivel AS string), COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.secaoCargo sc JOIN sc.concursoCargo cc WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY cc.cargo.nivel")
     List<Object[]> countQuestoesByTemaIdGroupByNivel(@Param("temaId") Long temaId);
 
-    @Query("SELECT c.banca.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.prova p JOIN p.concurso c WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY c.banca.id")
+    @Query("SELECT c.banca.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.prova p JOIN p.concurso c WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY c.banca.id")
     List<Object[]> countQuestoesByTemaIdGroupByBanca(@Param("temaId") Long temaId);
 
-    @Query("SELECT c.instituicao.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.prova p JOIN p.concurso c WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY c.instituicao.id")
+    @Query("SELECT c.instituicao.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.prova p JOIN p.concurso c WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY c.instituicao.id")
     List<Object[]> countQuestoesByTemaIdGroupByInstituicao(@Param("temaId") Long temaId);
 
-    @Query("SELECT c.instituicao.area, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.prova p JOIN p.concurso c WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY c.instituicao.area")
+    @Query("SELECT c.instituicao.area, COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.prova p JOIN p.concurso c WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY c.instituicao.area")
     List<Object[]> countQuestoesByTemaIdGroupByAreaInstituicao(@Param("temaId") Long temaId);
 
-    @Query("SELECT cc.cargo.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.secaoCargo sc JOIN sc.concursoCargo cc WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY cc.cargo.id")
+    @Query("SELECT cc.cargo.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.secaoCargo sc JOIN sc.concursoCargo cc WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY cc.cargo.id")
     List<Object[]> countQuestoesByTemaIdGroupByCargo(@Param("temaId") Long temaId);
 
-    @Query("SELECT cc.cargo.area, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.secaoCargo sc JOIN sc.concursoCargo cc WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY cc.cargo.area")
+    @Query("SELECT cc.cargo.area, COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.secaoCargo sc JOIN sc.concursoCargo cc WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY cc.cargo.area")
     List<Object[]> countQuestoesByTemaIdGroupByAreaCargo(@Param("temaId") Long temaId);
 
     // --- Granular breakdown queries for Subtema ---
-    @Query("SELECT CAST(cc.cargo.nivel AS string), COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.secaoCargo sc JOIN sc.concursoCargo cc WHERE s.id = :subtemaId AND q.anulada = false GROUP BY cc.cargo.nivel")
+    @Query("SELECT CAST(cc.cargo.nivel AS string), COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.secaoCargo sc JOIN sc.concursoCargo cc WHERE s.id = :subtemaId AND q.anulada = false GROUP BY cc.cargo.nivel")
     List<Object[]> countQuestoesBySubtemaIdGroupByNivel(@Param("subtemaId") Long subtemaId);
 
-    @Query("SELECT c.banca.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.prova p JOIN p.concurso c WHERE s.id = :subtemaId AND q.anulada = false GROUP BY c.banca.id")
+    @Query("SELECT c.banca.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.prova p JOIN p.concurso c WHERE s.id = :subtemaId AND q.anulada = false GROUP BY c.banca.id")
     List<Object[]> countQuestoesBySubtemaIdGroupByBanca(@Param("subtemaId") Long subtemaId);
 
-    @Query("SELECT c.instituicao.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.prova p JOIN p.concurso c WHERE s.id = :subtemaId AND q.anulada = false GROUP BY c.instituicao.id")
+    @Query("SELECT c.instituicao.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.prova p JOIN p.concurso c WHERE s.id = :subtemaId AND q.anulada = false GROUP BY c.instituicao.id")
     List<Object[]> countQuestoesBySubtemaIdGroupByInstituicao(@Param("subtemaId") Long subtemaId);
 
-    @Query("SELECT c.instituicao.area, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.prova p JOIN p.concurso c WHERE s.id = :subtemaId AND q.anulada = false GROUP BY c.instituicao.area")
+    @Query("SELECT c.instituicao.area, COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.prova p JOIN p.concurso c WHERE s.id = :subtemaId AND q.anulada = false GROUP BY c.instituicao.area")
     List<Object[]> countQuestoesBySubtemaIdGroupByAreaInstituicao(@Param("subtemaId") Long subtemaId);
 
-    @Query("SELECT cc.cargo.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.secaoCargo sc JOIN sc.concursoCargo cc WHERE s.id = :subtemaId AND q.anulada = false GROUP BY cc.cargo.id")
+    @Query("SELECT cc.cargo.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.secaoCargo sc JOIN sc.concursoCargo cc WHERE s.id = :subtemaId AND q.anulada = false GROUP BY cc.cargo.id")
     List<Object[]> countQuestoesBySubtemaIdGroupByCargo(@Param("subtemaId") Long subtemaId);
 
-    @Query("SELECT cc.cargo.area, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.secaoCargo sc JOIN sc.concursoCargo cc WHERE s.id = :subtemaId AND q.anulada = false GROUP BY cc.cargo.area")
+    @Query("SELECT cc.cargo.area, COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.secaoCargo sc JOIN sc.concursoCargo cc WHERE s.id = :subtemaId AND q.anulada = false GROUP BY cc.cargo.area")
     List<Object[]> countQuestoesBySubtemaIdGroupByAreaCargo(@Param("subtemaId") Long subtemaId);
 
     @Query("SELECT s.id, COUNT(DISTINCT q.id) FROM Questao q " +
-           "JOIN q.subtemas s " +
+           "JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s " +
            "JOIN q.secoes qps JOIN qps.provaSecao ps JOIN ps.secaoCargo sc JOIN sc.concursoCargo cc " +
            "WHERE cc.id = :concursoCargoId " +
            "AND s.id IN :subtemaIds " +
@@ -186,21 +186,32 @@ public interface QuestaoRepository extends JpaRepository<Questao, Long>, JpaSpec
     List<Object[]> countQuestoesByCargoIdGroupByAreaInstituicao(@Param("cargoId") Long cargoId);
 
     // --- Autoral aggregate count queries for taxonomy scopes ---
-    @Query("SELECT s.tema.disciplina.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s WHERE s.tema.disciplina.id IN :ids AND q.autoral = true GROUP BY s.tema.disciplina.id")
+    @Query("SELECT s.tema.disciplina.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s WHERE s.tema.disciplina.id IN :ids AND q.autoral = true GROUP BY s.tema.disciplina.id")
     List<Object[]> countAutoralQuestoesByDisciplinaIds(@Param("ids") List<Long> ids);
 
-    @Query("SELECT s.tema.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s WHERE s.tema.id IN :ids AND q.autoral = true GROUP BY s.tema.id")
+    @Query("SELECT s.tema.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s WHERE s.tema.id IN :ids AND q.autoral = true GROUP BY s.tema.id")
     List<Object[]> countAutoralQuestoesByTemaIds(@Param("ids") List<Long> ids);
 
-    @Query("SELECT s.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s WHERE s.id IN :ids AND q.autoral = true GROUP BY s.id")
+    @Query("SELECT s.id, COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s WHERE s.id IN :ids AND q.autoral = true GROUP BY s.id")
     List<Object[]> countAutoralQuestoesBySubtemaIds(@Param("ids") List<Long> ids);
 
-    @Query("SELECT COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s WHERE s.tema.disciplina.id = :id AND q.autoral = true")
+    @Query("SELECT COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s WHERE s.tema.disciplina.id = :id AND q.autoral = true")
     Long countAutoralQuestoesByDisciplinaId(@Param("id") Long id);
 
-    @Query("SELECT COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s WHERE s.tema.id = :id AND q.autoral = true")
+    @Query("SELECT COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s WHERE s.tema.id = :id AND q.autoral = true")
     Long countAutoralQuestoesByTemaId(@Param("id") Long id);
 
-    @Query("SELECT COUNT(DISTINCT q.id) FROM Questao q JOIN q.subtemas s WHERE s.id = :id AND q.autoral = true")
+    @Query("SELECT COUNT(DISTINCT q.id) FROM Questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s WHERE s.id = :id AND q.autoral = true")
     Long countAutoralQuestoesBySubtemaId(@Param("id") Long id);
+
+    @Query("SELECT DISTINCT q.id FROM Questao q " +
+           "JOIN q.questaoSubtemas qs " +
+           "JOIN q.secoes qps " +
+           "WHERE qs.principal = true " +
+           "AND qps.secaoDisciplina.id = :secaoDisciplinaId " +
+           "AND qs.subtema.id NOT IN :subtemaIds")
+    List<Long> findQuestionIdsWithInvalidPrincipalSubtema(@Param("secaoDisciplinaId") Long secaoDisciplinaId, @Param("subtemaIds") List<Long> subtemaIds);
+
+    @Query("SELECT COUNT(q) > 0 FROM Questao q JOIN q.secoes qps WHERE qps.secaoDisciplina.id = :secaoDisciplinaId")
+    boolean existsBySecaoDisciplinaId(@Param("secaoDisciplinaId") Long secaoDisciplinaId);
 }

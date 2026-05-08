@@ -11,5 +11,5 @@ public class ProvaSecaoDto {
     private Integer numQuestoes;
     private Double peso;
     private Double notaMinima;
-    private List<Long> subtemaIds;
+    private List<com.studora.dto.concurso.ConcursoSecaoDisciplinaDto> disciplinas;
 }

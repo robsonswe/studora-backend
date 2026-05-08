@@ -2,6 +2,7 @@ package com.studora;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -55,6 +56,7 @@ import com.studora.repository.ProvaSecaoRepository;
 import com.studora.repository.QuestaoRepository;
 import com.studora.repository.RespostaRepository;
 import com.studora.repository.SubtemaRepository;
+import com.studora.repository.SecaoDisciplinaRepository;
 import com.studora.service.QuestaoService;
 
 import jakarta.persistence.EntityManager;
@@ -76,6 +78,8 @@ class QuestaoServiceTest {
     @Mock
     private ProvaSecaoRepository provaSecaoRepository;
     @Mock
+    private SecaoDisciplinaRepository secaoDisciplinaRepository;
+    @Mock
     private EntityManager entityManager;
 
     private QuestaoService questaoService;
@@ -84,6 +88,8 @@ class QuestaoServiceTest {
     private QuestaoMapper questaoMapper;
     private AlternativaMapper alternativaMapper;
     private RespostaMapper respostaMapper;
+
+    private com.studora.entity.Subtema defaultSubtema;
 
     @BeforeEach
     void setUp() {
@@ -104,7 +110,28 @@ class QuestaoServiceTest {
                 questaoRepository, concursoRepository, subtemaRepository,
                 concursoCargoRepository, respostaRepository,
                 alternativaRepository,
-                questaoMapper, entityManager, provaSecaoRepository);
+                questaoMapper, entityManager, provaSecaoRepository,
+                secaoDisciplinaRepository);
+
+        // Default mock for subtema principal requirement
+        defaultSubtema = new com.studora.entity.Subtema();
+        defaultSubtema.setId(1L);
+        defaultSubtema.setNome("Default Subtema");
+        when(subtemaRepository.findById(1L)).thenReturn(Optional.of(defaultSubtema));
+    }
+
+    private void setupEditalForSubtema(ProvaSecao ps, com.studora.entity.Subtema subtema) {
+        SecaoCargo sc = ps.getSecaoCargo();
+        if (sc == null) {
+            sc = new SecaoCargo();
+            ps.setSecaoCargo(sc);
+        }
+        if (sc.getDisciplinas() == null) {
+            sc.setDisciplinas(new java.util.LinkedHashSet<>());
+        }
+        com.studora.entity.SecaoDisciplina sd = new com.studora.entity.SecaoDisciplina();
+        sd.setSubtemas(new java.util.HashSet<>(Collections.singletonList(subtema)));
+        sc.getDisciplinas().add(sd);
     }
 
     @Test
@@ -159,6 +186,10 @@ class QuestaoServiceTest {
         SecaoCargo scDef = new SecaoCargo();
         scDef.setId(200L);
         scDef.setConcursoCargo(cc);
+        
+        com.studora.entity.SecaoDisciplina sd = new com.studora.entity.SecaoDisciplina();
+        sd.setSubtemas(new java.util.HashSet<>(Collections.singletonList(defaultSubtema)));
+        scDef.setDisciplinas(new java.util.LinkedHashSet<>(Collections.singletonList(sd)));
 
         ProvaSecao ps = new ProvaSecao();
         ps.setId(100L);
@@ -166,16 +197,17 @@ class QuestaoServiceTest {
         ps.setSecaoCargo(scDef);
 
         QuestaoCreateRequest req = new QuestaoCreateRequest();
+        req.setPrincipalSubtemaId(1L); req.setSubtemaIds(java.util.Collections.singletonList(1L));
         req.setEnunciado("New?");
         req.setAlternativas(Arrays.asList(
                 new AlternativaCreateRequest(1, "A", true),
                 new AlternativaCreateRequest(2, "B", false)));
-        req.setSecoes(Collections.singletonList(new SecaoQuestaoRequest(100L, 1)));
+        req.setSecoes(Collections.singletonList(new SecaoQuestaoRequest(100L, 1, null)));
         req.setSubtemaIds(Collections.singletonList(1L));
 
         when(provaSecaoRepository.findById(100L)).thenReturn(Optional.of(ps));
         when(subtemaRepository.findAllById(anyList()))
-                .thenReturn(Collections.singletonList(new com.studora.entity.Subtema()));
+                .thenReturn(Collections.singletonList(defaultSubtema));
 
         when(questaoRepository.save(any(Questao.class))).thenAnswer(i -> {
             Questao q = i.getArgument(0);
@@ -197,6 +229,7 @@ class QuestaoServiceTest {
     @Test
     void testCreate_Validation_SecaoRequired() {
         QuestaoCreateRequest req = new QuestaoCreateRequest();
+        req.setPrincipalSubtemaId(1L); req.setSubtemaIds(java.util.Collections.singletonList(1L));
         req.setEnunciado("Fail");
         req.setAutoral(false); // Questão de concurso precisa de secao
         req.setAlternativas(
@@ -247,13 +280,14 @@ class QuestaoServiceTest {
         when(provaSecaoRepository.findById(200L)).thenReturn(Optional.of(ps2));
 
         QuestaoCreateRequest req = new QuestaoCreateRequest();
+        req.setPrincipalSubtemaId(1L); req.setSubtemaIds(java.util.Collections.singletonList(1L));
         req.setEnunciado("Fail");
         req.setAutoral(false);
         req.setAlternativas(
                 Arrays.asList(new AlternativaCreateRequest(1, "A", true), new AlternativaCreateRequest(2, "B", false)));
         req.setSubtemaIds(Collections.singletonList(1L));
         // Assign to TWO sections with DIFFERENT secaoCargo (same prova/cargo)
-        req.setSecoes(Arrays.asList(new SecaoQuestaoRequest(100L, 1), new SecaoQuestaoRequest(200L, 2)));
+        req.setSecoes(Arrays.asList(new SecaoQuestaoRequest(100L, 1, null), new SecaoQuestaoRequest(200L, 2, null)));
 
         assertThrows(ValidationException.class, () -> questaoService.create(req));
     }
@@ -275,6 +309,7 @@ class QuestaoServiceTest {
         SecaoCargo scDef = new SecaoCargo();
         scDef.setId(200L);
         scDef.setConcursoCargo(cc);
+        scDef.setNome("Secao Def");
 
         Prova prova = new Prova();
         prova.setId(10L);
@@ -284,21 +319,24 @@ class QuestaoServiceTest {
         ps.setId(100L);
         ps.setProva(prova);
         ps.setSecaoCargo(scDef);
+        ps.setNome("Prova Secao");
 
         QuestaoUpdateRequest req = new QuestaoUpdateRequest();
+        req.setPrincipalSubtemaId(1L); req.setSubtemaIds(java.util.Collections.singletonList(1L));
         req.setEnunciado("Old");
         req.setAnulada(false);
         req.setAlternativas(Arrays.asList(
                 new AlternativaUpdateRequest() {{ setTexto("A"); setCorreta(true); setOrdem(1); }},
                 new AlternativaUpdateRequest() {{ setTexto("B"); setCorreta(false); setOrdem(2); }}
         ));
-        req.setSecoes(Collections.singletonList(new SecaoQuestaoRequest(100L, 1)));
+        req.setSecoes(Collections.singletonList(new SecaoQuestaoRequest(100L, 1, null)));
         req.setSubtemaIds(Collections.singletonList(1L));
 
         when(questaoRepository.findByIdWithDetails(id)).thenReturn(Optional.of(existing));
         when(provaSecaoRepository.findById(100L)).thenReturn(Optional.of(ps));
+        setupEditalForSubtema(ps, defaultSubtema);
         when(subtemaRepository.findAllById(anyList()))
-                .thenReturn(Collections.singletonList(new com.studora.entity.Subtema()));
+                .thenReturn(Collections.singletonList(defaultSubtema));
 
         when(questaoRepository.save(any())).thenReturn(existing);
         when(respostaRepository.findByQuestaoIdInWithDetails(anyList())).thenReturn(Collections.emptyList());
@@ -324,6 +362,7 @@ class QuestaoServiceTest {
         SecaoCargo scDef = new SecaoCargo();
         scDef.setId(200L);
         scDef.setConcursoCargo(cc);
+        scDef.setNome("Secao Def");
 
         Prova prova = new Prova();
         prova.setId(10L);
@@ -333,27 +372,30 @@ class QuestaoServiceTest {
         psNew.setId(200L);
         psNew.setProva(prova);
         psNew.setSecaoCargo(scDef);
+        psNew.setNome("Prova Secao New");
 
         QuestaoUpdateRequest req = new QuestaoUpdateRequest();
+        req.setPrincipalSubtemaId(1L); req.setSubtemaIds(java.util.Collections.singletonList(1L));
         req.setEnunciado("Old");
         req.setAnulada(false);
         req.setAlternativas(Arrays.asList(
             new AlternativaUpdateRequest() {{ setTexto("A"); setCorreta(true); setOrdem(1); }},
             new AlternativaUpdateRequest() {{ setTexto("B"); setCorreta(false); setOrdem(2); }}
         ));
-        req.setSecoes(Collections.singletonList(new SecaoQuestaoRequest(200L, 1)));
+        req.setSecoes(Collections.singletonList(new SecaoQuestaoRequest(200L, 1, null)));
         req.setSubtemaIds(Collections.singletonList(1L));
 
         when(questaoRepository.findByIdWithDetails(id)).thenReturn(Optional.of(existing));
         when(provaSecaoRepository.findById(200L)).thenReturn(Optional.of(psNew));
+        setupEditalForSubtema(psNew, defaultSubtema);
         when(subtemaRepository.findAllById(anyList()))
-                .thenReturn(Collections.singletonList(new com.studora.entity.Subtema()));
+                .thenReturn(Collections.singletonList(defaultSubtema));
         when(questaoRepository.save(any())).thenReturn(existing);
         when(respostaRepository.findByQuestaoIdInWithDetails(anyList())).thenReturn(Collections.emptyList());
 
         questaoService.update(id, req);
 
-        verify(provaSecaoRepository, times(2)).findById(200L);
+        verify(provaSecaoRepository, times(3)).findById(200L);
         assertEquals(1, existing.getSecoes().size());
     }
 
@@ -380,9 +422,10 @@ class QuestaoServiceTest {
     @Test
     void testCreate_RequiresAtLeastTwoAlternatives() {
         QuestaoCreateRequest req = new QuestaoCreateRequest();
+        req.setPrincipalSubtemaId(1L); req.setSubtemaIds(java.util.Collections.singletonList(1L));
         req.setEnunciado("E");
         req.setAlternativas(Collections.singletonList(new AlternativaCreateRequest(1, "A", true)));
-        req.setSecoes(Collections.singletonList(new SecaoQuestaoRequest(100L, 1)));
+        req.setSecoes(Collections.singletonList(new SecaoQuestaoRequest(100L, 1, null)));
         req.setSubtemaIds(Collections.singletonList(1L));
         
         assertThrows(ValidationException.class, () -> questaoService.create(req));
@@ -391,8 +434,9 @@ class QuestaoServiceTest {
     @Test
     void testCreate_RequiresExactlyOneCorrect() {
         QuestaoCreateRequest req = new QuestaoCreateRequest();
+        req.setPrincipalSubtemaId(1L); req.setSubtemaIds(java.util.Collections.singletonList(1L));
         req.setEnunciado("E");
-        req.setSecoes(Collections.singletonList(new SecaoQuestaoRequest(100L, 1)));
+        req.setSecoes(Collections.singletonList(new SecaoQuestaoRequest(100L, 1, null)));
         req.setSubtemaIds(Collections.singletonList(1L));
         req.setAlternativas(
                 Arrays.asList(new AlternativaCreateRequest(1, "A", true), new AlternativaCreateRequest(2, "B", true)));
@@ -433,13 +477,15 @@ class QuestaoServiceTest {
 
         when(questaoRepository.findByIdWithDetails(1L)).thenReturn(Optional.of(q));
         when(provaSecaoRepository.findById(any())).thenReturn(Optional.of(ps));
+        setupEditalForSubtema(ps, defaultSubtema);
         when(questaoRepository.save(any())).thenReturn(q);
         when(respostaRepository.findByQuestaoIdInWithDetails(anyList())).thenReturn(Collections.emptyList());
 
         QuestaoUpdateRequest req = new QuestaoUpdateRequest();
+        req.setPrincipalSubtemaId(1L); req.setSubtemaIds(java.util.Collections.singletonList(1L));
         req.setEnunciado("New"); // Changed content
         req.setAnulada(false);
-        req.setSecoes(Collections.singletonList(new SecaoQuestaoRequest(100L, 1)));
+        req.setSecoes(Collections.singletonList(new SecaoQuestaoRequest(100L, 1, null)));
         req.setSubtemaIds(Collections.singletonList(1L));
         req.setAlternativas(Arrays.asList(
             new AlternativaUpdateRequest() {{ setTexto("A"); setCorreta(true); setOrdem(1); }},
@@ -499,9 +545,10 @@ class QuestaoServiceTest {
 
         // Request to SWAP orders: Alt1 -> 2, Alt2 -> 1
         QuestaoUpdateRequest req = new QuestaoUpdateRequest();
+        req.setPrincipalSubtemaId(1L); req.setSubtemaIds(java.util.Collections.singletonList(1L));
         req.setEnunciado("Old");
         req.setAnulada(false);
-        req.setSecoes(Collections.singletonList(new SecaoQuestaoRequest(100L, 1)));
+        req.setSecoes(Collections.singletonList(new SecaoQuestaoRequest(100L, 1, null)));
         req.setSubtemaIds(Collections.singletonList(1L));
 
         AlternativaUpdateRequest update1 = new AlternativaUpdateRequest();
@@ -520,6 +567,7 @@ class QuestaoServiceTest {
 
         when(questaoRepository.findByIdWithDetails(id)).thenReturn(Optional.of(existing));
         when(provaSecaoRepository.findById(100L)).thenReturn(Optional.of(ps));
+        setupEditalForSubtema(ps, defaultSubtema);
         when(questaoRepository.save(any())).thenReturn(existing);
         when(respostaRepository.findByQuestaoIdInWithDetails(anyList())).thenReturn(Collections.emptyList());
 
@@ -587,17 +635,20 @@ class QuestaoServiceTest {
         when(questaoRepository.findByIdWithDetails(id)).thenReturn(Optional.of(existing));
         when(provaSecaoRepository.findById(101L)).thenReturn(Optional.of(ps1));
         when(provaSecaoRepository.findById(102L)).thenReturn(Optional.of(ps2));
+        setupEditalForSubtema(ps1, defaultSubtema);
+        setupEditalForSubtema(ps2, defaultSubtema);
         when(provaSecaoRepository.findByProvaIdWithQuestoes(10L)).thenReturn(Arrays.asList(ps1, ps2));
-        when(subtemaRepository.findAllById(anyList())).thenReturn(Collections.singletonList(new com.studora.entity.Subtema()));
+        when(subtemaRepository.findAllById(anyList())).thenReturn(Collections.singletonList(defaultSubtema));
         when(questaoRepository.save(any())).thenReturn(existing);
         when(alternativaRepository.findByQuestaoIdOrderByOrdemAsc(id)).thenReturn(Collections.emptyList());
         when(respostaRepository.findByQuestaoIdInWithDetails(anyList())).thenReturn(Collections.emptyList());
 
         // Update: Swap order or just re-request
-        SecaoQuestaoRequest req1 = new SecaoQuestaoRequest(101L, 2);
-        SecaoQuestaoRequest req2 = new SecaoQuestaoRequest(102L, 1);
+        SecaoQuestaoRequest req1 = new SecaoQuestaoRequest(101L, 2, null);
+        SecaoQuestaoRequest req2 = new SecaoQuestaoRequest(102L, 1, null);
         
         QuestaoUpdateRequest req = new QuestaoUpdateRequest();
+        req.setPrincipalSubtemaId(1L); req.setSubtemaIds(java.util.Collections.singletonList(1L));
         req.setEnunciado("Old");
         req.setAnulada(false);
         req.setSecoes(Arrays.asList(req1, req2));
@@ -612,5 +663,28 @@ class QuestaoServiceTest {
         // Verification: ps1 (ordem 1) should now have numero 1, ps2 (ordem 2) should have numero 2
         assertEquals(1, qps1.getNumeroQuestao(), "PS1 should be first");
         assertEquals(2, qps2.getNumeroQuestao(), "PS2 should be second");
+    }
+
+    @Test
+    void testSynchronizeSubtemas_BlocksRemovalIfNoReplacement() {
+        Questao questao = new Questao();
+        com.studora.entity.QuestaoSubtema qs = new com.studora.entity.QuestaoSubtema();
+        com.studora.entity.Subtema s = new com.studora.entity.Subtema();
+        s.setId(1L);
+        qs.setSubtema(s);
+        qs.setPrincipal(true);
+        questao.getQuestaoSubtemas().add(qs);
+
+        // Attempting to remove Subtema 1 (the only one)
+        assertThrows(ValidationException.class, () -> {
+            // Using reflection to call private method
+            java.lang.reflect.Method method = QuestaoService.class.getDeclaredMethod("synchronizeSubtemas", Questao.class, List.class, Long.class);
+            method.setAccessible(true);
+            try {
+                method.invoke(questaoService, questao, Collections.emptyList(), 1L);
+            } catch (java.lang.reflect.InvocationTargetException e) {
+                throw (RuntimeException) e.getCause();
+            }
+        });
     }
 }

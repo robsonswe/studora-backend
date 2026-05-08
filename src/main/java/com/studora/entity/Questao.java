@@ -72,20 +72,14 @@ public class Questao extends BaseEntity {
     @Schema(description = "Respostas associadas à questão")
     private Set<Resposta> respostas = new LinkedHashSet<>();
 
-    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "questao_subtema",
-        joinColumns = @JoinColumn(name = "questao_id"),
-        inverseJoinColumns = @JoinColumn(name = "subtema_id"),
-        indexes = {
-            @Index(
-                name = "idx_questao_subtema_subtema",
-                columnList = "subtema_id"
-            ),
-        }
+    @OneToMany(
+        mappedBy = "questao",
+        cascade = CascadeType.ALL,
+        orphanRemoval = true,
+        fetch = FetchType.LAZY
     )
-    @Schema(description = "Subtemas associados à questão")
-    private Set<Subtema> subtemas = new LinkedHashSet<>();
+    @Schema(description = "Relacionamentos com subtemas da questão")
+    private Set<QuestaoSubtema> questaoSubtemas = new LinkedHashSet<>();
 
 
     @OneToMany(
@@ -161,12 +155,17 @@ public class Questao extends BaseEntity {
         this.respostas = respostas;
     }
 
-    public Set<Subtema> getSubtemas() {
-        return subtemas;
+    public Set<QuestaoSubtema> getQuestaoSubtemas() {
+        return questaoSubtemas;
     }
 
-    public void setSubtemas(Set<Subtema> subtemas) {
-        this.subtemas = subtemas;
+    public void setQuestaoSubtemas(Set<QuestaoSubtema> questaoSubtemas) {
+        this.questaoSubtemas = questaoSubtemas;
+    }
+
+    public void addSubtema(Subtema subtema, boolean principal) {
+        QuestaoSubtema qs = new QuestaoSubtema(this, subtema, principal);
+        this.questaoSubtemas.add(qs);
     }
 
     public String getImageUrl() {

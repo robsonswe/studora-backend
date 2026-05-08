@@ -17,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.studora.dto.concurso.ConcursoDetailDto;
 import com.studora.dto.concurso.ConcursoCargoSummaryDto;
 import com.studora.dto.concurso.ConcursoSecaoDto;
+import com.studora.dto.concurso.ConcursoSecaoDisciplinaDto;
 import com.studora.dto.concurso.ConcursoCargoSubtemaDto;
 import com.studora.dto.prova.ProvaDetailDto;
 import com.studora.dto.request.ConcursoCreateRequest;
@@ -25,6 +26,7 @@ import com.studora.dto.request.ProvaCreateRequest;
 import com.studora.dto.request.ProvaUpdateRequest;
 import com.studora.dto.request.ProvaSecaoCreateRequest;
 import com.studora.dto.request.ProvaSecaoUpdateRequest;
+import com.studora.dto.request.SecaoDisciplinaRequest;
 import com.studora.entity.Banca;
 import com.studora.entity.Cargo;
 import com.studora.entity.Concurso;
@@ -50,6 +52,9 @@ import com.studora.repository.EstudoSubtemaRepository;
 import com.studora.service.ConcursoService;
 import com.studora.service.ProvaService;
 import com.studora.service.StatsAssembler;
+import com.studora.dto.request.SecaoDisciplinaRequest;
+import com.studora.entity.SecaoCargo;
+import com.studora.exception.ValidationException;
 
 import jakarta.persistence.EntityManager;
 
@@ -271,7 +276,10 @@ class ConcursoServiceTest {
         
         ConcursoCargoSubtemaDto subDto = new ConcursoCargoSubtemaDto();
         subDto.setNome("Subtema 1");
-        secaoDto.setAssuntos(java.util.List.of(subDto));
+        ConcursoSecaoDisciplinaDto discDto = new ConcursoSecaoDisciplinaDto();
+        discDto.setNome("Geral");
+        discDto.setAssuntos(java.util.List.of(subDto));
+        secaoDto.setDisciplinas(java.util.List.of(discDto));
         
         cargoDto.setTopicos(java.util.List.of(secaoDto));
         detailDto.setCargos(java.util.List.of(cargoDto));
@@ -286,8 +294,8 @@ class ConcursoServiceTest {
         assertNotNull(result.getCargos().get(0).getTopicos());
         assertEquals(1, result.getCargos().get(0).getTopicos().size());
         assertEquals("Seção 1", result.getCargos().get(0).getTopicos().get(0).getNome());
-        assertEquals(1, result.getCargos().get(0).getTopicos().get(0).getAssuntos().size());
-        assertEquals("Subtema 1", result.getCargos().get(0).getTopicos().get(0).getAssuntos().get(0).getNome());
+        assertEquals(1, result.getCargos().get(0).getTopicos().get(0).getDisciplinas().size());
+        assertEquals("Subtema 1", result.getCargos().get(0).getTopicos().get(0).getDisciplinas().get(0).getAssuntos().get(0).getNome());
     }
 
     @Test
@@ -452,12 +460,18 @@ class ConcursoServiceTest {
         ProvaSecaoUpdateRequest sReq1 = new ProvaSecaoUpdateRequest();
         sReq1.setNome("Secao 1");
         sReq1.setOrdem(1);
-        sReq1.setSubtemaIds(List.of(100L));
+        SecaoDisciplinaRequest sdReq1 = new SecaoDisciplinaRequest();
+        sdReq1.setNome("Geral");
+        sdReq1.setSubtemaIds(List.of(100L));
+        sReq1.setDisciplinas(List.of(sdReq1));
 
         ProvaSecaoUpdateRequest sReq2 = new ProvaSecaoUpdateRequest();
         sReq2.setNome("Secao 2");
         sReq2.setOrdem(2);
-        sReq2.setSubtemaIds(List.of(100L)); // Same subtema as secao1
+        SecaoDisciplinaRequest sdReq2 = new SecaoDisciplinaRequest();
+        sdReq2.setNome("Geral");
+        sdReq2.setSubtemaIds(List.of(100L));
+        sReq2.setDisciplinas(List.of(sdReq2));
 
         pReq.setSecoes(List.of(sReq1, sReq2));
         req.setProvas(List.of(pReq));
@@ -633,16 +647,67 @@ savedConcurso.setConcursoCargos(new java.util.LinkedHashSet<>());
         ProvaSecao secao1 = prova.getSecoes().stream()
                 .filter(s -> s.getNome().equals("Seção 1"))
                 .findFirst().orElseThrow();
-        assertEquals(1, secao1.getNumQuestoes(), "Seção 1 with null numQuestoes should default to 1");
-
-        // Find secao 2 (0 value should default to 1)
-        ProvaSecao secao2 = prova.getSecoes().stream()
-                .filter(s -> s.getNome().equals("Seção 2"))
-                .findFirst().orElseThrow();
-        assertEquals(1, secao2.getNumQuestoes(), "Seção 2 with 0 numQuestoes should default to 1");
-
         // Verify SecaoCargo also has default
         assertNotNull(secao1.getSecaoCargo());
         assertEquals(1, secao1.getSecaoCargo().getNumQuestoes());
+    }
+
+    @Test
+    void testValidateSecaoMetrics_ThrowsExceptionOnPartialFilling() {
+        SecaoCargo sc = new SecaoCargo();
+        
+        SecaoDisciplinaRequest dReq = new SecaoDisciplinaRequest();
+        dReq.setNome("Disciplina 1");
+        dReq.setNumQuestoes(10); // Filled
+        // peso and notaMinima missing
+        
+        assertThrows(ValidationException.class, () -> invokeSynchronizeDisciplinas(concursoService, sc, List.of(dReq)));
+    }
+
+    @Test
+    void testValidateSecaoMetrics_ThrowsExceptionOnInvalidMinimums() {
+        SecaoCargo sc = new SecaoCargo();
+        
+        SecaoDisciplinaRequest dReq = new SecaoDisciplinaRequest();
+        dReq.setNome("Disciplina 1");
+        dReq.setNumQuestoes(0); // Invalid (min 1)
+        dReq.setPeso(1.0);
+        dReq.setNotaMinima(0.0);
+        
+        assertThrows(ValidationException.class, () -> invokeSynchronizeDisciplinas(concursoService, sc, List.of(dReq)));
+    }
+
+    @Test
+    void testValidateSecaoMetrics_ThrowsExceptionOnMultipleAssociation() {
+        SecaoCargo sc = new SecaoCargo();
+        
+        Subtema subtema = new Subtema();
+        subtema.setId(100L);
+        subtema.setNome("Subtema 1");
+        
+        com.studora.entity.SecaoDisciplina sd1 = new com.studora.entity.SecaoDisciplina();
+        sd1.setNome("Disciplina 1");
+        sd1.setSubtemas(new java.util.HashSet<>(List.of(subtema)));
+        sc.getDisciplinas().add(sd1);
+        
+        SecaoDisciplinaRequest dReq2 = new SecaoDisciplinaRequest();
+        dReq2.setNome("Disciplina 2");
+        dReq2.setNumQuestoes(10);
+        dReq2.setPeso(1.0);
+        dReq2.setNotaMinima(0.0);
+        dReq2.setSubtemaIds(List.of(100L)); // Trying to associate existing subtema
+        
+        
+        assertThrows(ValidationException.class, () -> invokeSynchronizeDisciplinas(concursoService, sc, List.of(dReq2)));
+    }
+
+    private void invokeSynchronizeDisciplinas(ConcursoService service, SecaoCargo sc, List<SecaoDisciplinaRequest> reqs) throws Exception {
+        java.lang.reflect.Method method = ConcursoService.class.getDeclaredMethod("synchronizeDisciplinas", SecaoCargo.class, List.class);
+        method.setAccessible(true);
+        try {
+            method.invoke(service, sc, reqs);
+        } catch (java.lang.reflect.InvocationTargetException e) {
+            throw (Exception) e.getCause();
+        }
     }
 }

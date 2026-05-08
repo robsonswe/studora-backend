@@ -40,14 +40,14 @@ public interface SubtemaMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "tema", ignore = true)
-    @Mapping(target = "questoes", ignore = true)
+    @Mapping(target = "questaoSubtemas", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Subtema toEntity(SubtemaCreateRequest request);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "tema", ignore = true)
-    @Mapping(target = "questoes", ignore = true)
+    @Mapping(target = "questaoSubtemas", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     void updateEntityFromDto(SubtemaUpdateRequest request, @MappingTarget Subtema subtema);

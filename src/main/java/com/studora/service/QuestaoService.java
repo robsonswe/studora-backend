@@ -35,6 +35,9 @@ import com.studora.repository.QuestaoRepository;
 import com.studora.repository.RespostaRepository;
 import com.studora.repository.SubtemaRepository;
 import com.studora.repository.specification.QuestaoSpecification;
+import com.studora.entity.SecaoDisciplina;
+import com.studora.repository.SecaoDisciplinaRepository;
+import com.studora.dto.request.SecaoDisciplinaRequest;
 
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
@@ -55,6 +58,7 @@ public class QuestaoService {
     private final QuestaoMapper questaoMapper;
     private final EntityManager entityManager;
     private final ProvaSecaoRepository provaSecaoRepository;
+    private final SecaoDisciplinaRepository secaoDisciplinaRepository;
 
     // =========================================================================
     // READ
@@ -131,14 +135,20 @@ public class QuestaoService {
         log.info("Criando nova questão");
 
         boolean isAutoral = Boolean.TRUE.equals(request.getAutoral());
+        
+        List<Long> subtemaIds = request.getSubtemaIds() != null ? new java.util.ArrayList<>(request.getSubtemaIds()) : new java.util.ArrayList<>();
+        if (request.getPrincipalSubtemaId() != null && !subtemaIds.contains(request.getPrincipalSubtemaId())) {
+            subtemaIds.add(request.getPrincipalSubtemaId());
+        }
+        request.setSubtemaIds(subtemaIds);
+
         validateQuestaoBusinessRules(request.getAlternativas(), request.getAnulada(),
-                request.getSecoes(), isAutoral, request.getSubtemaIds());
+                request.getSecoes(), isAutoral, subtemaIds, request.getPrincipalSubtemaId());
 
         Questao questao = questaoMapper.toEntity(request);
 
-        if (request.getSubtemaIds() != null && !request.getSubtemaIds().isEmpty()) {
-            List<Subtema> subtemas = subtemaRepository.findAllById(request.getSubtemaIds());
-            questao.setSubtemas(new HashSet<>(subtemas));
+        if (!subtemaIds.isEmpty()) {
+            synchronizeSubtemas(questao, subtemaIds, request.getPrincipalSubtemaId());
         }
 
         if (request.getAlternativas() != null) {
@@ -187,8 +197,15 @@ public class QuestaoService {
         }
 
         boolean isAutoral = Boolean.TRUE.equals(questao.getAutoral());
+        
+        List<Long> subtemaIds = request.getSubtemaIds() != null ? new java.util.ArrayList<>(request.getSubtemaIds()) : new java.util.ArrayList<>();
+        if (request.getPrincipalSubtemaId() != null && !subtemaIds.contains(request.getPrincipalSubtemaId())) {
+            subtemaIds.add(request.getPrincipalSubtemaId());
+        }
+        request.setSubtemaIds(subtemaIds);
+
         validateQuestaoBusinessRules(request.getAlternativas(), request.getAnulada(),
-                request.getSecoes(), isAutoral, request.getSubtemaIds());
+                request.getSecoes(), isAutoral, subtemaIds, request.getPrincipalSubtemaId());
 
         boolean contentChanged = hasContentChanged(questao, request, isAutoral);
         if (contentChanged) {
@@ -202,9 +219,8 @@ public class QuestaoService {
         }
         questao.setImageUrl(request.getImageUrl());
 
-        if (request.getSubtemaIds() != null) {
-            List<Subtema> subtemas = subtemaRepository.findAllById(request.getSubtemaIds());
-            questao.setSubtemas(new HashSet<>(subtemas));
+        if (!subtemaIds.isEmpty()) {
+            synchronizeSubtemas(questao, subtemaIds, request.getPrincipalSubtemaId());
         }
 
         if (!isAutoral) {
@@ -422,17 +438,75 @@ public class QuestaoService {
         // Remove associations that are no longer requested
         questao.getSecoes().removeIf(qs -> !idsToKeep.contains(qs.getProvaSecao().getId()));
 
-        // Add new associations (numeroQuestao intentionally left null —
-        // normalizeQuestaoNumbersForProva will assign the correct value after flush)
+        // Add new associations or update existing ones
         for (SecaoQuestaoRequest req : secoesReq) {
+            QuestaoProvaSecao qps;
             if (!currentMap.containsKey(req.getSecaoId())) {
                 ProvaSecao ps = provaSecaoRepository.findById(req.getSecaoId())
                         .orElseThrow(() -> new ResourceNotFoundException("ProvaSecao", "ID", req.getSecaoId()));
-                QuestaoProvaSecao qps = new QuestaoProvaSecao();
+                qps = new QuestaoProvaSecao();
                 qps.setProvaSecao(ps);
-                // numeroQuestao = null → sorts to end of section during normalization
                 questao.addSecao(qps);
+            } else {
+                qps = currentMap.get(req.getSecaoId());
             }
+
+            if (req.getDisciplinaEditalId() != null) {
+                com.studora.entity.SecaoDisciplina sd = secaoDisciplinaRepository.findById(req.getDisciplinaEditalId())
+                        .orElseThrow(() -> new ResourceNotFoundException("SecaoDisciplina", "ID", req.getDisciplinaEditalId()));
+                
+                // Validate that the discipline belongs to the section's definition
+                if (!sd.getSecaoCargo().getId().equals(qps.getProvaSecao().getSecaoCargo().getId())) {
+                    throw new com.studora.exception.ValidationException("A disciplina informada ('" + sd.getNome() + "') não pertence à definição da seção ('" + qps.getProvaSecao().getSecaoCargo().getNome() + "').");
+                }
+                qps.setSecaoDisciplina(sd);
+            } else {
+                qps.setSecaoDisciplina(null);
+            }
+        }
+    }
+
+    // =========================================================================
+    // SUBTEMA SYNCHRONIZATION
+    // =========================================================================
+
+    private void synchronizeSubtemas(Questao questao, List<Long> subtemaIds, Long principalSubtemaId) {
+        if (subtemaIds == null) return;
+
+        Map<Long, com.studora.entity.QuestaoSubtema> currentMap = questao.getQuestaoSubtemas().stream()
+                .collect(Collectors.toMap(qs -> qs.getSubtema().getId(), qs -> qs));
+
+        Set<Long> idsToKeep = new HashSet<>(subtemaIds);
+
+        // Remove old ones
+        boolean principalRemoved = currentMap.containsKey(principalSubtemaId) && !idsToKeep.contains(principalSubtemaId);
+        questao.getQuestaoSubtemas().removeIf(qs -> !idsToKeep.contains(qs.getSubtema().getId()));
+
+        // Add/Update
+        for (Long subId : subtemaIds) {
+            boolean isPrincipal = subId.equals(principalSubtemaId);
+            if (!currentMap.containsKey(subId)) {
+                Subtema subtema = subtemaRepository.findById(subId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Subtema", "ID", subId));
+                questao.addSubtema(subtema, isPrincipal);
+            } else {
+                currentMap.get(subId).setPrincipal(isPrincipal);
+            }
+        }
+
+        // Handle cascading principal switch if the original was removed
+        if (principalRemoved) {
+            List<com.studora.entity.QuestaoSubtema> remaining = questao.getQuestaoSubtemas().stream()
+                    .filter(qs -> idsToKeep.contains(qs.getSubtema().getId()))
+                    .collect(Collectors.toList());
+            
+            if (remaining.isEmpty()) {
+                throw new com.studora.exception.ValidationException("Não é possível remover todos os subtemas pois a questão deve ter um subtema principal.");
+            }
+
+            // Find a valid replacement - in this case, pick the first one remaining.
+            // Note: Logic could be expanded to pick best match based on concurso associations if needed.
+            remaining.get(0).setPrincipal(true);
         }
     }
 
@@ -469,7 +543,7 @@ public class QuestaoService {
     private void validateQuestaoBusinessRules(
             List<? extends com.studora.dto.request.AlternativaBaseRequest> alternativas,
             Boolean anulada, List<SecaoQuestaoRequest> secoes,
-            boolean autoral, List<Long> subtemaIds) {
+            boolean autoral, List<Long> subtemaIds, Long principalSubtemaId) {
 
         if (alternativas == null
                 || alternativas.size() < com.studora.common.constants.AppConstants.MIN_ALTERNATIVAS) {
@@ -484,6 +558,20 @@ public class QuestaoService {
                     "A questão deve estar associada a pelo menos um subtema");
         }
 
+        if (principalSubtemaId == null) {
+            throw new com.studora.exception.ValidationException(
+                    "A questão deve ter um subtema principal definido");
+        }
+
+        if (!subtemaIds.contains(principalSubtemaId)) {
+            throw new com.studora.exception.ValidationException(
+                    "O subtema principal deve estar entre os subtemas associados à questão");
+        }
+
+        if (!autoral) {
+            // Association already validated by the main block below
+        }
+
         if (Boolean.FALSE.equals(anulada)) {
             long correctCount = alternativas.stream()
                     .filter(com.studora.dto.request.AlternativaBaseRequest::getCorreta).count();
@@ -496,6 +584,40 @@ public class QuestaoService {
         if (!autoral && (secoes == null || secoes.isEmpty())) {
             throw new com.studora.exception.ValidationException(
                     "Uma questão de concurso deve estar associada a pelo menos uma seção de prova");
+        }
+
+        // Rule: principal subtema must be in the edital of all linked sections/disciplines
+        if (!autoral && secoes != null) {
+            Subtema principal = subtemaRepository.findById(principalSubtemaId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Subtema", "ID", principalSubtemaId));
+
+            for (SecaoQuestaoRequest sReq : secoes) {
+                ProvaSecao ps = provaSecaoRepository.findById(sReq.getSecaoId())
+                        .orElseThrow(() -> new ResourceNotFoundException("ProvaSecao", "ID", sReq.getSecaoId()));
+
+                if (sReq.getDisciplinaEditalId() != null) {
+                    com.studora.entity.SecaoDisciplina sd = secaoDisciplinaRepository.findById(sReq.getDisciplinaEditalId())
+                            .orElseThrow(() -> new ResourceNotFoundException("SecaoDisciplina", "ID", sReq.getDisciplinaEditalId()));
+                    
+                    if (!sd.getSubtemas().contains(principal)) {
+                        throw new com.studora.exception.ValidationException(
+                            "O subtema principal '" + principal.getNome() + 
+                            "' não pertence à disciplina '" + sd.getNome() + 
+                            "' no edital desta seção.");
+                    }
+                } else {
+                    // Check if it belongs to ANY discipline of the section's definition
+                    com.studora.entity.SecaoCargo definition = ps.getSecaoCargo();
+                    boolean foundInDefinition = definition.getDisciplinas().stream()
+                            .anyMatch(sd -> sd.getSubtemas().contains(principal));
+                    
+                    if (!foundInDefinition) {
+                        throw new com.studora.exception.ValidationException(
+                            "O subtema principal '" + principal.getNome() + 
+                            "' não está previsto no edital para a seção '" + definition.getNome() + "'.");
+                    }
+                }
+            }
         }
     }
 

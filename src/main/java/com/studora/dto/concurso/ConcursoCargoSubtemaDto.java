@@ -10,7 +10,6 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@JsonInclude(JsonInclude.Include.NON_NULL)
 @Schema(description = "DTO de subtema especializado para o contexto de um cargo em um concurso")
 public class ConcursoCargoSubtemaDto {
     @Schema(description = "ID único do subtema", example = "1")
@@ -26,14 +25,18 @@ public class ConcursoCargoSubtemaDto {
     private DisciplinaReferenceDto disciplina;
 
     @Schema(description = "Total de sessões de estudo realizadas para este subtema")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private Long totalEstudos;
 
     @Schema(description = "Data e hora do último estudo realizado")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private LocalDateTime ultimoEstudo;
 
     @Schema(description = "Estatísticas de questões do subtema (Visão Geral)")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private QuestaoStatsDto questaoStats;
 
     @Schema(description = "Estatísticas específicas de questões para este concurso e cargo")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private com.studora.dto.StatSliceDto questoesConcursoCargo;
 }

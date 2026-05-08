@@ -15,7 +15,8 @@ public interface ProvaRepository extends JpaRepository<Prova, Long> {
     @Query("SELECT p FROM Prova p " +
            "LEFT JOIN FETCH p.secoes s " +
            "LEFT JOIN FETCH s.secaoCargo sc " +
-           "LEFT JOIN FETCH sc.subtemas " +
+           "LEFT JOIN FETCH sc.disciplinas sd " +
+           "LEFT JOIN FETCH sd.subtemas " +
            "WHERE p.id = :id")
     Optional<Prova> findByIdWithDetails(@Param("id") Long id);
 

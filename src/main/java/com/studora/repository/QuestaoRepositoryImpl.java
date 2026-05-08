@@ -22,14 +22,14 @@ public class QuestaoRepositoryImpl implements QuestaoRepositoryCustom {
 
     @Override
     public List<Long> findIdsBySubtemaWithPreferences(Long subtemaId, SimuladoGenerationRequest request, List<Long> excludeIds, Pageable pageable) {
-        String scopeJoin = "JOIN q.subtemas s";
+        String scopeJoin = "JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s";
         String scopeWhere = "s.id = :scopeId";
         return executeQuery(scopeJoin, scopeWhere, subtemaId, null, null, request, excludeIds, pageable);
     }
 
     @Override
     public List<Long> findIdsByTemaWithPreferences(Long temaId, List<Long> avoidSubtemaIds, SimuladoGenerationRequest request, List<Long> excludeIds, Pageable pageable) {
-        String scopeJoin = "JOIN q.subtemas s JOIN s.tema t";
+        String scopeJoin = "JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN s.tema t";
         String scopeWhere = "t.id = :scopeId";
         
         // Handling avoidSubtemaIds in WHERE
@@ -43,7 +43,7 @@ public class QuestaoRepositoryImpl implements QuestaoRepositoryCustom {
 
     @Override
     public List<Long> findIdsByDisciplinaWithPreferences(Long disciplinaId, List<Long> avoidTemaIds, List<Long> avoidSubtemaIds, SimuladoGenerationRequest request, List<Long> excludeIds, Pageable pageable) {
-        String scopeJoin = "JOIN q.subtemas s JOIN s.tema t JOIN t.disciplina d";
+        String scopeJoin = "JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN s.tema t JOIN t.disciplina d";
         String scopeWhere = "d.id = :scopeId";
         
         StringBuilder extraWhere = new StringBuilder();

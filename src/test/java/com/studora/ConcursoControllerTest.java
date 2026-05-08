@@ -33,6 +33,7 @@ import com.studora.entity.Instituicao;
 import com.studora.entity.Prova;
 import com.studora.entity.ProvaSecao;
 import com.studora.entity.SecaoCargo;
+import com.studora.entity.SecaoDisciplina;
 import com.studora.entity.Subtema;
 import com.studora.entity.Tema;
 import com.studora.repository.BancaRepository;
@@ -449,7 +450,12 @@ class ConcursoControllerTest {
         sc1.setOrdem(1);
         sc1.setNumQuestoes(20);
         sc1.setPeso(1.5);
-        sc1.addSubtema(subtema1);
+
+        SecaoDisciplina sd1 = new SecaoDisciplina();
+        sd1.setSecaoCargo(sc1);
+        sd1.setNome("Disciplina 1");
+        sd1.getSubtemas().add(subtema1);
+        sc1.getDisciplinas().add(sd1);
         secaoCargoRepository.save(sc1);
 
         SecaoCargo sc2 = new SecaoCargo();
@@ -458,7 +464,11 @@ class ConcursoControllerTest {
         sc2.setOrdem(2);
         sc2.setNumQuestoes(30);
         sc2.setPeso(2.0);
-        sc2.addSubtema(subtema2);
+        SecaoDisciplina sd2 = new SecaoDisciplina();
+        sd2.setSecaoCargo(sc2);
+        sd2.setNome("Disciplina 2");
+        sd2.getSubtemas().add(subtema2);
+        sc2.getDisciplinas().add(sd2);
         secaoCargoRepository.save(sc2);
 
         Prova prova = new Prova();
@@ -492,7 +502,8 @@ class ConcursoControllerTest {
             .andExpect(jsonPath("$.cargos[0].topicos[?(@.nome=='Seção 1')].ordem").value(1))
             .andExpect(jsonPath("$.cargos[0].topicos[?(@.nome=='Seção 1')].numQuestoes").value(20))
             .andExpect(jsonPath("$.cargos[0].topicos[?(@.nome=='Seção 1')].peso").value(1.5))
-            .andExpect(jsonPath("$.cargos[0].topicos[?(@.nome=='Seção 1')].assuntos.length()").value(1))
+            .andExpect(jsonPath("$.cargos[0].topicos[?(@.nome=='Seção 1')].disciplinas.length()").value(1))
+            .andExpect(jsonPath("$.cargos[0].topicos[?(@.nome=='Seção 1')].disciplinas[0].assuntos.length()").value(1))
             .andExpect(jsonPath("$.cargos[0].topicos[?(@.nome=='Seção 2')].ordem").value(2))
             .andExpect(jsonPath("$.cargos[0].topicos[?(@.nome=='Seção 2')].numQuestoes").value(30))
             .andExpect(jsonPath("$.cargos[0].topicos[?(@.nome=='Seção 2')].peso").value(2.0));
@@ -530,7 +541,11 @@ class ConcursoControllerTest {
         SecaoCargo sc = new SecaoCargo();
         sc.setConcursoCargo(cc);
         sc.setNome("Seção Tiers");
-        sc.addSubtema(subtema);
+        SecaoDisciplina sd = new SecaoDisciplina();
+        sd.setSecaoCargo(sc);
+        sd.setNome("Disciplina Tiers");
+        sd.getSubtemas().add(subtema);
+        sc.getDisciplinas().add(sd);
         secaoCargoRepository.save(sc);
 
         Prova prova = new Prova();
@@ -552,7 +567,7 @@ class ConcursoControllerTest {
         mockMvc
             .perform(get("/api/v1/concursos/{id}", concurso.getId()).param("metrics", "full"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.cargos[0].topicos[0].assuntos[0].nome").value("Subtema Tiers"));
+            .andExpect(jsonPath("$.cargos[0].topicos[0].disciplinas[0].assuntos[0].nome").value("Subtema Tiers"));
     }
 
     @Test
@@ -641,8 +656,8 @@ class ConcursoControllerTest {
         provaRequest.setNome("Prova Objetiva");
         provaRequest.setCargoId(cargo.getId());
         provaRequest.setSecoes(List.of(
-            createSecaoRequest("Conhecimentos Gerais", 0, 30, 1.0, 0.0, List.of(subtema1.getId(), subtema2.getId())),
-            createSecaoRequest("Conhecimentos Específicos", 1, 40, 1.5, 60.0, List.of())
+            createSecaoRequest("Conhecimentos Gerais", 0, 30, 1.0, 0.0, "Geral", List.of(subtema1.getId(), subtema2.getId())),
+            createSecaoRequest("Conhecimentos Específicos", 1, 40, 1.5, 60.0, "Específica", List.of())
         ));
         request.setProvas(List.of(provaRequest));
 
@@ -669,14 +684,19 @@ class ConcursoControllerTest {
     }
 
     private com.studora.dto.request.ProvaSecaoUpdateRequest createSecaoRequest(
-            String nome, int ordem, int numQuestoes, double peso, double notaMinima, List<Long> subtemaIds) {
+            String nome, int ordem, int numQuestoes, double peso, double notaMinima, String disciplinaNome, List<Long> subtemaIds) {
         com.studora.dto.request.ProvaSecaoUpdateRequest req = new com.studora.dto.request.ProvaSecaoUpdateRequest();
         req.setNome(nome);
         req.setOrdem(ordem);
         req.setNumQuestoes(numQuestoes);
         req.setPeso(peso);
         req.setNotaMinima(notaMinima);
-        req.setSubtemaIds(subtemaIds);
+        
+        com.studora.dto.request.SecaoDisciplinaRequest dReq = new com.studora.dto.request.SecaoDisciplinaRequest();
+        dReq.setNome(disciplinaNome);
+        dReq.setSubtemaIds(subtemaIds);
+        req.setDisciplinas(List.of(dReq));
+        
         return req;
     }
 }

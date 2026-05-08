@@ -84,7 +84,7 @@ class SimuladoGenerationFilterTest {
             qps.setProvaSecao(secao);
             q.addSecao(qps);
             
-            q.getSubtemas().add(subtema);
+            q.addSubtema(subtema, true);
             
             Alternativa alt = new Alternativa();
             alt.setQuestao(q); alt.setOrdem(1); alt.setTexto("A"); alt.setCorreta(true);

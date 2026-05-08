@@ -92,7 +92,7 @@ class UltimaQuestaoTest {
                 questao = new Questao();
                 questao.setAutoral(true);
                 questao.setEnunciado("Enunciado de teste");
-                questao.setSubtemas(Set.of(subtema));
+                questao.addSubtema(subtema, true);
                 questao = questaoRepository.save(questao);
 
                 alternativa = new Alternativa();

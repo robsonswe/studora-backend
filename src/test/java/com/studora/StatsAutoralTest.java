@@ -83,7 +83,7 @@ class StatsAutoralTest {
         std.setEnunciado("Standard question");
         std.setAnulada(false);
         std.setAutoral(false);
-        std.getSubtemas().add(subtema);
+        std.addSubtema(subtema, true);
 
         Instituicao inst = new Instituicao();
         inst.setNome("Inst Stats");
@@ -133,7 +133,7 @@ class StatsAutoralTest {
 
         std.setAnulada(false);
         std.setAutoral(false);
-        std.getSubtemas().add(subtema);
+        std.addSubtema(subtema, true);
 
         QuestaoProvaSecao qps = new QuestaoProvaSecao();
         qps.setProvaSecao(secao);
@@ -155,7 +155,7 @@ class StatsAutoralTest {
         aut.setEnunciado("Autoral question");
         aut.setAnulada(false);
         aut.setAutoral(true);
-        aut.getSubtemas().add(subtema);
+        aut.addSubtema(subtema, true);
         aut = questaoRepository.save(aut);
 
         Alternativa autAlt = new Alternativa();
@@ -307,7 +307,7 @@ class StatsAutoralTest {
             QuestaoProvaSecao qps = new QuestaoProvaSecao();
             qps.setProvaSecao(secao);
             std.addSecao(qps);
-            std.getSubtemas().add(subtema);
+            std.addSubtema(subtema, true);
             questaoRepository.save(std);
 
             Alternativa alt = new Alternativa();

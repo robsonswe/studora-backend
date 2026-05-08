@@ -80,15 +80,15 @@ public class QuestaoSpecification {
 
             // Taxonomy branch
             if (filter.getSubtemaId() != null) {
-                predicates.add(cb.equal(root.join("subtemas").get("id"), filter.getSubtemaId()));
+                predicates.add(cb.equal(root.join("questaoSubtemas").get("subtema").get("id"), filter.getSubtemaId()));
             }
 
             if (filter.getTemaId() != null) {
-                predicates.add(cb.equal(root.join("subtemas").get("tema").get("id"), filter.getTemaId()));
+                predicates.add(cb.equal(root.join("questaoSubtemas").get("subtema").get("tema").get("id"), filter.getTemaId()));
             }
 
             if (filter.getDisciplinaId() != null) {
-                predicates.add(cb.equal(root.join("subtemas").get("tema").get("disciplina").get("id"), filter.getDisciplinaId()));
+                predicates.add(cb.equal(root.join("questaoSubtemas").get("subtema").get("tema").get("disciplina").get("id"), filter.getDisciplinaId()));
             }
 
             // Flags

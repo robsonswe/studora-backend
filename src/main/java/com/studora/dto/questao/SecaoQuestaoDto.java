@@ -27,4 +27,11 @@ public class SecaoQuestaoDto {
     @Schema(description = "Número da questão na seção", example = "1")
     @JsonView(Views.Summary.class)
     private Integer numeroQuestao;
-    }
+    @Schema(description = "ID da disciplina do edital", example = "1")
+    @JsonView(Views.Summary.class)
+    private Long disciplinaEditalId;
+
+    @Schema(description = "Nome da disciplina do edital", example = "Língua Portuguesa")
+    @JsonView(Views.Summary.class)
+    private String disciplinaEditalNome;
+}

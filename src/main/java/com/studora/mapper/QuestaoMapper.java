@@ -19,14 +19,14 @@ public interface QuestaoMapper {
     @Mapping(target = "concurso", expression = "java(mapConcursoFromSecoes(questao.getSecoes()))")
     @Mapping(target = "alternativas", source = "alternativas")
     @Mapping(target = "respostas", source = "respostas")
-    @Mapping(target = "subtemas", source = "subtemas")
+    @Mapping(target = "subtemas", expression = "java(mapSubtemas(questao.getQuestaoSubtemas()))")
     @Mapping(target = "respondida", expression = "java(questao.getRespostas() != null && !questao.getRespostas().isEmpty())")
     @Mapping(target = "autoral", source = "autoral")
     QuestaoSummaryDto toSummaryDto(Questao questao);
 
     @Mapping(target = "concurso", expression = "java(mapConcursoFromSecoes(questao.getSecoes()))")
     @Mapping(target = "alternativas", source = "alternativas")
-    @Mapping(target = "subtemas", source = "subtemas")
+    @Mapping(target = "subtemas", expression = "java(mapSubtemas(questao.getQuestaoSubtemas()))")
     @Mapping(target = "respostas", source = "respostas")
     @Mapping(target = "respondida", expression = "java(questao.getRespostas() != null && !questao.getRespostas().isEmpty())")
     @Mapping(target = "autoral", source = "autoral")
@@ -34,7 +34,7 @@ public interface QuestaoMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "alternativas", ignore = true)
-    @Mapping(target = "subtemas", ignore = true)
+    @Mapping(target = "questaoSubtemas", ignore = true)
     @Mapping(target = "secoes", ignore = true)
     @Mapping(target = "respostas", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
@@ -44,7 +44,7 @@ public interface QuestaoMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "alternativas", ignore = true)
-    @Mapping(target = "subtemas", ignore = true)
+    @Mapping(target = "questaoSubtemas", ignore = true)
     @Mapping(target = "secoes", ignore = true)
     @Mapping(target = "respostas", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
@@ -89,6 +89,10 @@ public interface QuestaoMapper {
                     sDto.setProvaNome(ps.getProva().getNome());
                     sDto.setProvaId(ps.getProva().getId());
                     sDto.setNumeroQuestao(qps.getNumeroQuestao());
+                    if (qps.getSecaoDisciplina() != null) {
+                        sDto.setDisciplinaEditalId(qps.getSecaoDisciplina().getId());
+                        sDto.setDisciplinaEditalNome(qps.getSecaoDisciplina().getNome());
+                    }
                     
                     com.studora.entity.Cargo cargo = ps.getProva().getConcursoCargo().getCargo();
                     if (cargo == null) continue;
@@ -116,5 +120,14 @@ public interface QuestaoMapper {
         return null;
     }
 
-
+    default java.util.List<SubtemaQuestaoDto> mapSubtemas(java.util.Set<com.studora.entity.QuestaoSubtema> questaoSubtemas) {
+        if (questaoSubtemas == null) return null;
+        return questaoSubtemas.stream()
+                .map(qs -> {
+                    SubtemaQuestaoDto dto = toSubtemaQuestaoDto(qs.getSubtema());
+                    dto.setPrincipal(qs.getPrincipal());
+                    return dto;
+                })
+                .collect(java.util.stream.Collectors.toList());
+    }
 }

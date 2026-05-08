@@ -34,6 +34,9 @@ public class QuestaoUpdateRequest {
     @com.fasterxml.jackson.annotation.JsonProperty("subtemas")
     private List<Long> subtemaIds;
 
+    @Schema(description = "ID do subtema principal da questão (deve estar contido em subtemas)", example = "1")
+    private Long principalSubtemaId;
+
     @Schema(description = "Associações com seções da prova (ignorado se autoral=true)")
     private List<SecaoQuestaoRequest> secoes;
 

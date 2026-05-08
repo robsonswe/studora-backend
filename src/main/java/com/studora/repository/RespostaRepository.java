@@ -69,13 +69,13 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     List<Resposta> findAllWithFullDetailsSince(@Param("since") java.time.LocalDateTime since);
 
     // --- Batch: questoesRespondidas ---
-    @Query("SELECT s.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao.subtemas s WHERE s.id IN :ids GROUP BY s.id")
+    @Query("SELECT s.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao.questaoSubtemas qs JOIN qs.subtema s WHERE s.id IN :ids GROUP BY s.id")
     List<Object[]> countRespondidasBySubtemaIds(@Param("ids") List<Long> ids);
 
-    @Query("SELECT s.tema.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao.subtemas s WHERE s.tema.id IN :ids GROUP BY s.tema.id")
+    @Query("SELECT s.tema.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao.questaoSubtemas qs JOIN qs.subtema s WHERE s.tema.id IN :ids GROUP BY s.tema.id")
     List<Object[]> countRespondidasByTemaIds(@Param("ids") List<Long> ids);
 
-    @Query("SELECT s.tema.disciplina.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao.subtemas s WHERE s.tema.disciplina.id IN :ids GROUP BY s.tema.disciplina.id")
+    @Query("SELECT s.tema.disciplina.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao.questaoSubtemas qs JOIN qs.subtema s WHERE s.tema.disciplina.id IN :ids GROUP BY s.tema.disciplina.id")
     List<Object[]> countRespondidasByDisciplinaIds(@Param("ids") List<Long> ids);
 
     @Query("SELECT c.banca.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao q JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE c.banca.id IN :ids GROUP BY c.banca.id")
@@ -88,120 +88,120 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     List<Object[]> countRespondidasByCargoIds(@Param("ids") List<Long> ids);
 
     // --- Granular breakdown queries for Disciplina ---
-    @Query("SELECT CAST(cc.cargo.nivel AS string), COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY cc.cargo.nivel")
+    @Query("SELECT CAST(cc.cargo.nivel AS string), COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY cc.cargo.nivel")
     List<Object[]> countRespondidasAcertadasByDisciplinaIdGroupByNivel(@Param("disciplinaId") Long disciplinaId);
 
-    @Query("SELECT c.banca.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY c.banca.id")
+    @Query("SELECT c.banca.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY c.banca.id")
     List<Object[]> countRespondidasAcertadasByDisciplinaIdGroupByBanca(@Param("disciplinaId") Long disciplinaId);
 
-    @Query("SELECT c.instituicao.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY c.instituicao.id")
+    @Query("SELECT c.instituicao.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY c.instituicao.id")
     List<Object[]> countRespondidasAcertadasByDisciplinaIdGroupByInstituicao(@Param("disciplinaId") Long disciplinaId);
 
-    @Query("SELECT c.instituicao.area, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY c.instituicao.area")
+    @Query("SELECT c.instituicao.area, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY c.instituicao.area")
     List<Object[]> countRespondidasAcertadasByDisciplinaIdGroupByAreaInstituicao(@Param("disciplinaId") Long disciplinaId);
 
-    @Query("SELECT cc.cargo.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY cc.cargo.id")
+    @Query("SELECT cc.cargo.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY cc.cargo.id")
     List<Object[]> countRespondidasAcertadasByDisciplinaIdGroupByCargo(@Param("disciplinaId") Long disciplinaId);
 
-    @Query("SELECT cc.cargo.area, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY cc.cargo.area")
+    @Query("SELECT cc.cargo.area, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.disciplina.id = :disciplinaId AND q.anulada = false GROUP BY cc.cargo.area")
     List<Object[]> countRespondidasAcertadasByDisciplinaIdGroupByAreaCargo(@Param("disciplinaId") Long disciplinaId);
 
-    @Query("SELECT CAST(cc.cargo.nivel AS string), AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.disciplina.id = :disciplinaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.nivel")
+    @Query("SELECT CAST(cc.cargo.nivel AS string), AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.disciplina.id = :disciplinaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.nivel")
     List<Object[]> avgTempoByDisciplinaIdGroupByNivel(@Param("disciplinaId") Long disciplinaId);
 
-    @Query("SELECT c.banca.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.disciplina.id = :disciplinaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.banca.id")
+    @Query("SELECT c.banca.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.disciplina.id = :disciplinaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.banca.id")
     List<Object[]> avgTempoByDisciplinaIdGroupByBanca(@Param("disciplinaId") Long disciplinaId);
 
-    @Query("SELECT c.instituicao.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.disciplina.id = :disciplinaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.instituicao.id")
+    @Query("SELECT c.instituicao.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.disciplina.id = :disciplinaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.instituicao.id")
     List<Object[]> avgTempoByDisciplinaIdGroupByInstituicao(@Param("disciplinaId") Long disciplinaId);
 
-    @Query("SELECT c.instituicao.area, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.disciplina.id = :disciplinaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.instituicao.area")
+    @Query("SELECT c.instituicao.area, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.disciplina.id = :disciplinaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.instituicao.area")
     List<Object[]> avgTempoByDisciplinaIdGroupByAreaInstituicao(@Param("disciplinaId") Long disciplinaId);
 
-    @Query("SELECT cc.cargo.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.disciplina.id = :disciplinaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.id")
+    @Query("SELECT cc.cargo.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.disciplina.id = :disciplinaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.id")
     List<Object[]> avgTempoByDisciplinaIdGroupByCargo(@Param("disciplinaId") Long disciplinaId);
 
-    @Query("SELECT cc.cargo.area, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.disciplina.id = :disciplinaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.area")
+    @Query("SELECT cc.cargo.area, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.disciplina.id = :disciplinaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.area")
     List<Object[]> avgTempoByDisciplinaIdGroupByAreaCargo(@Param("disciplinaId") Long disciplinaId);
 
     // --- Granular breakdown queries for Tema ---
-    @Query("SELECT CAST(cc.cargo.nivel AS string), COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY cc.cargo.nivel")
+    @Query("SELECT CAST(cc.cargo.nivel AS string), COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY cc.cargo.nivel")
     List<Object[]> countRespondidasAcertadasByTemaIdGroupByNivel(@Param("temaId") Long temaId);
 
-    @Query("SELECT c.banca.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY c.banca.id")
+    @Query("SELECT c.banca.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY c.banca.id")
     List<Object[]> countRespondidasAcertadasByTemaIdGroupByBanca(@Param("temaId") Long temaId);
 
-    @Query("SELECT c.instituicao.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY c.instituicao.id")
+    @Query("SELECT c.instituicao.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY c.instituicao.id")
     List<Object[]> countRespondidasAcertadasByTemaIdGroupByInstituicao(@Param("temaId") Long temaId);
 
-    @Query("SELECT c.instituicao.area, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY c.instituicao.area")
+    @Query("SELECT c.instituicao.area, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY c.instituicao.area")
     List<Object[]> countRespondidasAcertadasByTemaIdGroupByAreaInstituicao(@Param("temaId") Long temaId);
 
-    @Query("SELECT cc.cargo.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY cc.cargo.id")
+    @Query("SELECT cc.cargo.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY cc.cargo.id")
     List<Object[]> countRespondidasAcertadasByTemaIdGroupByCargo(@Param("temaId") Long temaId);
 
-    @Query("SELECT cc.cargo.area, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY cc.cargo.area")
+    @Query("SELECT cc.cargo.area, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.id = :temaId AND q.anulada = false GROUP BY cc.cargo.area")
     List<Object[]> countRespondidasAcertadasByTemaIdGroupByAreaCargo(@Param("temaId") Long temaId);
 
-    @Query("SELECT CAST(cc.cargo.nivel AS string), AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.id = :temaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.nivel")
+    @Query("SELECT CAST(cc.cargo.nivel AS string), AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.id = :temaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.nivel")
     List<Object[]> avgTempoByTemaIdGroupByNivel(@Param("temaId") Long temaId);
 
-    @Query("SELECT c.banca.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.id = :temaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.banca.id")
+    @Query("SELECT c.banca.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.id = :temaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.banca.id")
     List<Object[]> avgTempoByTemaIdGroupByBanca(@Param("temaId") Long temaId);
 
-    @Query("SELECT c.instituicao.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.id = :temaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.instituicao.id")
+    @Query("SELECT c.instituicao.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.id = :temaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.instituicao.id")
     List<Object[]> avgTempoByTemaIdGroupByInstituicao(@Param("temaId") Long temaId);
 
-    @Query("SELECT c.instituicao.area, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.id = :temaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.instituicao.area")
+    @Query("SELECT c.instituicao.area, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.tema.id = :temaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.instituicao.area")
     List<Object[]> avgTempoByTemaIdGroupByAreaInstituicao(@Param("temaId") Long temaId);
 
-    @Query("SELECT cc.cargo.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.id = :temaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.id")
+    @Query("SELECT cc.cargo.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.id = :temaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.id")
     List<Object[]> avgTempoByTemaIdGroupByCargo(@Param("temaId") Long temaId);
 
-    @Query("SELECT cc.cargo.area, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.id = :temaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.area")
+    @Query("SELECT cc.cargo.area, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.tema.id = :temaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.area")
     List<Object[]> avgTempoByTemaIdGroupByAreaCargo(@Param("temaId") Long temaId);
 
     // --- Granular breakdown queries for Subtema ---
-    @Query("SELECT CAST(cc.cargo.nivel AS string), COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.id = :subtemaId AND q.anulada = false GROUP BY cc.cargo.nivel")
+    @Query("SELECT CAST(cc.cargo.nivel AS string), COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.id = :subtemaId AND q.anulada = false GROUP BY cc.cargo.nivel")
     List<Object[]> countRespondidasAcertadasBySubtemaIdGroupByNivel(@Param("subtemaId") Long subtemaId);
 
-    @Query("SELECT c.banca.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.id = :subtemaId AND q.anulada = false GROUP BY c.banca.id")
+    @Query("SELECT c.banca.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.id = :subtemaId AND q.anulada = false GROUP BY c.banca.id")
     List<Object[]> countRespondidasAcertadasBySubtemaIdGroupByBanca(@Param("subtemaId") Long subtemaId);
 
-    @Query("SELECT c.instituicao.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.id = :subtemaId AND q.anulada = false GROUP BY c.instituicao.id")
+    @Query("SELECT c.instituicao.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.id = :subtemaId AND q.anulada = false GROUP BY c.instituicao.id")
     List<Object[]> countRespondidasAcertadasBySubtemaIdGroupByInstituicao(@Param("subtemaId") Long subtemaId);
 
-    @Query("SELECT c.instituicao.area, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.id = :subtemaId AND q.anulada = false GROUP BY c.instituicao.area")
+    @Query("SELECT c.instituicao.area, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.id = :subtemaId AND q.anulada = false GROUP BY c.instituicao.area")
     List<Object[]> countRespondidasAcertadasBySubtemaIdGroupByAreaInstituicao(@Param("subtemaId") Long subtemaId);
 
-    @Query("SELECT cc.cargo.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.id = :subtemaId AND q.anulada = false GROUP BY cc.cargo.id")
+    @Query("SELECT cc.cargo.id, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.id = :subtemaId AND q.anulada = false GROUP BY cc.cargo.id")
     List<Object[]> countRespondidasAcertadasBySubtemaIdGroupByCargo(@Param("subtemaId") Long subtemaId);
 
-    @Query("SELECT cc.cargo.area, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.id = :subtemaId AND q.anulada = false GROUP BY cc.cargo.area")
+    @Query("SELECT cc.cargo.area, COUNT(DISTINCT r.questao.id), SUM(CASE WHEN ae.correta = true THEN 1 ELSE 0 END) FROM Resposta r JOIN r.questao q JOIN r.alternativaEscolhida ae JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.id = :subtemaId AND q.anulada = false GROUP BY cc.cargo.area")
     List<Object[]> countRespondidasAcertadasBySubtemaIdGroupByAreaCargo(@Param("subtemaId") Long subtemaId);
 
-    @Query("SELECT CAST(cc.cargo.nivel AS string), AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.id = :subtemaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.nivel")
+    @Query("SELECT CAST(cc.cargo.nivel AS string), AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.id = :subtemaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.nivel")
     List<Object[]> avgTempoBySubtemaIdGroupByNivel(@Param("subtemaId") Long subtemaId);
 
-    @Query("SELECT c.banca.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.id = :subtemaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.banca.id")
+    @Query("SELECT c.banca.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.id = :subtemaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.banca.id")
     List<Object[]> avgTempoBySubtemaIdGroupByBanca(@Param("subtemaId") Long subtemaId);
 
-    @Query("SELECT c.instituicao.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.id = :subtemaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.instituicao.id")
+    @Query("SELECT c.instituicao.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.id = :subtemaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.instituicao.id")
     List<Object[]> avgTempoBySubtemaIdGroupByInstituicao(@Param("subtemaId") Long subtemaId);
 
-    @Query("SELECT c.instituicao.area, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.id = :subtemaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.instituicao.area")
+    @Query("SELECT c.instituicao.area, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE s.id = :subtemaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.instituicao.area")
     List<Object[]> avgTempoBySubtemaIdGroupByAreaInstituicao(@Param("subtemaId") Long subtemaId);
 
-    @Query("SELECT cc.cargo.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.id = :subtemaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.id")
+    @Query("SELECT cc.cargo.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.id = :subtemaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.id")
     List<Object[]> avgTempoBySubtemaIdGroupByCargo(@Param("subtemaId") Long subtemaId);
 
-    @Query("SELECT cc.cargo.area, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.id = :subtemaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.area")
+    @Query("SELECT cc.cargo.area, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc WHERE s.id = :subtemaId AND r.tempoRespostaSegundos IS NOT NULL GROUP BY cc.cargo.area")
     List<Object[]> avgTempoBySubtemaIdGroupByAreaCargo(@Param("subtemaId") Long subtemaId);
 
     // --- Batch: ConcursoCargo context ---
     @Query("SELECT s.id, COUNT(DISTINCT r.questao.id) FROM Resposta r " +
            "JOIN r.questao q " +
-           "JOIN q.subtemas s " +
+           "JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s " +
            "JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc " +
            "WHERE cc.id = :concursoCargoId " +
            "AND s.id IN :subtemaIds " +
@@ -210,7 +210,7 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
 
     @Query("SELECT s.id, COUNT(DISTINCT r.questao.id) FROM Resposta r " +
            "JOIN r.questao q " +
-           "JOIN q.subtemas s " +
+           "JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s " +
            "JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc " +
            "WHERE cc.id = :concursoCargoId " +
            "AND s.id IN :subtemaIds " +
@@ -220,7 +220,7 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
 
     @Query("SELECT s.id, AVG(r.tempoRespostaSegundos) FROM Resposta r " +
            "JOIN r.questao q " +
-           "JOIN q.subtemas s " +
+           "JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s " +
            "JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc " +
            "WHERE cc.id = :concursoCargoId " +
            "AND s.id IN :subtemaIds " +
@@ -230,7 +230,7 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
 
     @Query("SELECT s.id, MAX(r.createdAt) FROM Resposta r " +
            "JOIN r.questao q " +
-           "JOIN q.subtemas s " +
+           "JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s " +
            "JOIN q.secoes qs JOIN qs.provaSecao ps JOIN ps.prova p JOIN p.concursoCargo cc " +
            "WHERE cc.id = :concursoCargoId " +
            "AND s.id IN :subtemaIds " +
@@ -260,13 +260,13 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     List<Object[]> getDificuldadeStatsByConcursoCargoAndSubtemaIds(@Param("concursoCargoId") Long concursoCargoId, @Param("subtemaIds") List<Long> subtemaIds);
 
     // --- Batch: questoesAcertadas ---
-    @Query("SELECT s.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao.subtemas s WHERE s.id IN :ids AND r.alternativaEscolhida.correta = true GROUP BY s.id")
+    @Query("SELECT s.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao.questaoSubtemas qs JOIN qs.subtema s WHERE s.id IN :ids AND r.alternativaEscolhida.correta = true GROUP BY s.id")
     List<Object[]> countAcertadasBySubtemaIds(@Param("ids") List<Long> ids);
 
-    @Query("SELECT s.tema.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao.subtemas s WHERE s.tema.id IN :ids AND r.alternativaEscolhida.correta = true GROUP BY s.tema.id")
+    @Query("SELECT s.tema.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao.questaoSubtemas qs JOIN qs.subtema s WHERE s.tema.id IN :ids AND r.alternativaEscolhida.correta = true GROUP BY s.tema.id")
     List<Object[]> countAcertadasByTemaIds(@Param("ids") List<Long> ids);
 
-    @Query("SELECT s.tema.disciplina.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao.subtemas s WHERE s.tema.disciplina.id IN :ids AND r.alternativaEscolhida.correta = true GROUP BY s.tema.disciplina.id")
+    @Query("SELECT s.tema.disciplina.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao.questaoSubtemas qs JOIN qs.subtema s WHERE s.tema.disciplina.id IN :ids AND r.alternativaEscolhida.correta = true GROUP BY s.tema.disciplina.id")
     List<Object[]> countAcertadasByDisciplinaIds(@Param("ids") List<Long> ids);
 
     @Query("SELECT c.banca.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao q JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE c.banca.id IN :ids AND r.alternativaEscolhida.correta = true GROUP BY c.banca.id")
@@ -279,13 +279,13 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     List<Object[]> countAcertadasByCargoIds(@Param("ids") List<Long> ids);
 
     // --- Batch: mediaTempoResposta ---
-    @Query("SELECT s.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao.subtemas s WHERE s.id IN :ids AND r.tempoRespostaSegundos IS NOT NULL GROUP BY s.id")
+    @Query("SELECT s.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao.questaoSubtemas qs JOIN qs.subtema s WHERE s.id IN :ids AND r.tempoRespostaSegundos IS NOT NULL GROUP BY s.id")
     List<Object[]> avgTempoBySubtemaIds(@Param("ids") List<Long> ids);
 
-    @Query("SELECT s.tema.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao.subtemas s WHERE s.tema.id IN :ids AND r.tempoRespostaSegundos IS NOT NULL GROUP BY s.tema.id")
+    @Query("SELECT s.tema.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao.questaoSubtemas qs JOIN qs.subtema s WHERE s.tema.id IN :ids AND r.tempoRespostaSegundos IS NOT NULL GROUP BY s.tema.id")
     List<Object[]> avgTempoByTemaIds(@Param("ids") List<Long> ids);
 
-    @Query("SELECT s.tema.disciplina.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao.subtemas s WHERE s.tema.disciplina.id IN :ids AND r.tempoRespostaSegundos IS NOT NULL GROUP BY s.tema.disciplina.id")
+    @Query("SELECT s.tema.disciplina.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao.questaoSubtemas qs JOIN qs.subtema s WHERE s.tema.disciplina.id IN :ids AND r.tempoRespostaSegundos IS NOT NULL GROUP BY s.tema.disciplina.id")
     List<Object[]> avgTempoByDisciplinaIds(@Param("ids") List<Long> ids);
 
     @Query("SELECT c.banca.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE c.banca.id IN :ids AND r.tempoRespostaSegundos IS NOT NULL GROUP BY c.banca.id")
@@ -298,13 +298,13 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     List<Object[]> avgTempoByCargoIds(@Param("ids") List<Long> ids);
 
     // --- Batch: ultimaQuestao ---
-    @Query("SELECT s.id, MAX(r.createdAt) FROM Resposta r JOIN r.questao.subtemas s WHERE s.id IN :ids GROUP BY s.id")
+    @Query("SELECT s.id, MAX(r.createdAt) FROM Resposta r JOIN r.questao.questaoSubtemas qs JOIN qs.subtema s WHERE s.id IN :ids GROUP BY s.id")
     List<Object[]> findLatestResponseDatesBySubtemaIds(@Param("ids") List<Long> ids);
 
-    @Query("SELECT s.tema.id, MAX(r.createdAt) FROM Resposta r JOIN r.questao.subtemas s WHERE s.tema.id IN :ids GROUP BY s.tema.id")
+    @Query("SELECT s.tema.id, MAX(r.createdAt) FROM Resposta r JOIN r.questao.questaoSubtemas qs JOIN qs.subtema s WHERE s.tema.id IN :ids GROUP BY s.tema.id")
     List<Object[]> findLatestResponseDatesByTemaIds(@Param("ids") List<Long> ids);
 
-    @Query("SELECT s.tema.disciplina.id, MAX(r.createdAt) FROM Resposta r JOIN r.questao.subtemas s WHERE s.tema.disciplina.id IN :ids GROUP BY s.tema.disciplina.id")
+    @Query("SELECT s.tema.disciplina.id, MAX(r.createdAt) FROM Resposta r JOIN r.questao.questaoSubtemas qs JOIN qs.subtema s WHERE s.tema.disciplina.id IN :ids GROUP BY s.tema.disciplina.id")
     List<Object[]> findLatestResponseDatesByDisciplinaIds(@Param("ids") List<Long> ids);
 
     @Query("SELECT c.banca.id, MAX(r.createdAt) FROM Resposta r JOIN r.questao q JOIN q.secoes qs_c JOIN qs_c.provaSecao ps_c JOIN ps_c.prova p_c JOIN p_c.concurso c WHERE c.banca.id IN :ids GROUP BY c.banca.id")
@@ -317,40 +317,40 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
     List<Object[]> findLatestResponseDatesByCargoIds(@Param("ids") List<Long> ids);
 
     // --- Autoral resposta batch queries ---
-    @Query("SELECT s.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao q JOIN q.subtemas s WHERE s.id IN :ids AND q.autoral = true GROUP BY s.id")
+    @Query("SELECT s.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s WHERE s.id IN :ids AND q.autoral = true GROUP BY s.id")
     List<Object[]> countRespondidasBySubtemaIdsAutoral(@Param("ids") List<Long> ids);
 
-    @Query("SELECT s.tema.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao q JOIN q.subtemas s WHERE s.tema.id IN :ids AND q.autoral = true GROUP BY s.tema.id")
+    @Query("SELECT s.tema.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s WHERE s.tema.id IN :ids AND q.autoral = true GROUP BY s.tema.id")
     List<Object[]> countRespondidasByTemaIdsAutoral(@Param("ids") List<Long> ids);
 
-    @Query("SELECT s.tema.disciplina.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao q JOIN q.subtemas s WHERE s.tema.disciplina.id IN :ids AND q.autoral = true GROUP BY s.tema.disciplina.id")
+    @Query("SELECT s.tema.disciplina.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s WHERE s.tema.disciplina.id IN :ids AND q.autoral = true GROUP BY s.tema.disciplina.id")
     List<Object[]> countRespondidasByDisciplinaIdsAutoral(@Param("ids") List<Long> ids);
 
-    @Query("SELECT s.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao q JOIN q.subtemas s WHERE s.id IN :ids AND q.autoral = true AND r.alternativaEscolhida.correta = true GROUP BY s.id")
+    @Query("SELECT s.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s WHERE s.id IN :ids AND q.autoral = true AND r.alternativaEscolhida.correta = true GROUP BY s.id")
     List<Object[]> countAcertadasBySubtemaIdsAutoral(@Param("ids") List<Long> ids);
 
-    @Query("SELECT s.tema.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao q JOIN q.subtemas s WHERE s.tema.id IN :ids AND q.autoral = true AND r.alternativaEscolhida.correta = true GROUP BY s.tema.id")
+    @Query("SELECT s.tema.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s WHERE s.tema.id IN :ids AND q.autoral = true AND r.alternativaEscolhida.correta = true GROUP BY s.tema.id")
     List<Object[]> countAcertadasByTemaIdsAutoral(@Param("ids") List<Long> ids);
 
-    @Query("SELECT s.tema.disciplina.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao q JOIN q.subtemas s WHERE s.tema.disciplina.id IN :ids AND q.autoral = true AND r.alternativaEscolhida.correta = true GROUP BY s.tema.disciplina.id")
+    @Query("SELECT s.tema.disciplina.id, COUNT(DISTINCT r.questao.id) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s WHERE s.tema.disciplina.id IN :ids AND q.autoral = true AND r.alternativaEscolhida.correta = true GROUP BY s.tema.disciplina.id")
     List<Object[]> countAcertadasByDisciplinaIdsAutoral(@Param("ids") List<Long> ids);
 
-    @Query("SELECT s.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s WHERE s.id IN :ids AND q.autoral = true AND r.tempoRespostaSegundos IS NOT NULL GROUP BY s.id")
+    @Query("SELECT s.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s WHERE s.id IN :ids AND q.autoral = true AND r.tempoRespostaSegundos IS NOT NULL GROUP BY s.id")
     List<Object[]> avgTempoBySubtemaIdsAutoral(@Param("ids") List<Long> ids);
 
-    @Query("SELECT s.tema.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s WHERE s.tema.id IN :ids AND q.autoral = true AND r.tempoRespostaSegundos IS NOT NULL GROUP BY s.tema.id")
+    @Query("SELECT s.tema.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s WHERE s.tema.id IN :ids AND q.autoral = true AND r.tempoRespostaSegundos IS NOT NULL GROUP BY s.tema.id")
     List<Object[]> avgTempoByTemaIdsAutoral(@Param("ids") List<Long> ids);
 
-    @Query("SELECT s.tema.disciplina.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.subtemas s WHERE s.tema.disciplina.id IN :ids AND q.autoral = true AND r.tempoRespostaSegundos IS NOT NULL GROUP BY s.tema.disciplina.id")
+    @Query("SELECT s.tema.disciplina.id, AVG(r.tempoRespostaSegundos) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s WHERE s.tema.disciplina.id IN :ids AND q.autoral = true AND r.tempoRespostaSegundos IS NOT NULL GROUP BY s.tema.disciplina.id")
     List<Object[]> avgTempoByDisciplinaIdsAutoral(@Param("ids") List<Long> ids);
 
-    @Query("SELECT s.id, MAX(r.createdAt) FROM Resposta r JOIN r.questao q JOIN q.subtemas s WHERE s.id IN :ids AND q.autoral = true GROUP BY s.id")
+    @Query("SELECT s.id, MAX(r.createdAt) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s WHERE s.id IN :ids AND q.autoral = true GROUP BY s.id")
     List<Object[]> findLatestResponseDatesBySubtemaIdsAutoral(@Param("ids") List<Long> ids);
 
-    @Query("SELECT s.tema.id, MAX(r.createdAt) FROM Resposta r JOIN r.questao q JOIN q.subtemas s WHERE s.tema.id IN :ids AND q.autoral = true GROUP BY s.tema.id")
+    @Query("SELECT s.tema.id, MAX(r.createdAt) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s WHERE s.tema.id IN :ids AND q.autoral = true GROUP BY s.tema.id")
     List<Object[]> findLatestResponseDatesByTemaIdsAutoral(@Param("ids") List<Long> ids);
 
-    @Query("SELECT s.tema.disciplina.id, MAX(r.createdAt) FROM Resposta r JOIN r.questao q JOIN q.subtemas s WHERE s.tema.disciplina.id IN :ids AND q.autoral = true GROUP BY s.tema.disciplina.id")
+    @Query("SELECT s.tema.disciplina.id, MAX(r.createdAt) FROM Resposta r JOIN r.questao q JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s WHERE s.tema.disciplina.id IN :ids AND q.autoral = true GROUP BY s.tema.disciplina.id")
     List<Object[]> findLatestResponseDatesByDisciplinaIdsAutoral(@Param("ids") List<Long> ids);
 
     @Query(value = """

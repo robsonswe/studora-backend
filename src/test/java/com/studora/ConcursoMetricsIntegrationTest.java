@@ -119,7 +119,13 @@ class ConcursoMetricsIntegrationTest {
         scDef.setConcursoCargo(cc);
         scDef.setNome("Conhecimentos Específicos");
         scDef.setPeso(1.0);
-        scDef.addSubtema(sub);
+        
+        SecaoDisciplina sd = new SecaoDisciplina();
+        sd.setSecaoCargo(scDef);
+        sd.setNome("Específica");
+        sd.getSubtemas().add(sub);
+        scDef.getDisciplinas().add(sd);
+        
         scDef = secaoCargoRepository.save(scDef);
 
         ProvaSecao secao = new ProvaSecao();
@@ -132,7 +138,7 @@ class ConcursoMetricsIntegrationTest {
         // 4. Setup Question and Answer
         Questao q = new Questao();
         q.setEnunciado("Qual o remédio constitucional para liberdade de locomoção?");
-        q.getSubtemas().add(sub);
+        q.addSubtema(sub, true);
         q = questaoRepository.save(q);
 
         Alternativa alt = new Alternativa();

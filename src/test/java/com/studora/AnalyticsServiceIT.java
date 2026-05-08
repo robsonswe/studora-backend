@@ -83,7 +83,7 @@ class AnalyticsServiceIT {
         q1 = new Questao();
         q1.setEnunciado("Questao 1");
         q1.setAutoral(true);
-        q1.setSubtemas(new java.util.HashSet<>(java.util.List.of(s1)));
+        q1.addSubtema(s1, true);
         q1 = questaoRepository.save(q1);
 
         q1Correct = new Alternativa();
@@ -190,7 +190,7 @@ class AnalyticsServiceIT {
         Questao q2 = new Questao();
         q2.setEnunciado("Questao 2");
         q2.setAutoral(true);
-        q2.setSubtemas(new java.util.HashSet<>(java.util.List.of(s2)));
+        q2.addSubtema(s2, true);
         q2 = questaoRepository.save(q2);
         Alternativa q2Wrong = new Alternativa();
         q2Wrong.setQuestao(q2);

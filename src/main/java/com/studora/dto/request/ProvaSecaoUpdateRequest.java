@@ -5,7 +5,7 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class ProvaSecaoUpdateRequest {
+public class ProvaSecaoUpdateRequest implements ProvaSecaoRequest {
     private Long id;
 
     @NotBlank(message = "Nome é obrigatório")
@@ -16,4 +16,5 @@ public class ProvaSecaoUpdateRequest {
 
     private Double peso;
     private Double notaMinima;
-    private List<Long> subtemaIds;}
+    private List<SecaoDisciplinaRequest> disciplinas;
+}

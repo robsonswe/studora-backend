@@ -27,6 +27,7 @@ import com.studora.entity.Prova;
 import com.studora.entity.ProvaSecao;
 import com.studora.entity.Questao;
 import com.studora.entity.SecaoCargo;
+import com.studora.entity.SecaoDisciplina;
 import com.studora.entity.Subtema;
 import com.studora.entity.Tema;
 import com.studora.repository.AlternativaRepository;
@@ -113,6 +114,13 @@ class ConcursoCascadeDeletionTest {
         scDef.setConcursoCargo(cc);
         scDef.setNome("Seção Cascade");
         scDef.setPeso(1.0);
+        
+        SecaoDisciplina sd = new SecaoDisciplina();
+        sd.setSecaoCargo(scDef);
+        sd.setNome("Geral");
+        sd.getSubtemas().add(subtema);
+        scDef.getDisciplinas().add(sd);
+        
         scDef = secaoCargoRepository.save(scDef);
 
         // Create Prova and Secao
@@ -132,10 +140,11 @@ class ConcursoCascadeDeletionTest {
 
         // 4. Create a Questao with Alternativas and Secao
         QuestaoCreateRequest qReq = new QuestaoCreateRequest();
-        qReq.setSecoes(List.of(new SecaoQuestaoRequest(secaoId, 1)));
+        qReq.setSecoes(List.of(new SecaoQuestaoRequest(secaoId, 1, null)));
         qReq.setEnunciado("Enunciado Test");
         qReq.setAnulada(false);
         qReq.setSubtemaIds(List.of(subtema.getId()));
+        qReq.setPrincipalSubtemaId(subtema.getId());
         
         AlternativaCreateRequest alt1 = new AlternativaCreateRequest();
         alt1.setOrdem(1);
@@ -217,7 +226,7 @@ class ConcursoCascadeDeletionTest {
         Questao questao = new Questao();
         questao.setEnunciado("Questao de teste");
         questao.setAutoral(true);
-        questao.getSubtemas().add(subtema);
+        questao.addSubtema(subtema, true);
         questao = questaoRepository.save(questao);
         Long questaoId = questao.getId();
 

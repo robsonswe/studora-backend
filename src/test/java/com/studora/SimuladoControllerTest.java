@@ -148,7 +148,7 @@ Concurso conc = new Concurso(inst, savedBanca, 2023, 1);
             qps.setProvaSecao(secao);
             q.addSecao(qps);
 
-            q.getSubtemas().add(sub);
+            q.addSubtema(sub, true);
             questaoRepository.save(q);
         }
     }

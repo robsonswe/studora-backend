@@ -1,29 +1,22 @@
 package com.studora.dto.concurso;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import java.util.List;
 
 @Data
-public class ConcursoSecaoDto {
+public class ConcursoSecaoDisciplinaDto {
     private Long id;
     private String nome;
-    private Integer ordem;
     private Integer numQuestoes;
     private Double peso;
     private Double notaMinima;
-    private List<ConcursoSecaoDisciplinaDto> disciplinas;
+    private List<ConcursoCargoSubtemaDto> assuntos;
 
-    @Schema(description = "Total de sessões de estudo realizadas para esta seção")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Long totalEstudos;
-
-    @Schema(description = "Estatísticas de questões da seção (Visão Geral)")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private com.studora.dto.QuestaoStatsDto questaoStats;
-
-    @Schema(description = "Estatísticas específicas de questões para este concurso, cargo e seção")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private com.studora.dto.StatSliceDto questoesConcursoCargo;
 }

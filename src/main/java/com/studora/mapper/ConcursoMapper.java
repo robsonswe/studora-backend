@@ -10,7 +10,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
 
-@Mapper(componentModel = "spring", uses = {InstituicaoMapper.class, BancaMapper.class, CargoMapper.class, ProvaMapper.class})
+@Mapper(componentModel = "spring", uses = {InstituicaoMapper.class, BancaMapper.class, CargoMapper.class, ProvaMapper.class, SecaoDisciplinaMapper.class})
 public interface ConcursoMapper {
 
     @Mapping(target = "instituicao", source = "instituicao")
@@ -82,28 +82,42 @@ public interface ConcursoMapper {
                                     secaoDto.setOrdem(sc.getOrdem());
                                     secaoDto.setNumQuestoes(sc.getNumQuestoes());
 
-                                    java.util.List<com.studora.dto.concurso.ConcursoCargoSubtemaDto> assuntos = sc.getSubtemas().stream()
-                                            .map(s -> {
-                                                com.studora.dto.concurso.ConcursoCargoSubtemaDto subDto = new com.studora.dto.concurso.ConcursoCargoSubtemaDto();
-                                                subDto.setId(s.getId());
-                                                subDto.setNome(s.getNome());
-                                                if (s.getTema() != null) {
-                                                    com.studora.dto.subtema.TemaReferenceDto temaRef = new com.studora.dto.subtema.TemaReferenceDto();
-                                                    temaRef.setId(s.getTema().getId());
-                                                    temaRef.setNome(s.getTema().getNome());
-                                                    subDto.setTema(temaRef);
-                                                    if (s.getTema().getDisciplina() != null) {
-                                                        com.studora.dto.subtema.DisciplinaReferenceDto discRef = new com.studora.dto.subtema.DisciplinaReferenceDto();
-                                                        discRef.setId(s.getTema().getDisciplina().getId());
-                                                        discRef.setNome(s.getTema().getDisciplina().getNome());
-                                                        subDto.setDisciplina(discRef);
-                                                    }
-                                                }
-                                                return subDto;
+                                    java.util.List<com.studora.dto.concurso.ConcursoSecaoDisciplinaDto> disciplinas = sc.getDisciplinas().stream()
+                                            .map(sd -> {
+                                                com.studora.dto.concurso.ConcursoSecaoDisciplinaDto sdDto = new com.studora.dto.concurso.ConcursoSecaoDisciplinaDto();
+                                                sdDto.setId(sd.getId());
+                                                sdDto.setNome(sd.getNome());
+                                                sdDto.setPeso(sd.getPeso());
+                                                sdDto.setNumQuestoes(sd.getNumQuestoes());
+                                                sdDto.setNotaMinima(sd.getNotaMinima());
+
+                                                java.util.List<com.studora.dto.concurso.ConcursoCargoSubtemaDto> assuntos = sd.getSubtemas().stream()
+                                                        .map(s -> {
+                                                            com.studora.dto.concurso.ConcursoCargoSubtemaDto subDto = new com.studora.dto.concurso.ConcursoCargoSubtemaDto();
+                                                            subDto.setId(s.getId());
+                                                            subDto.setNome(s.getNome());
+                                                            if (s.getTema() != null) {
+                                                                com.studora.dto.subtema.TemaReferenceDto temaRef = new com.studora.dto.subtema.TemaReferenceDto();
+                                                                temaRef.setId(s.getTema().getId());
+                                                                temaRef.setNome(s.getTema().getNome());
+                                                                subDto.setTema(temaRef);
+                                                                if (s.getTema().getDisciplina() != null) {
+                                                                    com.studora.dto.subtema.DisciplinaReferenceDto discRef = new com.studora.dto.subtema.DisciplinaReferenceDto();
+                                                                    discRef.setId(s.getTema().getDisciplina().getId());
+                                                                    discRef.setNome(s.getTema().getDisciplina().getNome());
+                                                                    subDto.setDisciplina(discRef);
+                                                                }
+                                                            }
+                                                            return subDto;
+                                                        })
+                                                        .sorted(java.util.Comparator.comparing(com.studora.dto.concurso.ConcursoCargoSubtemaDto::getNome))
+                                                        .collect(java.util.stream.Collectors.toList());
+                                                sdDto.setAssuntos(assuntos);
+                                                return sdDto;
                                             })
-                                            .sorted(java.util.Comparator.comparing(com.studora.dto.concurso.ConcursoCargoSubtemaDto::getNome))
+                                            .sorted(java.util.Comparator.comparing(com.studora.dto.concurso.ConcursoSecaoDisciplinaDto::getNome))
                                             .collect(java.util.stream.Collectors.toList());
-                                    secaoDto.setAssuntos(assuntos);
+                                    secaoDto.setDisciplinas(disciplinas);
                                     return secaoDto;
                                 })
                                 .collect(java.util.stream.Collectors.toList());

@@ -136,7 +136,13 @@ class StatsStructureTest {
         scDef.setConcursoCargo(concursoCargo);
         scDef.setNome("Conhecimentos Gerais");
         scDef.setPeso(1.0);
-        scDef.addSubtema(subtema);
+        
+        SecaoDisciplina sd = new SecaoDisciplina();
+        sd.setSecaoCargo(scDef);
+        sd.setNome("Geral");
+        sd.getSubtemas().add(subtema);
+        scDef.getDisciplinas().add(sd);
+        
         scDef = secaoCargoRepository.save(scDef);
 
         ProvaSecao secao = new ProvaSecao();
@@ -158,7 +164,7 @@ class StatsStructureTest {
             questao.addSecao(qps);
 
             // Link questao to subtema
-            questao.getSubtemas().add(subtema);
+            questao.addSubtema(subtema, true);
 
             questao = questaoRepository.save(questao);
 

@@ -156,8 +156,8 @@ public class AnalyticsService {
     private TopicMasteryDto buildHierarchyForDisciplina(Disciplina disciplina, List<Resposta> allResponses) {
         // Filter responses for this disciplina
         List<Resposta> discResponses = allResponses.stream()
-                .filter(r -> r.getQuestao().getSubtemas().stream()
-                        .anyMatch(s -> s.getTema().getDisciplina().getId().equals(disciplina.getId())))
+                .filter(r -> r.getQuestao().getQuestaoSubtemas().stream()
+                        .anyMatch(qs -> qs.getSubtema().getTema().getDisciplina().getId().equals(disciplina.getId())))
                 .toList();
 
         TopicMasteryDto discDto = buildMasteryDto(disciplina.getId(), disciplina.getNome(), discResponses);
@@ -275,7 +275,7 @@ public class AnalyticsService {
 
     private List<TopicMasteryDto> calculateMasteryForDisciplinas(List<Resposta> responses) {
         Map<Long, List<Resposta>> byDisc = responses.stream()
-                .flatMap(r -> r.getQuestao().getSubtemas().stream().map(s -> new AbstractMap.SimpleEntry<>(s.getTema().getDisciplina().getId(), r)))
+                .flatMap(r -> r.getQuestao().getQuestaoSubtemas().stream().map(qs -> new AbstractMap.SimpleEntry<>(qs.getSubtema().getTema().getDisciplina().getId(), r)))
                 .collect(Collectors.groupingBy(Map.Entry::getKey, Collectors.mapping(Map.Entry::getValue, Collectors.toList())));
 
         return disciplinaRepository.findAll().stream()
@@ -285,9 +285,9 @@ public class AnalyticsService {
 
     private List<TopicMasteryDto> calculateMasteryForTemas(List<Resposta> responses, Long disciplinaId) {
         Map<Long, List<Resposta>> byTema = responses.stream()
-                .flatMap(r -> r.getQuestao().getSubtemas().stream()
-                        .filter(s -> disciplinaId == null || s.getTema().getDisciplina().getId().equals(disciplinaId))
-                        .map(s -> new AbstractMap.SimpleEntry<>(s.getTema().getId(), r)))
+                .flatMap(r -> r.getQuestao().getQuestaoSubtemas().stream()
+                        .filter(qs -> disciplinaId == null || qs.getSubtema().getTema().getDisciplina().getId().equals(disciplinaId))
+                        .map(qs -> new AbstractMap.SimpleEntry<>(qs.getSubtema().getTema().getId(), r)))
                 .collect(Collectors.groupingBy(Map.Entry::getKey, Collectors.mapping(Map.Entry::getValue, Collectors.toList())));
 
         List<Tema> temas = (disciplinaId != null) ? temaRepository.findByDisciplinaId(disciplinaId) : temaRepository.findAll();
@@ -299,9 +299,9 @@ public class AnalyticsService {
 
     private List<TopicMasteryDto> calculateMasteryForSubtemas(List<Resposta> responses, Long temaId) {
         Map<Long, List<Resposta>> bySubtema = responses.stream()
-                .flatMap(r -> r.getQuestao().getSubtemas().stream()
-                        .filter(s -> temaId == null || s.getTema().getId().equals(temaId))
-                        .map(s -> new AbstractMap.SimpleEntry<>(s.getId(), r)))
+                .flatMap(r -> r.getQuestao().getQuestaoSubtemas().stream()
+                        .filter(qs -> temaId == null || qs.getSubtema().getTema().getId().equals(temaId))
+                        .map(qs -> new AbstractMap.SimpleEntry<>(qs.getSubtema().getId(), r)))
                 .collect(Collectors.groupingBy(Map.Entry::getKey, Collectors.mapping(Map.Entry::getValue, Collectors.toList())));
 
         List<Subtema> subtemas = (temaId != null) ? subtemaRepository.findByTemaId(temaId) : subtemaRepository.findAll();

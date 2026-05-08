@@ -3,6 +3,7 @@ package com.studora.dto.concurso;
 import com.studora.dto.instituicao.InstituicaoSummaryDto;
 import com.studora.dto.banca.BancaSummaryDto;
 import com.studora.dto.prova.ProvaDetailDto;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import java.util.List;

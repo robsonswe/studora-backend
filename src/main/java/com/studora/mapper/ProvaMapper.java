@@ -18,7 +18,7 @@ import com.studora.entity.Prova;
 import com.studora.entity.ProvaSecao;
 import com.studora.entity.Subtema;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = {SecaoDisciplinaMapper.class})
 public interface ProvaMapper {
     @Mapping(target = "concursoId", source = "concurso.id")
     @Mapping(target = "cargoId", source = "concursoCargo.cargo.id")
@@ -31,7 +31,7 @@ public interface ProvaMapper {
 
     @Mapping(target = "peso", source = "secaoCargo.peso")
     @Mapping(target = "notaMinima", source = "secaoCargo.notaMinima")
-    @Mapping(target = "subtemaIds", source = "secaoCargo.subtemas", qualifiedByName = "mapSubtemasToIds")
+    @Mapping(target = "disciplinas", source = "secaoCargo.disciplinas")
     ProvaSecaoDto toSecaoDto(ProvaSecao secao);
 
     @Mapping(target = "id", ignore = true)
@@ -50,10 +50,4 @@ public interface ProvaMapper {
     @Mapping(target = "updatedAt", ignore = true)
     void updateEntityFromDto(ProvaUpdateRequest request, @MappingTarget Prova prova);
 
-    @Named("mapSubtemasToIds")
-    default List<Long> mapSubtemasToIds(Set<Subtema> subtemas) {
-        if (subtemas == null)
-            return List.of();
-        return subtemas.stream().map(Subtema::getId).collect(Collectors.toList());
-    }
 }

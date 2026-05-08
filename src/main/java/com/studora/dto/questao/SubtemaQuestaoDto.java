@@ -25,4 +25,8 @@ public class SubtemaQuestaoDto {
     @Schema(description = "Disciplina à qual o subtema pertence")
     @JsonView(Views.Summary.class)
     private DisciplinaReferenceDto disciplina;
+
+    @Schema(description = "Indica se este é o subtema principal da questão", example = "true")
+    @JsonView(Views.Summary.class)
+    private Boolean principal;
 }

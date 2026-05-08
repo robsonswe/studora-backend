@@ -38,6 +38,9 @@ public class QuestaoCreateRequest {
     @Schema(description = "IDs dos subtemas associados à questão")
     private List<Long> subtemaIds; // IDs of associated subtemas
 
+    @Schema(description = "ID do subtema principal da questão (deve estar contido em subtemaIds)", example = "1")
+    private Long principalSubtemaId;
+
     @Schema(description = "Associações com seções da prova (ignorado se autoral=true)")
     private List<SecaoQuestaoRequest> secoes;
 

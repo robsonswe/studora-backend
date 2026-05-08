@@ -193,7 +193,7 @@ public class SubtemaService {
             throw new ResourceNotFoundException("Subtema", "ID", id);
         }
         
-        if (questaoRepository.existsBySubtemasId(id)) {
+        if (questaoRepository.existsByQuestaoSubtemasSubtemaId(id)) {
             throw new ValidationException("Não é possível excluir um subtema que possui questões associadas");
         }
         

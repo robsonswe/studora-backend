@@ -117,8 +117,10 @@ class QuestaoAutoralServiceTest {
     @Test
     void createAutoralQuestion_doesNotCallConcursoRepository() {
         QuestaoCreateRequest request = buildAutoralCreateRequest();
+        request.setPrincipalSubtemaId(subtema.getId());
 
         when(questaoMapper.toEntity(any())).thenReturn(new Questao());
+        when(subtemaRepository.findById(anyLong())).thenReturn(Optional.of(subtema));
         when(questaoRepository.save(any())).thenAnswer(inv -> {
             Questao q = inv.getArgument(0);
             q.setId(1L);
@@ -139,6 +141,7 @@ class QuestaoAutoralServiceTest {
         request.setAutoral(false);
         request.setSecoes(null); 
         request.setSubtemaIds(List.of(subtema.getId()));
+        request.setPrincipalSubtemaId(subtema.getId());
         request.setAlternativas(buildAlternativasCreate());
 
         assertThatThrownBy(() -> questaoService.create(request))

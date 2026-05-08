@@ -8,7 +8,6 @@ import lombok.Data;
 
 @Schema(description = "DTO que representa a associação de um cargo a um concurso com status de inscrição")
 @Data
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ConcursoCargoSummaryDto {
     @Schema(description = "ID da associação concurso-cargo", example = "1")
     private Long id;

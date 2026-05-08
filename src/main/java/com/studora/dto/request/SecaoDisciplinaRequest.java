@@ -5,14 +5,14 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class ProvaSecaoCreateRequest implements ProvaSecaoRequest {
-    @NotBlank(message = "Nome é obrigatório")
+public class SecaoDisciplinaRequest {
+    private Long id;
+
+    @NotBlank(message = "Nome da disciplina é obrigatório")
     private String nome;
 
-    private Integer ordem;
     private Integer numQuestoes;
-
     private Double peso;
     private Double notaMinima;
-    private List<SecaoDisciplinaRequest> disciplinas;
+    private List<Long> subtemaIds;
 }

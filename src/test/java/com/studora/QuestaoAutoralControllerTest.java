@@ -123,6 +123,13 @@ class QuestaoAutoralControllerTest {
         scDef.setConcursoCargo(concursoCargo);
         scDef.setNome("Seção Autoral Test");
         scDef.setPeso(1.0);
+        
+        SecaoDisciplina sdDef = new SecaoDisciplina();
+        sdDef.setSecaoCargo(scDef);
+        sdDef.setNome("Geral");
+        sdDef.getSubtemas().add(subtema);
+        scDef.getDisciplinas().add(sdDef);
+        
         secaoCargoRepository.save(scDef);
 
         savedSecao = new ProvaSecao();
@@ -144,6 +151,7 @@ class QuestaoAutoralControllerTest {
         request.setEnunciado("Questão autoral de teste");
         request.setAutoral(true);
         request.setSubtemaIds(Collections.singletonList(subtema.getId()));
+        request.setPrincipalSubtemaId(subtema.getId());
         request.setAlternativas(Arrays.asList(alt1, alt2));
         // No secoesIds — autoral doesn't need them
 
@@ -228,7 +236,7 @@ class QuestaoAutoralControllerTest {
         QuestaoCreateRequest request = new QuestaoCreateRequest();
         request.setEnunciado("Questão padrão sem subtema");
         request.setAutoral(false);
-        request.setSecoes(List.of(new SecaoQuestaoRequest(savedSecao.getId(), 1)));
+        request.setSecoes(List.of(new SecaoQuestaoRequest(savedSecao.getId(), 1, null)));
         request.setSubtemaIds(null); // no subtemas
         request.setAlternativas(Arrays.asList(alt1, alt2));
 
@@ -313,6 +321,7 @@ class QuestaoAutoralControllerTest {
         request.setEnunciado("Questão autoral atualizada");
         request.setAutoral(true); // unchanged
         request.setSubtemaIds(Collections.singletonList(subtema.getId()));
+        request.setPrincipalSubtemaId(subtema.getId());
         request.setAlternativas(List.of(alt1, alt2));
 
         mockMvc.perform(put("/api/v1/questoes/{id}", autoral.getId())
@@ -332,6 +341,7 @@ class QuestaoAutoralControllerTest {
         QuestaoUpdateRequest request = new QuestaoUpdateRequest();
         request.setEnunciado("Questão autoral sem campo autoral");
         request.setSubtemaIds(Collections.singletonList(subtema.getId()));
+        request.setPrincipalSubtemaId(subtema.getId());
         request.setAlternativas(List.of(alt1, alt2));
         // autoral field not sent — should not throw
 
@@ -442,6 +452,7 @@ class QuestaoAutoralControllerTest {
         request.setEnunciado(enunciado);
         request.setAutoral(true);
         request.setSubtemaIds(Collections.singletonList(subtema.getId()));
+        request.setPrincipalSubtemaId(subtema.getId());
         request.setAlternativas(Arrays.asList(alt1, alt2));
 
         try {
@@ -465,8 +476,9 @@ class QuestaoAutoralControllerTest {
         QuestaoCreateRequest request = new QuestaoCreateRequest();
         request.setEnunciado(enunciado);
         request.setAutoral(false);
-        request.setSecoes(List.of(new SecaoQuestaoRequest(savedSecao.getId(), 1)));
+        request.setSecoes(List.of(new SecaoQuestaoRequest(savedSecao.getId(), 1, null)));
         request.setSubtemaIds(Collections.singletonList(subtema.getId()));
+        request.setPrincipalSubtemaId(subtema.getId());
         request.setAlternativas(Arrays.asList(alt1, alt2));
 
         try {

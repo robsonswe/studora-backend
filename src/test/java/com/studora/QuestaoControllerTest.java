@@ -76,6 +76,9 @@ class QuestaoControllerTest {
     private SecaoCargoRepository secaoCargoRepository;
 
     @Autowired
+    private SecaoDisciplinaRepository secaoDisciplinaRepository;
+
+    @Autowired
     private jakarta.persistence.EntityManager entityManager;
 
     private Concurso concurso;
@@ -134,6 +137,15 @@ class QuestaoControllerTest {
         savedSecao.setNome("Seção Q Test");
         savedSecao.setOrdem(1);
         savedSecao = provaSecaoRepository.save(savedSecao);
+
+        // Associate subtema with the edital (SecaoDisciplina)
+        SecaoDisciplina sd = new SecaoDisciplina();
+        sd.setSecaoCargo(scDef);
+        sd.setNome("Disciplina Edital Test");
+        sd.getSubtemas().add(subtema);
+        secaoDisciplinaRepository.save(sd);
+        entityManager.flush();
+        entityManager.clear();
     }
 
     @Test
@@ -153,8 +165,9 @@ class QuestaoControllerTest {
 
         QuestaoCreateRequest questaoCreateRequest = new QuestaoCreateRequest();
         questaoCreateRequest.setEnunciado("Qual a capital do Brasil?");
-        questaoCreateRequest.setSecoes(List.of(new SecaoQuestaoRequest(savedSecao.getId(), 1)));
+        questaoCreateRequest.setSecoes(List.of(new SecaoQuestaoRequest(savedSecao.getId(), 1, null)));
         questaoCreateRequest.setSubtemaIds(Collections.singletonList(subtema.getId()));
+        questaoCreateRequest.setPrincipalSubtemaId(subtema.getId());
         // Add alternativas to comply with validation
         questaoCreateRequest.setAlternativas(Arrays.asList(alt1, alt2));
 
@@ -199,6 +212,7 @@ class QuestaoControllerTest {
         QuestaoProvaSecao qps = new QuestaoProvaSecao();
         qps.setProvaSecao(savedSecao);
         questao.addSecao(qps);
+        questao.addSubtema(subtema, true);
 
         questao = questaoRepository.save(questao);
 
@@ -236,6 +250,7 @@ class QuestaoControllerTest {
         Questao questao = new Questao();
         questao.setEnunciado("Visible Test");
         questao.setAutoral(true);
+        questao.addSubtema(subtema, true);
         questao = questaoRepository.save(questao);
 
         Alternativa alt = new Alternativa();
@@ -268,6 +283,7 @@ class QuestaoControllerTest {
         Questao questao = new Questao();
         questao.setEnunciado("Hidden Test");
         questao.setAutoral(true);
+        questao.addSubtema(subtema, true);
         questao = questaoRepository.save(questao);
 
         Alternativa alt = new Alternativa();
@@ -300,6 +316,7 @@ class QuestaoControllerTest {
         Questao questao = new Questao();
         questao.setEnunciado("Admin Test");
         questao.setAutoral(true);
+        questao.addSubtema(subtema, true);
         questao = questaoRepository.save(questao);
 
         com.studora.entity.Alternativa alt = new com.studora.entity.Alternativa();
@@ -335,7 +352,7 @@ class QuestaoControllerTest {
         qps.setProvaSecao(savedSecao);
         questao.addSecao(qps);
 
-        questao.getSubtemas().add(subtema);
+        questao.addSubtema(subtema, true);
         questao = questaoRepository.save(questao);
 
         // Add alternatives (required for valid response)
@@ -375,6 +392,7 @@ class QuestaoControllerTest {
         Questao q1 = new Questao();
         q1.setEnunciado("Q1 Enunciado");
         q1.setAutoral(true);
+        q1.addSubtema(subtema, true);
         q1 = questaoRepository.save(q1);
         Alternativa alt1 = new Alternativa();
         alt1.setQuestao(q1);
@@ -388,6 +406,7 @@ class QuestaoControllerTest {
         q2.setEnunciado("Q2 Enunciado");
         q2.setAutoral(true);
         q2.setImageUrl("http://img.com/2.png");
+        q2.addSubtema(subtema, true);
         q2 = questaoRepository.save(q2);
         Alternativa alt2 = new Alternativa();
         alt2.setQuestao(q2);
@@ -432,6 +451,7 @@ class QuestaoControllerTest {
         QuestaoProvaSecao qps = new QuestaoProvaSecao();
         qps.setProvaSecao(savedSecao);
         questao.addSecao(qps);
+        questao.addSubtema(subtema, true);
 
         questao = questaoRepository.save(questao);
 
@@ -450,9 +470,10 @@ class QuestaoControllerTest {
 
         QuestaoUpdateRequest updatedRequest = new QuestaoUpdateRequest();
         updatedRequest.setEnunciado("New Enunciado");
-        updatedRequest.setSecoes(List.of(new SecaoQuestaoRequest(savedSecao.getId(), 1)));
+        updatedRequest.setSecoes(List.of(new SecaoQuestaoRequest(savedSecao.getId(), 1, null)));
         updatedRequest.setAnulada(true);
         updatedRequest.setSubtemaIds(Collections.singletonList(subtema.getId()));
+        updatedRequest.setPrincipalSubtemaId(subtema.getId());
         // Add new alternatives for the update
         updatedRequest.setAlternativas(Arrays.asList(alt1, alt2));
 
@@ -485,6 +506,7 @@ class QuestaoControllerTest {
         Questao questao = new Questao();
         questao.setEnunciado("Questao to Delete");
         questao.setAutoral(true);
+        questao.addSubtema(subtema, true);
         questao = questaoRepository.save(questao);
 
         // Add some alternatives to the question
@@ -525,6 +547,7 @@ class QuestaoControllerTest {
         Questao questao = new Questao();
         questao.setEnunciado("Random Test");
         questao.setAutoral(true);
+        questao.addSubtema(subtema, true);
         questao = questaoRepository.save(questao);
 
         mockMvc
@@ -539,6 +562,7 @@ class QuestaoControllerTest {
         qDesat.setEnunciado("Desatualizada");
         qDesat.setAutoral(true);
         qDesat.setDesatualizada(true);
+        qDesat.addSubtema(subtema, true);
         questaoRepository.save(qDesat);
 
         // Should return 404 because the only question is desatualizada and we force it
@@ -554,6 +578,7 @@ class QuestaoControllerTest {
         qAnulada.setEnunciado("Anulada");
         qAnulada.setAutoral(true);
         qAnulada.setAnulada(true);
+        qAnulada.addSubtema(subtema, true);
         questaoRepository.save(qAnulada);
 
         // Should return 404 because we default anulada to false and only have an
@@ -574,6 +599,7 @@ class QuestaoControllerTest {
         Questao questao = new Questao();
         questao.setEnunciado("Recent");
         questao.setAutoral(true);
+        questao.addSubtema(subtema, true);
         questao = questaoRepository.save(questao);
 
         Alternativa alt = new Alternativa();
@@ -607,6 +633,7 @@ class QuestaoControllerTest {
         Questao questao = new Questao();
         questao.setEnunciado("Old Answer");
         questao.setAutoral(true);
+        questao.addSubtema(subtema, true);
         questao = questaoRepository.save(questao);
 
         Alternativa alt = new Alternativa();

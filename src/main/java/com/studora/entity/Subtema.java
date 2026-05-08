@@ -42,9 +42,9 @@ public class Subtema extends BaseEntity {
         this.nomeNormalized = StringUtils.normalizeForSearch(this.nome);
     }
 
-    @ManyToMany(mappedBy = "subtemas", fetch = FetchType.LAZY)
-    @Schema(description = "Questões associadas ao subtema")
-    private Set<Questao> questoes = new LinkedHashSet<>();
+    @OneToMany(mappedBy = "subtema", fetch = FetchType.LAZY)
+    @Schema(description = "Relações entre questões e este subtema")
+    private Set<QuestaoSubtema> questaoSubtemas = new LinkedHashSet<>();
 
     // Constructors
     public Subtema() {}
@@ -87,11 +87,11 @@ public class Subtema extends BaseEntity {
         this.nomeNormalized = nomeNormalized;
     }
 
-    public Set<Questao> getQuestoes() {
-        return questoes;
+    public Set<QuestaoSubtema> getQuestaoSubtemas() {
+        return questaoSubtemas;
     }
 
-    public void setQuestoes(Set<Questao> questoes) {
-        this.questoes = questoes;
+    public void setQuestaoSubtemas(Set<QuestaoSubtema> questaoSubtemas) {
+        this.questaoSubtemas = questaoSubtemas;
     }
 }
