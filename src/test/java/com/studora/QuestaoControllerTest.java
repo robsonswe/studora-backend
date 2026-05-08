@@ -207,23 +207,9 @@ class QuestaoControllerTest {
 
     @Test
     void testCreateQuestao_WithDisciplinaEdital() throws Exception {
-        // Setup existing secao/disciplina (only needed for the setup, no need to pass ID anymore)
-        SecaoDisciplina sd = new SecaoDisciplina();
-        sd.setSecaoCargo(scDef); 
-        sd.setNome("Disciplina Edital Test");
-        sd.setPeso(1.0);
-        sd.setNumQuestoes(1);
-        sd.setNotaMinima(0.0);
-        
-        SecaoDisciplina savedSd = secaoDisciplinaRepository.save(sd);
-        // Associate subtema to pass validation
-        savedSd.getSubtemas().add(subtema);
-        secaoDisciplinaRepository.save(savedSd);
-        
-        entityManager.flush();
-        entityManager.clear();
-        
-        // ... (rest of the test)
+        // The SecaoDisciplina with subtema was already created in @BeforeEach setup
+        // No additional setup needed - just use the existing one
+
         QuestaoCreateRequest questaoCreateRequest = new QuestaoCreateRequest();
         questaoCreateRequest.setEnunciado("Enunciado com disciplina edital");
         // No disciplinaEditalId passed in request

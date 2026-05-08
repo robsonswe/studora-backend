@@ -596,8 +596,11 @@ class ConcursoControllerTest {
         org.junit.jupiter.api.Assertions.assertTrue(updated.isFinalizado());
     }
 
-    @Test
+@Test
     void testUpdateConcurso_AddNewProvaWithSecoes() throws Exception {
+        // Test: Add a new prova with secoes to an existing concurso
+        // This respects the validation rule: subtema cannot be in different secoes of the same cargo
+        
         Instituicao instituicao = new Instituicao();
         instituicao.setNome("Instituição Prova Secao");
         instituicao.setArea("TI");
@@ -608,30 +611,35 @@ class ConcursoControllerTest {
         banca = bancaRepository.save(banca);
 
         Cargo cargo = new Cargo();
-        cargo.setNome("Analista TI");
+        cargo.setNome("Analista TI Prova");
         cargo.setNivel(com.studora.entity.NivelCargo.SUPERIOR);
         cargo.setArea("TI");
         cargo = cargoRepository.save(cargo);
 
-        Disciplina disciplina = new Disciplina("Português");
+        Disciplina disciplina = new Disciplina("Português Prova");
         disciplina = disciplinaRepository.save(disciplina);
 
         Tema tema = new Tema();
-        tema.setNome("Gramática");
+        tema.setNome("Gramática Prova");
         tema.setDisciplina(disciplina);
         tema = temaRepository.save(tema);
 
         Subtema subtema1 = new Subtema();
-        subtema1.setNome("Ortografia");
+        subtema1.setNome("Ortografia Prova");
         subtema1.setTema(tema);
         subtema1 = subtemaRepository.save(subtema1);
 
         Subtema subtema2 = new Subtema();
-        subtema2.setNome("Pontuação");
+        subtema2.setNome("Pontuação Prova");
         subtema2.setTema(tema);
         subtema2 = subtemaRepository.save(subtema2);
 
-        // Create existing concurso with cargo
+        Subtema subtema3 = new Subtema();
+        subtema3.setNome("Acentuação Prova");
+        subtema3.setTema(tema);
+        subtema3 = subtemaRepository.save(subtema3);
+
+        // Create existing concurso with this cargo
         Concurso concurso = new Concurso(instituicao, banca, 2024, 1);
         concurso = concursoRepository.save(concurso);
 
@@ -644,7 +652,7 @@ class ConcursoControllerTest {
         entityManager.flush();
         entityManager.clear();
 
-        // Update with new prova and secoes (using DTOs)
+        // Update with new prova and secoes
         com.studora.dto.request.ConcursoUpdateRequest request = new com.studora.dto.request.ConcursoUpdateRequest();
         request.setInstituicaoId(instituicao.getId());
         request.setBancaId(banca.getId());
@@ -655,9 +663,11 @@ class ConcursoControllerTest {
         com.studora.dto.request.ProvaUpdateRequest provaRequest = new com.studora.dto.request.ProvaUpdateRequest();
         provaRequest.setNome("Prova Objetiva");
         provaRequest.setCargoId(cargo.getId());
+        // Both subtemas in the SAME secao - valid (subtema can appear multiple times in same secao - silently ignored)
+        // Second secao also needs at least one subtema (validation rule)
         provaRequest.setSecoes(List.of(
             createSecaoRequest("Conhecimentos Gerais", 0, 30, 1.0, 0.0, "Geral", List.of(subtema1.getId(), subtema2.getId())),
-            createSecaoRequest("Conhecimentos Específicos", 1, 40, 1.5, 60.0, "Específica", List.of())
+            createSecaoRequest("Conhecimentos Específicos", 1, 40, 1.5, 60.0, "Específica", List.of(subtema3.getId()))
         ));
         request.setProvas(List.of(provaRequest));
 
