@@ -236,7 +236,7 @@ class QuestaoAutoralControllerTest {
         QuestaoCreateRequest request = new QuestaoCreateRequest();
         request.setEnunciado("Questão padrão sem subtema");
         request.setAutoral(false);
-        request.setSecoes(List.of(new SecaoQuestaoRequest(savedSecao.getId(), 1, null)));
+        request.setSecoes(List.of(new SecaoQuestaoRequest(savedSecao.getId(), 1)));
         request.setSubtemaIds(null); // no subtemas
         request.setAlternativas(Arrays.asList(alt1, alt2));
 
@@ -476,7 +476,7 @@ class QuestaoAutoralControllerTest {
         QuestaoCreateRequest request = new QuestaoCreateRequest();
         request.setEnunciado(enunciado);
         request.setAutoral(false);
-        request.setSecoes(List.of(new SecaoQuestaoRequest(savedSecao.getId(), 1, null)));
+        request.setSecoes(List.of(new SecaoQuestaoRequest(savedSecao.getId(), 1)));
         request.setSubtemaIds(Collections.singletonList(subtema.getId()));
         request.setPrincipalSubtemaId(subtema.getId());
         request.setAlternativas(Arrays.asList(alt1, alt2));

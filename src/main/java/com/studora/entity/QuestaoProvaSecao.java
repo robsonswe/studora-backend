@@ -27,9 +27,6 @@ public class QuestaoProvaSecao extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "prova_secao_id", nullable = false)
     private ProvaSecao provaSecao;
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "secao_disciplina_id")
-    private SecaoDisciplina secaoDisciplina;
 
     @Column(name = "numero_questao")
     private Integer numeroQuestao;

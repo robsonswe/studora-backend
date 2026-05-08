@@ -89,9 +89,22 @@ public interface QuestaoMapper {
                     sDto.setProvaNome(ps.getProva().getNome());
                     sDto.setProvaId(ps.getProva().getId());
                     sDto.setNumeroQuestao(qps.getNumeroQuestao());
-                    if (qps.getSecaoDisciplina() != null) {
-                        sDto.setDisciplinaEditalId(qps.getSecaoDisciplina().getId());
-                        sDto.setDisciplinaEditalNome(qps.getSecaoDisciplina().getNome());
+
+                    // Dynamically derive the disciplina based on the questao's principal subtema
+                    com.studora.entity.Subtema principalSubtema = qps.getQuestao().getQuestaoSubtemas().stream()
+                            .filter(com.studora.entity.QuestaoSubtema::getPrincipal)
+                            .map(com.studora.entity.QuestaoSubtema::getSubtema)
+                            .findFirst()
+                            .orElse(null);
+
+                    if (principalSubtema != null) {
+                        ps.getSecaoCargo().getDisciplinas().stream()
+                                .filter(sd -> sd.getSubtemas().contains(principalSubtema))
+                                .findFirst()
+                                .ifPresent(sd -> {
+                                    sDto.setDisciplinaEditalId(sd.getId());
+                                    sDto.setDisciplinaEditalNome(sd.getNome());
+                                });
                     }
                     
                     com.studora.entity.Cargo cargo = ps.getProva().getConcursoCargo().getCargo();

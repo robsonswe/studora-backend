@@ -140,7 +140,7 @@ class ConcursoCascadeDeletionTest {
 
         // 4. Create a Questao with Alternativas and Secao
         QuestaoCreateRequest qReq = new QuestaoCreateRequest();
-        qReq.setSecoes(List.of(new SecaoQuestaoRequest(secaoId, 1, null)));
+        qReq.setSecoes(List.of(new SecaoQuestaoRequest(secaoId, 1)));
         qReq.setEnunciado("Enunciado Test");
         qReq.setAnulada(false);
         qReq.setSubtemaIds(List.of(subtema.getId()));

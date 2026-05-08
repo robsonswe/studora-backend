@@ -18,7 +18,4 @@ public class SecaoQuestaoRequest {
 
     @Schema(description = "Número da questão na seção", example = "1")
     private Integer numeroQuestao;
-
-    @Schema(description = "ID da disciplina do edital", example = "1")
-    private Long disciplinaEditalId;
 }

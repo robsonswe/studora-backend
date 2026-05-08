@@ -207,11 +207,19 @@ public interface QuestaoRepository extends JpaRepository<Questao, Long>, JpaSpec
     @Query("SELECT DISTINCT q.id FROM Questao q " +
            "JOIN q.questaoSubtemas qs " +
            "JOIN q.secoes qps " +
+           "JOIN qps.provaSecao ps " +
+           "JOIN ps.secaoCargo sc " +
+           "JOIN sc.disciplinas sd " +
            "WHERE qs.principal = true " +
-           "AND qps.secaoDisciplina.id = :secaoDisciplinaId " +
+           "AND sd.id = :secaoDisciplinaId " +
            "AND qs.subtema.id NOT IN :subtemaIds")
     List<Long> findQuestionIdsWithInvalidPrincipalSubtema(@Param("secaoDisciplinaId") Long secaoDisciplinaId, @Param("subtemaIds") List<Long> subtemaIds);
 
-    @Query("SELECT COUNT(q) > 0 FROM Questao q JOIN q.secoes qps WHERE qps.secaoDisciplina.id = :secaoDisciplinaId")
+    @Query("SELECT COUNT(q) > 0 FROM Questao q " +
+           "JOIN q.secoes qps " +
+           "JOIN qps.provaSecao ps " +
+           "JOIN ps.secaoCargo sc " +
+           "JOIN sc.disciplinas sd " +
+           "WHERE sd.id = :secaoDisciplinaId")
     boolean existsBySecaoDisciplinaId(@Param("secaoDisciplinaId") Long secaoDisciplinaId);
 }

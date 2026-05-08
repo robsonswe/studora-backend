@@ -86,6 +86,7 @@ class QuestaoControllerTest {
     private Cargo cargo;
     private ConcursoCargo concursoCargo;
     private ProvaSecao savedSecao;
+    private SecaoCargo scDef;
 
     @BeforeEach
     void setUp() {
@@ -129,7 +130,7 @@ class QuestaoControllerTest {
         scDef.setConcursoCargo(concursoCargo);
         scDef.setNome("Seção Q Test");
         scDef.setPeso(1.0);
-        scDef = secaoCargoRepository.save(scDef);
+        this.scDef = secaoCargoRepository.save(scDef);
 
         savedSecao = new ProvaSecao();
         savedSecao.setProva(prova);
@@ -165,7 +166,7 @@ class QuestaoControllerTest {
 
         QuestaoCreateRequest questaoCreateRequest = new QuestaoCreateRequest();
         questaoCreateRequest.setEnunciado("Qual a capital do Brasil?");
-        questaoCreateRequest.setSecoes(List.of(new SecaoQuestaoRequest(savedSecao.getId(), 1, null)));
+        questaoCreateRequest.setSecoes(List.of(new SecaoQuestaoRequest(savedSecao.getId(), 1)));
         questaoCreateRequest.setSubtemaIds(Collections.singletonList(subtema.getId()));
         questaoCreateRequest.setPrincipalSubtemaId(subtema.getId());
         // Add alternativas to comply with validation
@@ -202,6 +203,53 @@ class QuestaoControllerTest {
                 .andExpect(jsonPath("$.subtemas[0].tema.nome").value(tema.getNome()))
                 .andExpect(jsonPath("$.subtemas[0].disciplina.id").value(disciplina.getId()))
                 .andExpect(jsonPath("$.subtemas[0].disciplina.nome").value(disciplina.getNome()));
+    }
+
+    @Test
+    void testCreateQuestao_WithDisciplinaEdital() throws Exception {
+        // Setup existing secao/disciplina (only needed for the setup, no need to pass ID anymore)
+        SecaoDisciplina sd = new SecaoDisciplina();
+        sd.setSecaoCargo(scDef); 
+        sd.setNome("Disciplina Edital Test");
+        sd.setPeso(1.0);
+        sd.setNumQuestoes(1);
+        sd.setNotaMinima(0.0);
+        
+        SecaoDisciplina savedSd = secaoDisciplinaRepository.save(sd);
+        // Associate subtema to pass validation
+        savedSd.getSubtemas().add(subtema);
+        secaoDisciplinaRepository.save(savedSd);
+        
+        entityManager.flush();
+        entityManager.clear();
+        
+        // ... (rest of the test)
+        QuestaoCreateRequest questaoCreateRequest = new QuestaoCreateRequest();
+        questaoCreateRequest.setEnunciado("Enunciado com disciplina edital");
+        // No disciplinaEditalId passed in request
+        questaoCreateRequest.setSecoes(List.of(new SecaoQuestaoRequest(savedSecao.getId(), 1)));
+        questaoCreateRequest.setSubtemaIds(Collections.singletonList(subtema.getId()));
+        questaoCreateRequest.setPrincipalSubtemaId(subtema.getId());
+        questaoCreateRequest.setAlternativas(Arrays.asList(
+            new AlternativaCreateRequest(1, "A", true),
+            new AlternativaCreateRequest(2, "B", false)
+        ));
+
+        mockMvc
+                .perform(post("/api/v1/questoes")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(TestUtil.asJsonString(questaoCreateRequest)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").isNumber())
+                .andDo(result -> {
+                    String json = result.getResponse().getContentAsString();
+                    Long createdId = new com.fasterxml.jackson.databind.ObjectMapper().readTree(json).get("id").asLong();
+                    
+                    mockMvc.perform(get("/api/v1/questoes/{id}", createdId).param("admin", "true"))
+                            .andExpect(status().isOk())
+                            .andExpect(jsonPath("$.concurso.cargos[0].secoes[0].disciplinaEditalId").value(1L))
+                            .andExpect(jsonPath("$.concurso.cargos[0].secoes[0].disciplinaEditalNome").value("Disciplina Edital Test"));
+                });
     }
 
     @Test
@@ -470,7 +518,7 @@ class QuestaoControllerTest {
 
         QuestaoUpdateRequest updatedRequest = new QuestaoUpdateRequest();
         updatedRequest.setEnunciado("New Enunciado");
-        updatedRequest.setSecoes(List.of(new SecaoQuestaoRequest(savedSecao.getId(), 1, null)));
+        updatedRequest.setSecoes(List.of(new SecaoQuestaoRequest(savedSecao.getId(), 1)));
         updatedRequest.setAnulada(true);
         updatedRequest.setSubtemaIds(Collections.singletonList(subtema.getId()));
         updatedRequest.setPrincipalSubtemaId(subtema.getId());

@@ -447,21 +447,6 @@ public class QuestaoService {
                 qps = new QuestaoProvaSecao();
                 qps.setProvaSecao(ps);
                 questao.addSecao(qps);
-            } else {
-                qps = currentMap.get(req.getSecaoId());
-            }
-
-            if (req.getDisciplinaEditalId() != null) {
-                com.studora.entity.SecaoDisciplina sd = secaoDisciplinaRepository.findById(req.getDisciplinaEditalId())
-                        .orElseThrow(() -> new ResourceNotFoundException("SecaoDisciplina", "ID", req.getDisciplinaEditalId()));
-                
-                // Validate that the discipline belongs to the section's definition
-                if (!sd.getSecaoCargo().getId().equals(qps.getProvaSecao().getSecaoCargo().getId())) {
-                    throw new com.studora.exception.ValidationException("A disciplina informada ('" + sd.getNome() + "') não pertence à definição da seção ('" + qps.getProvaSecao().getSecaoCargo().getNome() + "').");
-                }
-                qps.setSecaoDisciplina(sd);
-            } else {
-                qps.setSecaoDisciplina(null);
             }
         }
     }
@@ -595,27 +580,15 @@ public class QuestaoService {
                 ProvaSecao ps = provaSecaoRepository.findById(sReq.getSecaoId())
                         .orElseThrow(() -> new ResourceNotFoundException("ProvaSecao", "ID", sReq.getSecaoId()));
 
-                if (sReq.getDisciplinaEditalId() != null) {
-                    com.studora.entity.SecaoDisciplina sd = secaoDisciplinaRepository.findById(sReq.getDisciplinaEditalId())
-                            .orElseThrow(() -> new ResourceNotFoundException("SecaoDisciplina", "ID", sReq.getDisciplinaEditalId()));
-                    
-                    if (!sd.getSubtemas().contains(principal)) {
-                        throw new com.studora.exception.ValidationException(
-                            "O subtema principal '" + principal.getNome() + 
-                            "' não pertence à disciplina '" + sd.getNome() + 
-                            "' no edital desta seção.");
-                    }
-                } else {
-                    // Check if it belongs to ANY discipline of the section's definition
-                    com.studora.entity.SecaoCargo definition = ps.getSecaoCargo();
-                    boolean foundInDefinition = definition.getDisciplinas().stream()
-                            .anyMatch(sd -> sd.getSubtemas().contains(principal));
-                    
-                    if (!foundInDefinition) {
-                        throw new com.studora.exception.ValidationException(
-                            "O subtema principal '" + principal.getNome() + 
-                            "' não está previsto no edital para a seção '" + definition.getNome() + "'.");
-                    }
+                // Check if it belongs to ANY discipline of the section's definition
+                com.studora.entity.SecaoCargo definition = ps.getSecaoCargo();
+                boolean foundInDefinition = definition.getDisciplinas().stream()
+                        .anyMatch(sd -> sd.getSubtemas().contains(principal));
+                
+                if (!foundInDefinition) {
+                    throw new com.studora.exception.ValidationException(
+                        "O subtema principal '" + principal.getNome() + 
+                        "' não está previsto no edital para a seção '" + definition.getNome() + "'.");
                 }
             }
         }
