@@ -75,8 +75,28 @@ mvn clean package
 
 Para executar o JAR gerado:
 ```bash
-DB_URL=jdbc:postgresql://localhost:5432/studora DB_USERNAME=studora DB_PASSWORD=studora java -jar target/studora-<versao>.jar
+DB_URL=jdbc:postgresql://localhost:5433/studora DB_USERNAME=studora DB_PASSWORD=studora java -jar target/studora-<versao>.jar
 ```
+
+---
+
+## Observabilidade (Prometheus + Grafana)
+
+A aplicação expõe métricas Micrometer em `/actuator/prometheus` (JVM, HTTP, HikariCP, etc.).
+
+Para subir o stack completo de observação:
+
+```bash
+docker compose --profile observability up -d
+```
+
+* **Grafana**: `http://localhost:3000` (login padrão `admin`/`admin`, configurável via `GRAFANA_*` no `.env`)
+  * O datasource Prometheus e um dashboard de Spring Boot já vêm provisionados em `docker/grafana/`
+* **Prometheus** roda apenas na rede interna do compose, coletando métricas de duas origens:
+  * `studora-app:4534` — app rodando como serviço compose (`--profile app`)
+  * `host.docker.internal:4534` — app rodando da sua máquina via `mvn spring-boot:run`
+
+Não é necessário autenticar `/actuator/prometheus` localmente; se expor publicamente algum dia, proteja o endpoint antes.
 
 ---
 

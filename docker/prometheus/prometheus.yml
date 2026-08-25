@@ -1,0 +1,20 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  # App running as a compose service (--profile app)
+  - job_name: studora-docker
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["studora-app:4534"]
+
+  # App running from source on the host
+  - job_name: studora-host
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["host.docker.internal:4534"]
+
+  # Prometheus self-monitoring
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
