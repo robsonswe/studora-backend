@@ -37,7 +37,7 @@ public class Alternativa extends BaseEntity {
     @Schema(description = "Ordem da alternativa na lista", example = "1")
     private Integer ordem;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(nullable = false)
     @Schema(description = "Texto da alternativa", example = "A resposta correta é a opção A")
     private String texto;
 
@@ -45,7 +45,7 @@ public class Alternativa extends BaseEntity {
     @Schema(description = "Indica se a alternativa é a correta", example = "true")
     private Boolean correta;
 
-    @Column(columnDefinition = "TEXT")
+    @Column
     @Schema(description = "Justificativa da alternativa", example = "Esta é a alternativa correta porque...")
     private String justificativa;
 

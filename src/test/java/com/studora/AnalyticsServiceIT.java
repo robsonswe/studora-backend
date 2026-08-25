@@ -248,12 +248,8 @@ class AnalyticsServiceIT {
         r = respostaRepository.save(r);
         
         // Bypassing JPA Auditing to set past dates
-        // Using the converter to match how SQLite stores it
-        com.studora.entity.LocalDateTimeConverter converter = new com.studora.entity.LocalDateTimeConverter();
-        String dateStr = converter.convertToDatabaseColumn(when);
-        
-        jdbcTemplate.update("UPDATE resposta SET created_at = ?, updated_at = ? WHERE id = ?", 
-            dateStr, dateStr, r.getId());
+        jdbcTemplate.update("UPDATE resposta SET created_at = ?, updated_at = ? WHERE id = ?",
+            when, when, r.getId());
         
         entityManager.flush();
         entityManager.clear();

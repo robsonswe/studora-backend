@@ -249,13 +249,13 @@ Concurso conc = new Concurso(inst, savedBanca, 2023, 1);
     void testListSimulados_IncludesFilters() throws Exception {
         Simulado simulado = new Simulado();
         simulado.setNome("List Test");
-        simulado.setBancaId(1L);
+        simulado.setBancaId(savedBanca.getId());
         simuladoRepository.save(simulado);
 
         mockMvc.perform(get("/api/v1/simulados"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].nome").value("List Test"))
-                .andExpect(jsonPath("$.content[0].banca.id").value(1))
+                .andExpect(jsonPath("$.content[0].banca.id").value(savedBanca.getId()))
                 .andExpect(jsonPath("$.content[0].questoes").doesNotExist());
     }
 

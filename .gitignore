@@ -8,6 +8,7 @@ temp/
 *.db-wal
 *.db-shm
 *.sqlite3
+.env
 
 ### STS ###
 .apt_generated

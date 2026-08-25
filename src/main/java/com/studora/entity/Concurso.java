@@ -70,7 +70,7 @@ public class Concurso extends BaseEntity {
     @Schema(description = "Mês em que o concurso foi realizado", example = "6")
     private Integer mes;
 
-    @Column(columnDefinition = "TEXT")
+    @Column
     @Schema(description = "Identificação do edital do concurso", example = "Edital 01/2023")
     private String edital;
 

@@ -34,19 +34,19 @@ public class Questao extends BaseEntity {
     @Schema(description = "ID único da questão", example = "1")
     private Long id;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(nullable = false)
     @Schema(description = "Texto do enunciado da questão", example = "Qual é a capital do Brasil?")
     private String enunciado;
 
-    @Column(nullable = false, columnDefinition = "INTEGER")
+    @Column(nullable = false)
     @Schema(description = "Indica se a questão foi anulada", example = "false", defaultValue = "false")
     private Boolean anulada = false;
 
-    @Column(nullable = false, columnDefinition = "INTEGER")
+    @Column(nullable = false)
     @Schema(description = "Indica se a questão é autoral (independente de concurso/cargo)", example = "false", defaultValue = "false")
     private Boolean autoral = false;
 
-    @Column(name = "image_url", columnDefinition = "TEXT")
+    @Column(name = "image_url")
     @Schema(description = "URL da imagem associada à questão", example = "https://exemplo.com/imagem.jpg")
     private String imageUrl;
 
@@ -59,7 +59,7 @@ public class Questao extends BaseEntity {
     @Schema(description = "Alternativas associadas à questão")
     private Set<Alternativa> alternativas = new LinkedHashSet<>();
 
-    @Column(nullable = false, columnDefinition = "INTEGER")
+    @Column(nullable = false)
     @Schema(description = "Indica se a questão está desatualizada", example = "false", defaultValue = "false")
     private Boolean desatualizada = false;
 

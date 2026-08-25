@@ -1,1 +1,0 @@
-ALTER TABLE concurso ADD COLUMN data_prova DATETIME;

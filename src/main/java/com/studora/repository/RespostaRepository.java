@@ -241,7 +241,7 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
         SELECT s.id AS object_id,
                COALESCE(r.dificuldade_id, 2) AS diff_val,
                COUNT(r.id) AS total_ans,
-               SUM(CASE WHEN a.correta = 1 THEN 1 ELSE 0 END) AS total_corr
+               SUM(CASE WHEN a.correta = true THEN 1 ELSE 0 END) AS total_corr
         FROM (
             SELECT id, questao_id, alternativa_id, dificuldade_id, created_at,
                    ROW_NUMBER() OVER(PARTITION BY questao_id ORDER BY created_at DESC) as rn
@@ -357,7 +357,7 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
         SELECT s.id AS object_id,
                COALESCE(r.dificuldade_id, 2) AS diff_val,
                COUNT(r.id) AS total_ans,
-               SUM(CASE WHEN a.correta = 1 THEN 1 ELSE 0 END) AS total_corr
+               SUM(CASE WHEN a.correta = true THEN 1 ELSE 0 END) AS total_corr
         FROM (
             SELECT id, questao_id, alternativa_id, dificuldade_id,
                    ROW_NUMBER() OVER(PARTITION BY questao_id ORDER BY created_at DESC) as rn
@@ -367,7 +367,7 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
         JOIN questao_subtema qs ON q.id = qs.questao_id
         JOIN subtema s ON qs.subtema_id = s.id
         JOIN alternativa a ON r.alternativa_id = a.id
-        WHERE q.autoral = 1 AND s.id IN (:ids) AND r.rn = 1
+        WHERE q.autoral = true AND s.id IN (:ids) AND r.rn = 1
         GROUP BY s.id, COALESCE(r.dificuldade_id, 2)
     """, nativeQuery = true)
     List<Object[]> getDificuldadeStatsBySubtemaIdsAutoral(@Param("ids") List<Long> ids);
@@ -376,7 +376,7 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
         SELECT t.id AS object_id,
                COALESCE(r.dificuldade_id, 2) AS diff_val,
                COUNT(r.id) AS total_ans,
-               SUM(CASE WHEN a.correta = 1 THEN 1 ELSE 0 END) AS total_corr
+               SUM(CASE WHEN a.correta = true THEN 1 ELSE 0 END) AS total_corr
         FROM (
             SELECT id, questao_id, alternativa_id, dificuldade_id,
                    ROW_NUMBER() OVER(PARTITION BY questao_id ORDER BY created_at DESC) as rn
@@ -387,7 +387,7 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
         JOIN subtema s ON qs.subtema_id = s.id
         JOIN tema t ON s.tema_id = t.id
         JOIN alternativa a ON r.alternativa_id = a.id
-        WHERE q.autoral = 1 AND t.id IN (:ids) AND r.rn = 1
+        WHERE q.autoral = true AND t.id IN (:ids) AND r.rn = 1
         GROUP BY t.id, COALESCE(r.dificuldade_id, 2)
     """, nativeQuery = true)
     List<Object[]> getDificuldadeStatsByTemaIdsAutoral(@Param("ids") List<Long> ids);
@@ -396,7 +396,7 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
         SELECT d.id AS object_id,
                COALESCE(r.dificuldade_id, 2) AS diff_val,
                COUNT(r.id) AS total_ans,
-               SUM(CASE WHEN a.correta = 1 THEN 1 ELSE 0 END) AS total_corr
+               SUM(CASE WHEN a.correta = true THEN 1 ELSE 0 END) AS total_corr
         FROM (
             SELECT id, questao_id, alternativa_id, dificuldade_id,
                    ROW_NUMBER() OVER(PARTITION BY questao_id ORDER BY created_at DESC) as rn
@@ -408,7 +408,7 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
         JOIN tema t ON s.tema_id = t.id
         JOIN disciplina d ON t.disciplina_id = d.id
         JOIN alternativa a ON r.alternativa_id = a.id
-        WHERE q.autoral = 1 AND d.id IN (:ids) AND r.rn = 1
+        WHERE q.autoral = true AND d.id IN (:ids) AND r.rn = 1
         GROUP BY d.id, COALESCE(r.dificuldade_id, 2)
     """, nativeQuery = true)
     List<Object[]> getDificuldadeStatsByDisciplinaIdsAutoral(@Param("ids") List<Long> ids);
@@ -418,7 +418,7 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
         SELECT s.id AS object_id,
                COALESCE(r.dificuldade_id, 2) AS diff_val,
                COUNT(r.id) AS total_ans,
-               SUM(CASE WHEN a.correta = 1 THEN 1 ELSE 0 END) AS total_corr
+               SUM(CASE WHEN a.correta = true THEN 1 ELSE 0 END) AS total_corr
         FROM (
             SELECT id, questao_id, alternativa_id, dificuldade_id,
                    ROW_NUMBER() OVER(PARTITION BY questao_id ORDER BY created_at DESC) as rn
@@ -437,7 +437,7 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
         SELECT t.id AS object_id,
                COALESCE(r.dificuldade_id, 2) AS diff_val,
                COUNT(r.id) AS total_ans,
-               SUM(CASE WHEN a.correta = 1 THEN 1 ELSE 0 END) AS total_corr
+               SUM(CASE WHEN a.correta = true THEN 1 ELSE 0 END) AS total_corr
         FROM (
             SELECT id, questao_id, alternativa_id, dificuldade_id,
                    ROW_NUMBER() OVER(PARTITION BY questao_id ORDER BY created_at DESC) as rn
@@ -457,7 +457,7 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
         SELECT t.disciplina_id AS object_id,
                COALESCE(r.dificuldade_id, 2) AS diff_val,
                COUNT(r.id) AS total_ans,
-               SUM(CASE WHEN a.correta = 1 THEN 1 ELSE 0 END) AS total_corr
+               SUM(CASE WHEN a.correta = true THEN 1 ELSE 0 END) AS total_corr
         FROM (
             SELECT id, questao_id, alternativa_id, dificuldade_id,
                    ROW_NUMBER() OVER(PARTITION BY questao_id ORDER BY created_at DESC) as rn
@@ -477,7 +477,7 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
         SELECT c.banca_id AS object_id,
                COALESCE(r.dificuldade_id, 2) AS diff_val,
                COUNT(r.id) AS total_ans,
-               SUM(CASE WHEN a.correta = 1 THEN 1 ELSE 0 END) AS total_corr
+               SUM(CASE WHEN a.correta = true THEN 1 ELSE 0 END) AS total_corr
         FROM (
             SELECT id, questao_id, alternativa_id, dificuldade_id,
                    ROW_NUMBER() OVER(PARTITION BY questao_id ORDER BY created_at DESC) as rn
@@ -495,7 +495,7 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
         SELECT c.instituicao_id AS object_id,
                COALESCE(r.dificuldade_id, 2) AS diff_val,
                COUNT(r.id) AS total_ans,
-               SUM(CASE WHEN a.correta = 1 THEN 1 ELSE 0 END) AS total_corr
+               SUM(CASE WHEN a.correta = true THEN 1 ELSE 0 END) AS total_corr
         FROM (
             SELECT id, questao_id, alternativa_id, dificuldade_id,
                    ROW_NUMBER() OVER(PARTITION BY questao_id ORDER BY created_at DESC) as rn
@@ -513,7 +513,7 @@ public interface RespostaRepository extends JpaRepository<Resposta, Long> {
         SELECT cc.cargo_id AS object_id,
                COALESCE(r.dificuldade_id, 2) AS diff_val,
                COUNT(r.id) AS total_ans,
-               SUM(CASE WHEN a.correta = 1 THEN 1 ELSE 0 END) AS total_corr
+               SUM(CASE WHEN a.correta = true THEN 1 ELSE 0 END) AS total_corr
         FROM (
             SELECT id, questao_id, alternativa_id, dificuldade_id,
                    ROW_NUMBER() OVER(PARTITION BY questao_id ORDER BY created_at DESC) as rn

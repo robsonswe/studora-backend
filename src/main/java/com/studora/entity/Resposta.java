@@ -36,7 +36,7 @@ public class Resposta extends BaseEntity {
     @Schema(description = "Alternativa escolhida como resposta")
     private Alternativa alternativaEscolhida;
 
-    @Column(columnDefinition = "TEXT")
+    @Column
     @Schema(description = "Raciocínio ou comentário do usuário para esta tentativa", example = "Achei que era a B por causa de...")
     private String justificativa;
 

@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:17
+    container_name: studora-db
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-studora}
+      POSTGRES_USER: ${POSTGRES_USER:-studora}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-studora}
+    ports:
+      - "${DB_HOST_PORT:-5433}:5432"
+    volumes:
+      - studora-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-studora} -d ${POSTGRES_DB:-studora}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    profiles: ["app"]
+    build: .
+    container_name: studora-app
+    restart: unless-stopped
+    init: true
+    depends_on:
+      db:
+        condition: service_healthy
+    # Hardening: immutable root filesystem, no capability set, no privilege escalation
+    read_only: true
+    cap_drop: ["ALL"]
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=256m,mode=1777
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-studora}
+      DB_USERNAME: ${POSTGRES_USER:-studora}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-studora}
+    ports:
+      - "${APP_HOST_PORT:-4534}:4534"
+
+volumes:
+  studora-pgdata:

@@ -10,7 +10,7 @@ O projeto é guiado por uma abordagem **content-first**: correção, estrutura e
 
 * **Linguagem**: Java 17+
 * **Framework**: Spring Boot 3.x
-* **Banco de Dados**: SQLite
+* **Banco de Dados**: PostgreSQL 17 (testes usam Testcontainers)
 * **Build Tool**: Maven
 * **Arquitetura**: REST API com padrão MVC
 
@@ -22,6 +22,7 @@ O projeto é guiado por uma abordagem **content-first**: correção, estrutura e
 
 * Java 17 ou superior
 * Maven 3.6 ou superior
+* Docker (para o banco PostgreSQL e para os testes)
 
 ### Execução Local
 
@@ -31,12 +32,39 @@ O projeto é guiado por uma abordagem **content-first**: correção, estrutura e
    cd studora-back
    ```
 
-2. Compile e execute o projeto:
+2. Suba o banco de dados e configure as variáveis de ambiente:
+   ```bash
+   cp .env.example .env  # ajuste se necessário
+   docker compose up -d db
+   ```
+   
+   A aplicação lê a conexão exclusivamente das variáveis `DB_URL`, `DB_USERNAME` e `DB_PASSWORD` — nada é fixado em código ou properties.
+
+3. Compile e execute o projeto:
    ```bash
    mvn spring-boot:run
    ```
 
-3. A aplicação estará disponível em: `http://localhost:4534`
+4. A aplicação estará disponível em: `http://localhost:4534`
+
+### Executando com Docker
+
+Para subir banco + aplicação juntos:
+
+```bash
+docker compose --profile app up --build
+```
+
+Ou apenas construa a imagem da aplicação:
+
+```bash
+docker build -t studora .
+docker run --rm -p 4534:4534 \
+  -e DB_URL=jdbc:postgresql://host.docker.internal:5432/studora \
+  -e DB_USERNAME=studora \
+  -e DB_PASSWORD=studora \
+  studora
+```
 
 ### Build do Projeto
 
@@ -47,7 +75,7 @@ mvn clean package
 
 Para executar o JAR gerado:
 ```bash
-java -jar target/studora-<versao>.jar
+DB_URL=jdbc:postgresql://localhost:5432/studora DB_USERNAME=studora DB_PASSWORD=studora java -jar target/studora-<versao>.jar
 ```
 
 ---
@@ -100,12 +128,10 @@ Ideias-chave:
 
 ## Banco de Dados
 
-* Banco atual: **SQLite** (simples, portátil e suficiente para as fases iniciais)
-* Schema definido em `src/main/resources/db/schema.sql`
-* Arquivo de banco de dados localizado em `db/studora.db`
-* Chaves estrangeiras habilitadas explicitamente
-
-O schema é propositalmente conservador e evita restrições prematuras.
+* Banco: **PostgreSQL** (via Docker Compose para desenvolvimento)
+* Schema gerenciado pelo **Flyway** (`src/main/resources/db/migration`)
+* Testes de integração rodam contra um PostgreSQL efêmero via **Testcontainers**
+* Busca case/accent-insensitive suportada por colunas `*_normalized` mantidas pela aplicação
 
 ---
 
@@ -125,7 +151,7 @@ Esses pontos poderão ser avaliados no futuro, se fizerem sentido.
 * API REST funcional para gerenciamento de questões, alternativas e taxonomia
 * Estrutura de banco de dados estável com relacionamentos bem definidos
 * Camadas de controller, service e repository implementadas
-* Configuração de banco de dados SQLite funcional
+* Persistência em PostgreSQL com migrações Flyway
 * Endpoint de health check disponível
 
 ---

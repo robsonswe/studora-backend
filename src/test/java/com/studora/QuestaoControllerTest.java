@@ -87,6 +87,7 @@ class QuestaoControllerTest {
     private ConcursoCargo concursoCargo;
     private ProvaSecao savedSecao;
     private SecaoCargo scDef;
+    private SecaoDisciplina savedSecaoDisciplina;
 
     @BeforeEach
     void setUp() {
@@ -144,7 +145,7 @@ class QuestaoControllerTest {
         sd.setSecaoCargo(scDef);
         sd.setNome("Disciplina Edital Test");
         sd.getSubtemas().add(subtema);
-        secaoDisciplinaRepository.save(sd);
+        this.savedSecaoDisciplina = secaoDisciplinaRepository.save(sd);
         entityManager.flush();
         entityManager.clear();
     }
@@ -233,7 +234,7 @@ class QuestaoControllerTest {
                     
                     mockMvc.perform(get("/api/v1/questoes/{id}", createdId).param("admin", "true"))
                             .andExpect(status().isOk())
-                            .andExpect(jsonPath("$.concurso.cargos[0].secoes[0].disciplinaEditalId").value(1L))
+                            .andExpect(jsonPath("$.concurso.cargos[0].secoes[0].disciplinaEditalId").value(savedSecaoDisciplina.getId()))
                             .andExpect(jsonPath("$.concurso.cargos[0].secoes[0].disciplinaEditalNome").value("Disciplina Edital Test"));
                 });
     }

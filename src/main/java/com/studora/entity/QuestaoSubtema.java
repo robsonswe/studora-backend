@@ -38,7 +38,7 @@ public class QuestaoSubtema {
     @JoinColumn(name = "subtema_id", nullable = false)
     private Subtema subtema;
 
-    @Column(nullable = false, columnDefinition = "INTEGER DEFAULT 0")
+    @Column(nullable = false)
     @Schema(description = "Indica se este é o subtema principal da questão para fins de vinculação ao edital", example = "true")
     private Boolean principal = false;
 

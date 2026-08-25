@@ -22,74 +22,60 @@ public class QuestaoRepositoryImpl implements QuestaoRepositoryCustom {
 
     @Override
     public List<Long> findIdsBySubtemaWithPreferences(Long subtemaId, SimuladoGenerationRequest request, List<Long> excludeIds, Pageable pageable) {
-        String scopeJoin = "JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s";
-        String scopeWhere = "s.id = :scopeId";
-        return executeQuery(scopeJoin, scopeWhere, subtemaId, null, null, request, excludeIds, pageable);
+        String scopeExists = "EXISTS (SELECT 1 FROM q.questaoSubtemas qs_s JOIN qs_s.subtema s WHERE s.id = :scopeId)";
+        return executeQuery(scopeExists, subtemaId, null, null, request, excludeIds, pageable);
     }
 
     @Override
     public List<Long> findIdsByTemaWithPreferences(Long temaId, List<Long> avoidSubtemaIds, SimuladoGenerationRequest request, List<Long> excludeIds, Pageable pageable) {
-        String scopeJoin = "JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN s.tema t";
-        String scopeWhere = "t.id = :scopeId";
-        
-        // Handling avoidSubtemaIds in WHERE
-        String extraWhere = null;
+        String scopeExists = "EXISTS (SELECT 1 FROM q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN s.tema t WHERE t.id = :scopeId)";
+
+        // Handling avoidSubtemaIds in the scope subquery
         if (avoidSubtemaIds != null && !avoidSubtemaIds.isEmpty() && !avoidSubtemaIds.contains(-1L)) {
-            extraWhere = "s.id NOT IN :avoidSubtemaIds";
+            scopeExists += " AND s.id NOT IN :avoidSubtemaIds";
         }
 
-        return executeQuery(scopeJoin, scopeWhere, temaId, extraWhere, avoidSubtemaIds, request, excludeIds, pageable);
+        return executeQuery(scopeExists, temaId, null, avoidSubtemaIds, request, excludeIds, pageable);
     }
 
     @Override
     public List<Long> findIdsByDisciplinaWithPreferences(Long disciplinaId, List<Long> avoidTemaIds, List<Long> avoidSubtemaIds, SimuladoGenerationRequest request, List<Long> excludeIds, Pageable pageable) {
-        String scopeJoin = "JOIN q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN s.tema t JOIN t.disciplina d";
-        String scopeWhere = "d.id = :scopeId";
-        
-        StringBuilder extraWhere = new StringBuilder();
-        List<Object> extraParams = new ArrayList<>();
-        
+        StringBuilder scopeExists = new StringBuilder(
+            "EXISTS (SELECT 1 FROM q.questaoSubtemas qs_s JOIN qs_s.subtema s JOIN s.tema t JOIN t.disciplina d WHERE d.id = :scopeId");
+
         boolean hasAvoidTemas = avoidTemaIds != null && !avoidTemaIds.isEmpty() && !avoidTemaIds.contains(-1L);
         boolean hasAvoidSubtemas = avoidSubtemaIds != null && !avoidSubtemaIds.isEmpty() && !avoidSubtemaIds.contains(-1L);
 
         if (hasAvoidTemas) {
-            extraWhere.append("t.id NOT IN :avoidTemaIds");
+            scopeExists.append(" AND t.id NOT IN :avoidTemaIds");
         }
         if (hasAvoidSubtemas) {
-            if (extraWhere.length() > 0) extraWhere.append(" AND ");
-            extraWhere.append("s.id NOT IN :avoidSubtemaIds");
+            scopeExists.append(" AND s.id NOT IN :avoidSubtemaIds");
         }
+        scopeExists.append(")");
 
-        return executeQuery(scopeJoin, scopeWhere, disciplinaId, extraWhere.length() > 0 ? extraWhere.toString() : null, null, request, excludeIds, pageable, avoidTemaIds, avoidSubtemaIds);
+        return executeQuery(scopeExists.toString(), disciplinaId,
+                hasAvoidTemas ? avoidTemaIds : null,
+                hasAvoidSubtemas ? avoidSubtemaIds : null,
+                request, excludeIds, pageable);
     }
 
-    private List<Long> executeQuery(String scopeJoin, String scopeWhere, Long scopeId, 
-                                   String extraWhere, List<Long> avoidSubtemaIdsForTema,
+    private List<Long> executeQuery(String scopeExists, Long scopeId,
+                                   List<Long> avoidTemaIds, List<Long> avoidSubtemaIds,
                                    SimuladoGenerationRequest req, List<Long> excludeIds, Pageable pageable) {
-        return executeQuery(scopeJoin, scopeWhere, scopeId, extraWhere, avoidSubtemaIdsForTema, req, excludeIds, pageable, null, null);
-    }
-
-    private List<Long> executeQuery(String scopeJoin, String scopeWhere, Long scopeId, 
-                                   String extraWhere, List<Long> avoidSubtemaIdsForTema,
-                                   SimuladoGenerationRequest req, List<Long> excludeIds, Pageable pageable,
-                                   List<Long> avoidTemaIds, List<Long> avoidSubtemaIdsForDisc) {
-        
-        StringBuilder hql = new StringBuilder("SELECT DISTINCT q.id FROM Questao q ");
-        hql.append("LEFT JOIN q.secoes qs LEFT JOIN qs.provaSecao ps LEFT JOIN ps.prova prova LEFT JOIN prova.concurso c LEFT JOIN c.banca b LEFT JOIN c.instituicao i ");
-        hql.append(scopeJoin).append(" ");
+        // Top-level joins over to-many associations are avoided on purpose:
+        // they multiply rows and force DISTINCT, which PostgreSQL rejects with
+        // ORDER BY expressions outside the SELECT list.
+        StringBuilder hql = new StringBuilder("SELECT q.id FROM Questao q ");
 
         // WHERE Clauses
         List<String> whereClauses = new ArrayList<>();
         whereClauses.add("q.anulada = false");
         whereClauses.add("q.desatualizada = false");
-        whereClauses.add(scopeWhere);
+        whereClauses.add(scopeExists);
 
         if (excludeIds != null && !excludeIds.isEmpty() && !excludeIds.contains(-1L)) {
             whereClauses.add("q.id NOT IN :excludeIds");
-        }
-
-        if (extraWhere != null) {
-            whereClauses.add(extraWhere);
         }
 
         // Ignorar Respondidas
@@ -122,7 +108,7 @@ public class QuestaoRepositoryImpl implements QuestaoRepositoryCustom {
 
         // Banca Preference
         if (req.getBancaId() != null) {
-            orderBy.append(" + CASE WHEN b.id = :bancaId THEN 1000 ELSE 0 END");
+            orderBy.append(" + CASE WHEN EXISTS (SELECT 1 FROM q.secoes qsBanco JOIN qsBanco.provaSecao psBanco JOIN psBanco.prova provaBanco WHERE provaBanco.concurso.banca.id = :bancaId) THEN 1000 ELSE 0 END");
         }
 
         // Cargo Preference
@@ -132,7 +118,9 @@ public class QuestaoRepositoryImpl implements QuestaoRepositoryCustom {
 
         // Area Preference
         if (req.getAreas() != null && !req.getAreas().isEmpty()) {
-            orderBy.append(" + CASE WHEN (lower(i.area) IN :areasLower OR EXISTS (SELECT 1 FROM q.secoes qsArea JOIN qsArea.provaSecao psArea JOIN psArea.prova provaArea JOIN provaArea.concursoCargo ccArea JOIN ccArea.cargo cargoArea WHERE lower(cargoArea.area) IN :areasLower)) THEN 100 ELSE 0 END");
+            orderBy.append(" + CASE WHEN EXISTS (SELECT 1 FROM q.secoes qsArea JOIN qsArea.provaSecao psArea JOIN psArea.prova provaArea JOIN provaArea.concurso concursoArea JOIN concursoArea.instituicao instituicaoArea WHERE lower(instituicaoArea.area) IN :areasLower)")
+                   .append(" OR EXISTS (SELECT 1 FROM q.secoes qsArea2 JOIN qsArea2.provaSecao psArea2 JOIN psArea2.prova provaArea2 JOIN provaArea2.concursoCargo ccArea2 JOIN ccArea2.cargo cargoArea2 WHERE lower(cargoArea2.area) IN :areasLower)")
+                   .append(" THEN 100 ELSE 0 END");
         }
 
         // Nivel Priority
@@ -151,19 +139,16 @@ public class QuestaoRepositoryImpl implements QuestaoRepositoryCustom {
         if (hql.indexOf(":threshold") != -1) {
             query.setParameter("threshold", threshold);
         }
-        
+
         if (excludeIds != null && !excludeIds.isEmpty() && !excludeIds.contains(-1L)) {
             query.setParameter("excludeIds", excludeIds);
-        }
-        if (avoidSubtemaIdsForTema != null && !avoidSubtemaIdsForTema.isEmpty() && !avoidSubtemaIdsForTema.contains(-1L)) {
-            query.setParameter("avoidSubtemaIds", avoidSubtemaIdsForTema);
         }
         if (avoidTemaIds != null && !avoidTemaIds.isEmpty() && !avoidTemaIds.contains(-1L)) {
             query.setParameter("avoidTemaIds", avoidTemaIds);
         }
-        if (avoidSubtemaIdsForDisc != null && !avoidSubtemaIdsForDisc.isEmpty() && !avoidSubtemaIdsForDisc.contains(-1L)) {
-            query.setParameter("avoidSubtemaIds", avoidSubtemaIdsForDisc);
-        } // Fix: Used generic param name in query building, need to match logic
+        if (avoidSubtemaIds != null && !avoidSubtemaIds.isEmpty() && !avoidSubtemaIds.contains(-1L)) {
+            query.setParameter("avoidSubtemaIds", avoidSubtemaIds);
+        }
 
         if (req.getBancaId() != null) {
             query.setParameter("bancaId", req.getBancaId());
@@ -176,7 +161,7 @@ public class QuestaoRepositoryImpl implements QuestaoRepositoryCustom {
         }
 
         query.setMaxResults(pageable.getPageSize());
-        
+
         return query.getResultList();
     }
 }
