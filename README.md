@@ -175,7 +175,7 @@ mvn spring-boot:run
 ### Executando com Docker (banco + app)
 
 ```bash
-docker compose --profile app up --build
+docker compose up --build
 # API em http://localhost:4534 (ou ${APP_HOST_PORT})
 ```
 
